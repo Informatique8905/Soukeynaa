@@ -1,0 +1,46 @@
+import { NextResponse } from "next/server";
+import { getPrisma } from "@/lib/db";
+import { restituerStockCommande } from "@/lib/stock";
+
+// Tâche planifiée (CDC 5.8, 10.11) : commandes dont la réservation de stock
+// a expiré sans paiement → stock restitué, commande annulée, tentative expirée.
+// À appeler périodiquement (cron Vercel / planificateur VPS) avec :
+//   Authorization: Bearer $CRON_SECRET
+export async function GET(req: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ erreur: "Non autorisé" }, { status: 401 });
+  }
+
+  const prisma = getPrisma();
+  const expirees = await prisma.order.findMany({
+    where: {
+      statut: "en_attente_paiement",
+      statutPaiement: { in: ["en_attente", "a_verifier"] },
+      reservationExpireLe: { lt: new Date() },
+    },
+    select: { id: true, reference: true },
+  });
+
+  const traitees: string[] = [];
+  for (const c of expirees) {
+    await prisma.$transaction(async (tx) => {
+      // Transition conditionnelle : si déjà traitée entre-temps, on saute
+      const r = await tx.order.updateMany({
+        where: { id: c.id, statut: "en_attente_paiement" },
+        data: { statut: "annulee", statutPaiement: "expire" },
+      });
+      if (r.count === 0) return;
+      await restituerStockCommande(tx, c.id);
+      await tx.payment.updateMany({
+        where: {
+          commandeId: c.id,
+          statut: { in: ["en_attente", "a_verifier"] },
+        },
+        data: { statut: "expire" },
+      });
+    });
+    traitees.push(c.reference);
+  }
+  return NextResponse.json({ ok: true, liberees: traitees });
+}

@@ -1,0 +1,463 @@
+// Schéma PostgreSQL — Boutique SOUKEYNA
+// Traduction du document de conception (docs/conception-base-de-donnees.md)
+// Montants en entiers FCFA — timestamps UTC
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ===== Enums (CDC : statuts figés) =====
+
+enum Role {
+  client
+  admin
+}
+
+enum Univers {
+  enfants
+  hommes
+  femmes
+  accessoires
+}
+
+enum StatutProduit {
+  publie
+  brouillon
+  desactive
+}
+
+enum StatutCommande {
+  en_attente_paiement
+  payee
+  en_preparation
+  expediee
+  livree
+  annulee
+}
+
+enum StatutPaiement {
+  en_attente
+  confirme
+  echoue
+  annule
+  expire
+  a_verifier
+}
+
+// Mode de règlement choisi au checkout : en ligne (Jèko) ou à la livraison
+enum ModePaiement {
+  en_ligne
+  livraison
+}
+
+enum MoyenPaiement {
+  wave
+  orange_money
+  mtn_momo
+  moov_money
+  carte
+}
+
+enum TypePromotion {
+  pourcentage
+  montant
+}
+
+enum PorteePromotion {
+  produits
+  categories
+}
+
+enum TypeNotification {
+  bon_commande
+  delai_livraison
+  expediee
+  livree
+  annulation
+  alerte_admin_commande
+  alerte_admin_anomalie
+  rapport
+}
+
+enum StatutNotification {
+  en_file
+  envoye
+  erreur
+}
+
+enum TypeRapport {
+  ventes
+  produits
+  stock
+  livraisons
+  paiements
+  promotions
+}
+
+enum Granularite {
+  jour
+  semaine
+  mois
+  perso
+}
+
+// ===== Utilisateurs (CDC 8, 14) =====
+
+model User {
+  id              Int       @id @default(autoincrement())
+  nom             String
+  email           String    @unique
+  telephone       String?
+  motDePasseHash  String
+  role            Role      @default(client)
+  // Adresses enregistrées : [{ communeId, detail }] (CDC 8.5)
+  adresses        Json      @default("[]")
+  // Blocage temporaire après échecs de connexion (CDC 14.2)
+  tentativesEchec Int       @default(0)
+  bloqueJusqua    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  commandes Order[]
+  auditLogs AuditLog[]
+  cart      Cart?
+
+  @@index([role])
+  @@map("users")
+}
+
+// ===== Catalogue (CDC 4, 5) =====
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  nom      String
+  slug     String    @unique
+  univers  Univers
+  // Arbre auto-référencé : null = racine, max 2 niveaux (contrôle applicatif, CDC 4.6)
+  parentId Int?
+  parent   Category? @relation("ArbreCategories", fields: [parentId], references: [id])
+  enfants  Category[] @relation("ArbreCategories")
+  ordre    Int       @default(0)
+  active   Boolean   @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  produits Product[]
+
+  @@index([univers, parentId, ordre])
+  @@map("categories")
+}
+
+model Product {
+  id            Int           @id @default(autoincrement())
+  nom           String
+  slug          String        @unique
+  description   String        @default("")
+  prix          Int // FCFA entier
+  prixReduit    Int? // CDC 6.1
+  categorieId   Int
+  categorie     Category      @relation(fields: [categorieId], references: [id])
+  univers       Univers // dénormalisé pour rapports/filtres
+  // Images Cloudinary : [{ publicId, url, alt, ordre }] (décision D3)
+  images        Json          @default("[]")
+  aVariantes    Boolean       @default(false)
+  variantes     ProductVariant[]
+  stock         Int           @default(0) // si aVariantes = false
+  poids         Int? // informatif (CDC 5.5)
+  caracteristiques Json       @default("{}")
+  statut        StatutProduit @default(brouillon)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  lignesCommande OrderLine[]
+  lignesPanier   CartItem[]
+
+  @@index([categorieId, statut])
+  @@index([statut, createdAt(sort: Desc)])
+  @@index([univers])
+  @@map("products")
+}
+
+// Stock par combinaison taille/couleur (CDC 5.4)
+model ProductVariant {
+  id         Int     @id @default(autoincrement())
+  produitId  Int
+  produit    Product @relation(fields: [produitId], references: [id], onDelete: Cascade)
+  taille     String?
+  couleur    String?
+  sku        String? @unique
+  stock      Int     @default(0)
+  prixReduit Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  lignesCommande OrderLine[]
+  lignesPanier   CartItem[]
+
+  @@index([produitId])
+  @@map("product_variants")
+}
+
+// ===== Livraison (CDC 11) =====
+
+model Commune {
+  id              Int      @id @default(autoincrement())
+  nom             String   @unique
+  quartiersInclus String   @default("")
+  tarif           Int // FCFA — géré en base (CDC 11.4)
+  active          Boolean  @default(true)
+  ordre           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  commandes Order[]
+
+  @@index([active, ordre])
+  @@map("communes")
+}
+
+// ===== Panier serveur (décision D6) =====
+// NB : pas de TTL natif en Postgres — purge par tâche planifiée
+// (DELETE WHERE updatedAt < now() - 30 jours)
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  cartId    String?  @unique // cookie invité
+  userId    Int?     @unique
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+  @@map("carts")
+}
+
+model CartItem {
+  id         Int             @id @default(autoincrement())
+  cartId     Int
+  cart       Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  produitId  Int
+  produit    Product         @relation(fields: [produitId], references: [id])
+  // Pas de prix stocké : recalcul serveur (CDC 6.6)
+  varianteId Int?
+  variante   ProductVariant? @relation(fields: [varianteId], references: [id])
+  quantite   Int
+
+  @@unique([cartId, produitId, varianteId])
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+// ===== Références atomiques (décision D7) =====
+
+model Counter {
+  cle    String @id // ex. "commande_2026"
+  valeur Int    @default(0)
+
+  @@map("counters")
+}
+
+// ===== Commandes (CDC 9) — données figées =====
+
+model Order {
+  id                 Int            @id @default(autoincrement())
+  reference          String         @unique // SOU-AAAA-NNNNNN
+  // Copie figée du client (CDC 9.5)
+  clientUserId       Int?
+  client             User?          @relation(fields: [clientUserId], references: [id])
+  clientNom          String
+  clientTelephone    String
+  clientEmail        String
+  // Commune + tarif figés (CDC 11.5)
+  livraisonCommuneId Int
+  livraisonCommune   Commune        @relation(fields: [livraisonCommuneId], references: [id])
+  communeNom         String
+  communeTarif       Int
+  adresseLivraison   String
+  lignes             OrderLine[]
+  sousTotal          Int
+  fraisLivraison     Int
+  total              Int
+  statut             StatutCommande @default(en_attente_paiement)
+  statutPaiement     StatutPaiement @default(en_attente)
+  // livraison : commande directement en préparation, encaissée à la remise
+  modePaiement       ModePaiement   @default(en_ligne)
+  encaisseLe         DateTime? // paiement à la livraison : date d'encaissement
+  // Expiration de la réservation de stock (CDC 5.8)
+  reservationExpireLe DateTime
+  delaiLivraison     String? // renseigné par l'admin (CDC 11.6)
+  noteInterne        String   @default("") // retours/échanges (CDC 9.7)
+  bonEnvoyeLe        DateTime? // envoi unique du bon (CDC 12.2)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  paiements     Payment[]
+  notifications Notification[]
+
+  // Cron de libération des réservations (CDC 10.11)
+  @@index([statutPaiement, reservationExpireLe])
+  @@index([statut, createdAt(sort: Desc)])
+  @@index([clientEmail])
+  @@index([createdAt(sort: Desc)]) // rapports
+  @@index([livraisonCommuneId]) // rapport livraisons
+  @@map("orders")
+}
+
+model OrderLine {
+  id            Int             @id @default(autoincrement())
+  commandeId    Int
+  commande      Order           @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  // Restrict : un produit ayant des commandes ne se supprime pas (désactiver à la place)
+  produitId     Int
+  produit       Product         @relation(fields: [produitId], references: [id], onDelete: Restrict)
+  varianteId    Int?
+  variante      ProductVariant? @relation(fields: [varianteId], references: [id], onDelete: Restrict)
+  // Copie figée au moment de l'achat (CDC 9.5)
+  nom           String
+  varianteLabel String          @default("")
+  quantite      Int
+  prixUnitaire  Int
+  total         Int
+
+  @@index([commandeId])
+  @@index([produitId]) // rapport produits les plus vendus
+  @@map("order_lines")
+}
+
+// ===== Paiements (CDC 10) — un document par tentative =====
+
+model Payment {
+  id                Int            @id @default(autoincrement())
+  commandeId        Int
+  commande          Order          @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  referenceCommande String
+  // Clé d'idempotence : une requête rejouée ne crée qu'une transaction (CDC 10.10)
+  cleIdempotence    String         @unique
+  // Id transaction Jèko : unique → webhook en double ignoré (violation d'unicité)
+  transactionJeko   String?        @unique
+  montant           Int
+  moyen             MoyenPaiement?
+  statut            StatutPaiement @default(en_attente)
+  evenements        PaymentEvent[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([commandeId, statut])
+  @@index([statut, createdAt]) // réconciliation (CDC 10.11)
+  @@map("payments")
+}
+
+// Journal des événements de paiement (CDC 10.14)
+model PaymentEvent {
+  id        Int      @id @default(autoincrement())
+  paymentId Int
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  type      String // initiation, webhook_recu, signature_ok, signature_ko, transition, anomalie
+  message   String   @default("")
+  payload   Json?
+  at        DateTime @default(now())
+
+  @@index([paymentId])
+  @@map("payment_events")
+}
+
+// ===== Promotions (CDC 6) =====
+
+model Promotion {
+  id           Int              @id @default(autoincrement())
+  nom          String
+  type         TypePromotion
+  valeur       Int // % ou FCFA
+  portee       PorteePromotion
+  produitIds   Int[]            @default([])
+  categorieIds Int[]            @default([])
+  debut        DateTime
+  fin          DateTime
+  active       Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([active, debut, fin])
+  @@map("promotions")
+}
+
+// ===== Emails (CDC 12) — cleDedup garantit l'envoi unique =====
+
+model Notification {
+  id           Int                @id @default(autoincrement())
+  cleDedup     String             @unique // ex. "bon_commande:SOU-2026-000123"
+  type         TypeNotification
+  destinataire String
+  commandeId   Int?
+  commande     Order?             @relation(fields: [commandeId], references: [id])
+  statut       StatutNotification @default(en_file)
+  payload      Json?
+  envoyeLe     DateTime?
+  erreur       String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([statut, createdAt])
+  @@map("notifications")
+}
+
+// ===== Rapports (CDC 13.8) =====
+
+model Report {
+  id           Int         @id @default(autoincrement())
+  type         TypeRapport
+  periodeDebut DateTime
+  periodeFin   DateTime
+  granularite  Granularite
+  donnees      Json
+  genereLe     DateTime    @default(now())
+
+  @@index([type, periodeDebut(sort: Desc)])
+  @@map("reports")
+}
+
+// ===== Journal d'audit (CDC 10.13, 14.7) =====
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  auteurId   Int
+  auteur     User     @relation(fields: [auteurId], references: [id])
+  auteurNom  String
+  action     String // ex. "stock.modifie", "paiement.valide_manuellement"
+  entiteType String // Product, Order, Payment, Commune…
+  entiteId   Int
+  avant      Json?
+  apres      Json?
+  motif      String? // obligatoire pour actions paiement (CDC 10.13)
+  createdAt  DateTime @default(now())
+
+  @@index([entiteType, entiteId])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+// ===== Paramètres boutique (décision D11) — ligne unique =====
+
+model Settings {
+  id                        Int      @id @default(autoincrement())
+  cle                       String   @unique @default("boutique")
+  nomBoutique               String   @default("SOUKEYNA")
+  telephone                 String   @default("")
+  whatsapp                  String   @default("")
+  emailContact              String   @default("")
+  // Bannières accueil administrables (CDC 7.1)
+  bannieres                 Json     @default("[]")
+  rapportEmailActif         Boolean  @default(false)
+  rapportEmailDestinataire  String   @default("")
+  seuilStockFaible          Int      @default(5)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@map("settings")
+}

@@ -1,26 +1,431 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* Palette SOUKEYNA : blanc 60 %, vert 30 %, noir 10 % */
+@theme {
+  --animate-entree: entree 0.3s ease-out both;
+  @keyframes entree {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  --color-blanc: #ffffff;
+  --color-blanc-casse: #f7f8f6;
+  --color-vert: #1e7b4f;
+  --color-vert-fonce: #15613d;
+  --color-vert-clair: #e3f0e9;
+  --color-noir: #171512;
+  --color-gris: #eef0ec;
+  --color-gris-fonce: #5f6660;
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f8f6;
+  --foreground: #171512;
+  --card: #ffffff;
+  --card-foreground: #171512;
+  --popover: #ffffff;
+  --popover-foreground: #171512;
+  --primary: #1e7b4f;
+  --primary-foreground: #ffffff;
+  --secondary: #e3f0e9;
+  --secondary-foreground: #15613d;
+  --muted: #eef0ec;
+  --muted-foreground: #5f6660;
+  --accent: #e3f0e9;
+  --accent-foreground: #15613d;
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+  --border: #dde2dc;
+  --input: #dde2dc;
+  --ring: #1e7b4f;
+  --sidebar: #1e7b4f;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #1e7b4f;
+  --sidebar-accent: #15613d;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2c8f62;
+  --sidebar-ring: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-vert-clair);
+  color: var(--color-vert-fonce);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-vert);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ================= Mouvement — utilitaires partagés ================= */
+
+/* Éléments révélés au scroll par <MotionRoot> (GSAP ScrollTrigger).
+   Masqués seulement quand le JS a pris la main (html.js-motion) : sans JS,
+   tout reste visible. */
+html.js-motion [data-reveal] {
+  opacity: 0;
+}
+
+/* Révélation native quand le navigateur gère les scroll-driven animations
+   (Chromium, Safari récent) : aucune mutation du DOM nécessaire — le
+   repli JS <MotionRoot> reste inactif dans ce cas. */
+@keyframes rv-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+  }
+}
+@keyframes rv-in-left {
+  from {
+    opacity: 0;
+    transform: translate3d(-28px, 0, 0);
+  }
+}
+@keyframes rv-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+@supports (animation-timeline: view()) {
+  [data-reveal] {
+    animation: rv-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 60%;
+  }
+  [data-reveal="left"] {
+    animation-name: rv-in-left;
+  }
+  [data-reveal="scale"] {
+    animation-name: rv-in-scale;
+  }
+}
+
+/* Retour tactile : enfoncement léger au clic/tap */
+.press {
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+.press:active {
+  transform: scale(0.96);
+}
+
+/* Carte qui se soulève au survol (pointeurs fins uniquement) */
+@media (hover: hover) {
+  .lift {
+    transition:
+      transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 0.35s ease;
+  }
+  .lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 36px -18px rgb(23 21 18 / 0.28);
+  }
+}
+
+/* Reflet qui balaie un bouton principal */
+.shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgb(255 255 255 / 0.28) 50%,
+    transparent 70%
+  );
+  transform: translateX(-120%);
+  animation: shine 3.6s ease-in-out infinite;
+}
+@keyframes shine {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+  85%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+/* Squelette de chargement */
+.shimmer {
+  background: linear-gradient(90deg, #eef0ec 25%, #f7f8f6 50%, #eef0ec 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Badge qui « saute » quand sa valeur change (key={valeur}) */
+.pop {
+  animation: pop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.4);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Flottement doux (visuels décoratifs) */
+.float {
+  animation: float 5s ease-in-out infinite;
+}
+@keyframes float {
+  50% {
+    transform: translateY(-8px) rotate(-1.5deg);
+  }
+}
+
+/* Transition d'entrée de page (template.tsx) */
+.page-in {
+  animation: page-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Fondu de navigation (template.tsx) — opacité seule : une transform sur
+   un ancêtre casserait les éléments fixed/épinglés (carrousel produit) */
+.page-fade {
+  animation: page-fade 0.45s ease-out both;
+}
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* En-tête boutique : se compacte au scroll — scroll-driven, zéro JS */
+@supports (animation-timeline: scroll()) {
+  .hdr-scroll {
+    animation: hdr-compact linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 90px;
+  }
+  @keyframes hdr-compact {
+    to {
+      box-shadow: 0 10px 30px -18px rgb(23 21 18 / 0.35);
+      background-color: rgb(255 255 255 / 0.82);
+    }
+  }
+}
+
+/* Bandeau qui défile en continu (contenu dupliqué ×2) */
+.defile {
+  animation: defile 28s linear infinite;
+}
+.defile:hover {
+  animation-play-state: paused;
+}
+@keyframes defile {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Défilement horizontal sans barre */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js-motion [data-reveal] {
+    opacity: 1;
+  }
+  .shine::after,
+  .shimmer,
+  .float,
+  .pop,
+  .page-in,
+  .page-fade,
+  .defile,
+  [data-reveal] {
+    animation: none;
+  }
+  .press:active,
+  .lift:hover {
+    transform: none;
+  }
+}
+
+/* ================= Admin — surfaces de données harmonisées ================= */
+/* Appliquée au conteneur des pages /admin : tableaux, titres, formulaires
+   héritent d'un style cohérent sans toucher aux composants ui/* (cartes). */
+
+.admin-zone h1 {
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.admin-zone a,
+.admin-zone button,
+.admin-zone input,
+.admin-zone select,
+.admin-zone textarea {
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.admin-zone input:focus,
+.admin-zone select:focus,
+.admin-zone textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+/* Tableaux de données → cartes arrondies avec lignes survolables */
+.admin-zone table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgb(23 21 18 / 0.05);
+}
+
+.admin-zone thead th {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 0.625rem 0.875rem;
+  border: none;
+}
+
+.admin-zone tbody td {
+  padding: 0.625rem 0.875rem;
+  border-top: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.admin-zone tbody tr:first-child td {
+  border-top: none;
+}
+
+.admin-zone tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.admin-zone tbody tr:hover {
+  background: color-mix(in srgb, var(--secondary) 45%, transparent);
+}
+
+/* Panneaux de formulaire et blocs <details> → cartes douces */
+.admin-zone form.bg-white,
+.admin-zone details.bg-white,
+.admin-zone section.bg-white {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgb(23 21 18 / 0.05);
+}
+
+/* Champs bruts → contrôles arrondis cohérents */
+.admin-zone input:not([type="checkbox"]):not([type="radio"]):not([type="date"]):not([type="datetime-local"]),
+.admin-zone input[type="date"],
+.admin-zone input[type="datetime-local"],
+.admin-zone select,
+.admin-zone textarea {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--card);
+}
+
+/* Boutons « rounded » → pills, cohérent avec les actions admin */
+.admin-zone button[class*="rounded"]:not([class*="rounded-full"]) {
+  border-radius: 999px;
+}
+
+/* Libellés de formulaire */
+.admin-zone label {
+  font-weight: 500;
+  color: var(--foreground);
 }
