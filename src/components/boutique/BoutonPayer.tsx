@@ -10,7 +10,7 @@ const MOYENS = [
   { v: "orange", label: "Orange Money", logo: "/paiements/orange.png", couleur: "#ff7900" },
   { v: "mtn", label: "MTN MoMo", logo: "/paiements/mtn.png", couleur: "#ffcb05" },
   { v: "moov", label: "Moov Money", logo: "/paiements/moov.png", couleur: "#005eb8" },
-  { v: "djamo", label: "Djamo", logo: null, couleur: "#6e3aff" },
+  { v: "djamo", label: "Djamo", logo: "/paiements/djamo.png", couleur: "#6e3aff" },
 ];
 
 export function BoutonPayer({

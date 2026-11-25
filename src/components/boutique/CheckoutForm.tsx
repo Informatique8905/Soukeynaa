@@ -15,13 +15,18 @@ interface Commune {
 
 type Mode = "en_ligne" | "livraison";
 
-const MOYENS_EN_LIGNE = [
+const MOYENS_EN_LIGNE: readonly {
+  v: "wave" | "orange" | "mtn" | "moov" | "djamo";
+  label: string;
+  logo: string | null;
+  couleur: string;
+}[] = [
   { v: "wave", label: "Wave", logo: "/paiements/wave.png", couleur: "#1dc4f2" },
   { v: "orange", label: "Orange Money", logo: "/paiements/orange.png", couleur: "#ff7900" },
   { v: "mtn", label: "MTN MoMo", logo: "/paiements/mtn.png", couleur: "#ffcb05" },
   { v: "moov", label: "Moov Money", logo: "/paiements/moov.png", couleur: "#005eb8" },
-  { v: "djamo", label: "Djamo", logo: null, couleur: "#6e3aff" },
-] as const;
+  { v: "djamo", label: "Djamo", logo: "/paiements/djamo.png", couleur: "#6e3aff" },
+];
 type Moyen = (typeof MOYENS_EN_LIGNE)[number]["v"];
 
 const champ =
@@ -288,10 +293,6 @@ export function CheckoutForm({
                   );
                 })}
               </div>
-              <p className="mt-2">
-                Stock réservé 30 min — après validation, redirection sécurisée
-                Jèko pour régler avec {MOYENS_EN_LIGNE.find((m) => m.v === moyen)?.label}.
-              </p>
             </>
           ) : (
             <p>

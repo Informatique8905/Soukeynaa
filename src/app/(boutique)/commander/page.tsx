@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { getPrisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { getPanierDetails } from "@/lib/cart";
@@ -38,9 +39,12 @@ export default async function CommanderPage() {
     <main className="mx-auto max-w-6xl px-4 py-6 md:py-10">
       <Link
         href="/panier"
-        className="press inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-gris-fonce ring-1 ring-black/5 hover:text-vert"
+        className="press group inline-flex items-center gap-2 rounded-full bg-white py-1.5 pl-1.5 pr-4 text-xs font-semibold text-noir ring-1 ring-black/5 transition hover:text-vert hover:ring-vert/40"
       >
-        ← Panier
+        <span className="grid size-7 place-items-center rounded-full bg-gris transition group-hover:bg-vert-clair">
+          <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
+        </span>
+        Retour au panier
       </Link>
       <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-noir md:text-3xl">
         Finaliser la commande
