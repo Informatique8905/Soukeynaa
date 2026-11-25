@@ -6,7 +6,6 @@ import { auth } from "@/auth";
 import { fcfa, dateFr } from "@/lib/format";
 import { cloud } from "@/lib/image";
 import { BoutonPayer, RafraichirAuto } from "@/components/boutique/BoutonPayer";
-import { SuccesAnime } from "@/components/motion/SuccesAnime";
 import { TrajetLivraison } from "@/components/motion/TrajetLivraison";
 
 const ETAPES_EN_LIGNE = ["en_attente_paiement", "payee", "en_preparation", "expediee", "livree"] as const;
@@ -128,33 +127,39 @@ export default async function CommandePage({
 
       <div className="mt-5 md:grid md:grid-cols-5 md:gap-6">
         <div className="flex flex-col gap-4 md:col-span-3">
-          {/* Héros d'état */}
+          {/* Bandeau d'état — compact et statique */}
           <section
-            data-reveal="scale"
-            className={`relative overflow-hidden rounded-3xl p-6 text-center shadow-sm ring-1 ${
-              annulee ? "bg-red-50 ring-red-100" : "bg-white ring-black/5"
+            data-reveal
+            className={`flex items-center gap-3.5 rounded-3xl p-4 shadow-sm ring-1 ${
+              annulee
+                ? "bg-red-50 ring-red-100"
+                : succes
+                  ? "bg-vert-clair/70 ring-vert/15"
+                  : "bg-amber-50/80 ring-amber-100"
             }`}
           >
-            {succes ? (
-              <SuccesAnime />
-            ) : annulee ? (
-              <span className="mx-auto grid size-20 place-items-center rounded-full bg-red-100 text-2xl font-bold text-red-600 ring-8 ring-red-50">
-                ✕
-              </span>
-            ) : (
-              <span className="float mx-auto grid size-20 place-items-center rounded-full bg-amber-50 text-2xl font-bold text-amber-600 ring-8 ring-amber-50/50">
-                …
-              </span>
-            )}
-            <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-noir">
-              {message.titre}
-            </h1>
-            <p className="mx-auto mt-1.5 max-w-sm text-sm text-gris-fonce">
-              {message.detail}
-            </p>
-            <p className="mt-3 text-xs text-gris-fonce/80">
-              Passée le {dateFr(commande.createdAt)}
-            </p>
+            <span
+              className={`grid size-10 shrink-0 place-items-center rounded-full text-base font-bold ${
+                succes
+                  ? "bg-vert text-white"
+                  : annulee
+                    ? "bg-red-100 text-red-600"
+                    : "bg-amber-100 text-amber-700"
+              }`}
+            >
+              {succes ? "✓" : annulee ? "✕" : "…"}
+            </span>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-[15px] font-extrabold leading-tight text-noir">
+                {message.titre}
+              </h1>
+              <p className="mt-0.5 text-xs leading-snug text-gris-fonce">
+                {message.detail}
+              </p>
+              <p className="mt-1 text-[10px] text-gris-fonce/70">
+                Passée le {dateFr(commande.createdAt)}
+              </p>
+            </div>
           </section>
 
           {/* Suivi */}
@@ -220,7 +225,7 @@ export default async function CommandePage({
 
         {/* Récapitulatif + action */}
         <aside className="mt-4 md:col-span-2 md:mt-0">
-          <div data-reveal="scale" className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 md:sticky md:top-24">
+          <div data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 md:sticky md:top-24">
             <h2 className="font-extrabold text-noir">Récapitulatif</h2>
             <ul className="mt-3 space-y-3">
               {commande.lignes.map((l) => {
