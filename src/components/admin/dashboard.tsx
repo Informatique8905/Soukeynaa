@@ -116,9 +116,9 @@ export function DashboardAdmin({
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
         {/* ── Colonne gauche : carte héro CA + mini-stats ── */}
-        <div className="flex flex-col gap-5 xl:col-span-3">
+        <div className="flex min-w-0 flex-col gap-5 xl:col-span-3">
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-vert via-[#17683f] to-vert-fonce p-5 text-white shadow-lg">
             <p className="text-xs font-medium text-white/70">CA du jour</p>
             <p className="mt-1 text-[11px] uppercase tracking-wider text-white/50">
@@ -183,7 +183,7 @@ export function DashboardAdmin({
         </div>
 
         {/* ── Centre : activité des ventes (barres) ── */}
-        <Card className={carteBlanche + " xl:col-span-5"}>
+        <Card className={carteBlanche + " min-w-0 xl:col-span-5"}>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <div>
               <CardTitle>Activité des ventes</CardTitle>
@@ -266,7 +266,7 @@ export function DashboardAdmin({
         </Card>
 
         {/* ── Colonne droite : actions rapides ── */}
-        <div className="flex flex-col gap-5 xl:col-span-4">
+        <div className="flex min-w-0 flex-col gap-5 xl:col-span-4">
           <div className={carteBlanche + " flex-1 p-5"}>
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-muted-foreground">
@@ -326,9 +326,9 @@ export function DashboardAdmin({
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
         {/* ── Historique des commandes (style table du design) ── */}
-        <Card className={carteBlanche + " xl:col-span-8"}>
+        <Card className={carteBlanche + " min-w-0 xl:col-span-8"}>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <div>
               <CardTitle>Commandes en cours</CardTitle>
@@ -392,7 +392,7 @@ export function DashboardAdmin({
         </Card>
 
         {/* ── Journal d'activité ── */}
-        <Card className={carteBlanche + " xl:col-span-4"}>
+        <Card className={carteBlanche + " min-w-0 xl:col-span-4"}>
           <CardHeader>
             <CardTitle>Activité récente</CardTitle>
             <CardDescription>

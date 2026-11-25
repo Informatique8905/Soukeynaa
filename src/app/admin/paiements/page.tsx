@@ -74,6 +74,7 @@ export default async function PagePaiements() {
         </section>
       )}
 
+      <div className="overflow-x-auto">
       <table className="mt-6 w-full border bg-white text-sm">
         <thead className="bg-gris text-left">
           <tr>
@@ -120,6 +121,7 @@ export default async function PagePaiements() {
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

@@ -31,6 +31,7 @@ export default async function PageProduits() {
         </Link>
       </div>
 
+      <div className="overflow-x-auto">
       <table className="mt-6 w-full border bg-white text-sm">
         <thead className="bg-gris text-left">
           <tr>
@@ -128,6 +129,7 @@ export default async function PageProduits() {
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

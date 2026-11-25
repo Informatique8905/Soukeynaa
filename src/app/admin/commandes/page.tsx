@@ -52,6 +52,7 @@ export default async function PageCommandes({
         ))}
       </div>
 
+      <div className="overflow-x-auto">
       <table className="mt-4 w-full border bg-white text-sm">
         <thead className="bg-gris text-left">
           <tr>
@@ -110,6 +111,7 @@ export default async function PageCommandes({
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

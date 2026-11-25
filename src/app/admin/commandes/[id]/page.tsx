@@ -160,6 +160,7 @@ export default async function DetailCommande({
         <h2 className="flex items-center gap-2 font-bold">
           Articles
         </h2>
+        <div className="overflow-x-auto">
         <table className="mt-2 w-full">
           <thead className="text-left text-xs text-gris-fonce">
             <tr>
@@ -182,6 +183,7 @@ export default async function DetailCommande({
             ))}
           </tbody>
         </table>
+        </div>
         <div className="mt-3 space-y-0.5 text-right">
           <p className="text-gris-fonce">
             Sous-total : {fcfa(commande.sousTotal)}

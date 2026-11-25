@@ -147,6 +147,7 @@ export default async function RapportsPage({
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <section className="rounded border bg-white p-4">
           <h3 className="font-semibold">Détail par jour</h3>
+          <div className="overflow-x-auto">
           <table className="mt-2 w-full text-sm">
             <thead className="text-left text-xs opacity-60">
               <tr>
@@ -174,10 +175,12 @@ export default async function RapportsPage({
               )}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="rounded border bg-white p-4">
           <h3 className="font-semibold">Ventes par univers</h3>
+          <div className="overflow-x-auto">
           <table className="mt-2 w-full text-sm">
             <tbody>
               {ventes.parUnivers.map((u) => (
@@ -198,10 +201,12 @@ export default async function RapportsPage({
               )}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="rounded border bg-white p-4">
           <h3 className="font-semibold">Produits les plus vendus</h3>
+          <div className="overflow-x-auto">
           <table className="mt-2 w-full text-sm">
             <tbody>
               {ventes.topProduits.map((p, i) => (
@@ -220,11 +225,13 @@ export default async function RapportsPage({
               )}
             </tbody>
           </table>
+          </div>
         </section>
 
         {/* ===== Livraisons ===== */}
         <section className="rounded border bg-white p-4">
           <h3 className="font-semibold">Livraisons par commune</h3>
+          <div className="overflow-x-auto">
           <table className="mt-2 w-full text-sm">
             <tbody>
               {ventes.parCommune.map((c) => (
@@ -243,6 +250,7 @@ export default async function RapportsPage({
               )}
             </tbody>
           </table>
+          </div>
         </section>
 
         {/* ===== Paiements ===== */}
@@ -271,6 +279,7 @@ export default async function RapportsPage({
               <h4 className="mt-3 text-xs font-semibold uppercase opacity-60">
                 Par moyen de paiement
               </h4>
+              <div className="overflow-x-auto">
               <table className="mt-1 w-full text-sm">
                 <tbody>
                   {ventes.parMoyen.map((m) => (
@@ -286,6 +295,7 @@ export default async function RapportsPage({
                   ))}
                 </tbody>
               </table>
+              </div>
             </>
           )}
         </section>
@@ -342,6 +352,7 @@ export default async function RapportsPage({
         {/* ===== Promotions ===== */}
         <section className="rounded border bg-white p-4">
           <h3 className="font-semibold">Promotions</h3>
+          <div className="overflow-x-auto">
           <table className="mt-2 w-full text-sm">
             <thead className="text-left text-xs opacity-60">
               <tr>
@@ -375,6 +386,7 @@ export default async function RapportsPage({
               )}
             </tbody>
           </table>
+          </div>
         </section>
       </div>
 
@@ -384,6 +396,7 @@ export default async function RapportsPage({
         <p className="mt-1 text-xs opacity-60">
           Générés par la tâche planifiée /api/cron/rapports (CDC 13.8).
         </p>
+        <div className="overflow-x-auto">
         <table className="mt-2 w-full text-sm">
           <tbody>
             {instantanes.map((r) => (
@@ -407,6 +420,7 @@ export default async function RapportsPage({
             )}
           </tbody>
         </table>
+        </div>
       </section>
     </div>
   );
