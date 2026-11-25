@@ -19,15 +19,18 @@ const SPLASH_CSS = `
 @keyframes skl-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 `;
 
-// Écran de démarrage : logo animé + balles rebondissantes pendant 3 s,
-// puis fondu sortant. Affiché à chaque chargement de la boutique.
+// Écran de démarrage : logo animé + balles rebondissantes (~1,4 s),
+// puis fondu sortant. Une seule fois par session de navigation.
 export function Splash() {
   const [fondu, setFondu] = useState(false);
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const fonduTimer = setTimeout(() => setFondu(true), 3000);
-    const finTimer = setTimeout(() => setVisible(false), 3600);
+    if (sessionStorage.getItem("skl-splash")) return;
+    sessionStorage.setItem("skl-splash", "1");
+    setVisible(true);
+    const fonduTimer = setTimeout(() => setFondu(true), 1100);
+    const finTimer = setTimeout(() => setVisible(false), 1600);
     return () => {
       clearTimeout(fonduTimer);
       clearTimeout(finTimer);

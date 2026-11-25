@@ -42,21 +42,21 @@ export default async function BoutiqueLayout({
           <div className="flex items-center gap-2">
             <Link
               href="/recherche"
-              className="press rounded-full bg-gris px-3.5 py-2.5 text-xs font-semibold text-noir hover:bg-vert-clair hover:text-vert"
+              className="press hidden rounded-full bg-gris px-3.5 py-2.5 text-xs font-semibold text-noir hover:bg-vert-clair hover:text-vert md:block"
             >
               Recherche
             </Link>
             {session?.user ? (
               <Link
                 href="/compte"
-                className="press rounded-full bg-gris px-3.5 py-2.5 text-xs font-semibold text-noir hover:bg-vert-clair hover:text-vert"
+                className="press hidden rounded-full bg-gris px-3.5 py-2.5 text-xs font-semibold text-noir hover:bg-vert-clair hover:text-vert md:block"
               >
                 Compte
               </Link>
             ) : (
               <Link
                 href="/connexion"
-                className="press rounded-full bg-noir px-4 py-2.5 text-xs font-semibold text-white hover:bg-vert"
+                className="press hidden rounded-full bg-noir px-4 py-2.5 text-xs font-semibold text-white hover:bg-vert md:block"
               >
                 Connexion
               </Link>
