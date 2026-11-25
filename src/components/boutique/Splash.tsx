@@ -23,12 +23,16 @@ const SPLASH_CSS = `
 // puis fondu sortant. Une seule fois par session de navigation.
 export function Splash() {
   const [fondu, setFondu] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    if (sessionStorage.getItem("skl-splash")) return;
+    // Déjà vue dans cette session : retrait immédiat (différé pour
+    // éviter un setState synchrone dans l'effet).
+    if (sessionStorage.getItem("skl-splash")) {
+      const t = setTimeout(() => setVisible(false), 0);
+      return () => clearTimeout(t);
+    }
     sessionStorage.setItem("skl-splash", "1");
-    setVisible(true);
     const fonduTimer = setTimeout(() => setFondu(true), 1100);
     const finTimer = setTimeout(() => setVisible(false), 1600);
     return () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CreditCard } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +33,8 @@ export function AdminShell({
           </h1>
           <div className="ml-auto flex items-center gap-1">
             <Button variant="ghost" asChild className="relative rounded-full px-3 text-xs">
-              <Link href="/admin/paiements">
+              <Link href="/admin/paiements" className="press">
+                <CreditCard className="size-4" />
                 Paiements
                 {alertesPaiements > 0 && (
                   <span className="ml-1 flex size-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">

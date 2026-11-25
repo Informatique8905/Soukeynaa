@@ -2,6 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  FolderTree,
+  Shirt,
+  Percent,
+  Truck,
+  Package,
+  CreditCard,
+  BarChart3,
+  Settings,
+  Store,
+  LogOut,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -17,15 +30,15 @@ import {
 import { deconnexion } from "@/app/admin/actions";
 
 const NAV = [
-  { href: "/admin", label: "Tableau de bord", court: "Accueil" },
-  { href: "/admin/categories", label: "Catégories", court: "Catég." },
-  { href: "/admin/produits", label: "Produits", court: "Produits" },
-  { href: "/admin/promotions", label: "Promotions", court: "Promo" },
-  { href: "/admin/communes", label: "Communes & livraison", court: "Livraison" },
-  { href: "/admin/commandes", label: "Commandes", court: "Cmdes" },
-  { href: "/admin/paiements", label: "Paiements", court: "Paies" },
-  { href: "/admin/rapports", label: "Rapports", court: "Rapports" },
-  { href: "/admin/parametres", label: "Paramètres", court: "Param." },
+  { href: "/admin", label: "Tableau de bord", court: "Accueil", icon: LayoutDashboard },
+  { href: "/admin/categories", label: "Catégories", court: "Catég.", icon: FolderTree },
+  { href: "/admin/produits", label: "Produits", court: "Produits", icon: Shirt },
+  { href: "/admin/promotions", label: "Promotions", court: "Promo", icon: Percent },
+  { href: "/admin/communes", label: "Communes & livraison", court: "Livraison", icon: Truck },
+  { href: "/admin/commandes", label: "Commandes", court: "Cmdes", icon: Package },
+  { href: "/admin/paiements", label: "Paiements", court: "Paies", icon: CreditCard },
+  { href: "/admin/rapports", label: "Rapports", court: "Rapports", icon: BarChart3 },
+  { href: "/admin/parametres", label: "Paramètres", court: "Param.", icon: Settings },
 ];
 
 export function AdminSidebar({ utilisateur }: { utilisateur: string }) {
@@ -42,7 +55,7 @@ export function AdminSidebar({ utilisateur }: { utilisateur: string }) {
       .join("") || "A";
 
   const boutonRail = (actif: boolean) =>
-    `justify-center rounded-xl px-2 text-xs font-semibold ${
+    `press justify-center rounded-xl px-2 py-2 text-[11px] font-semibold ${
       actif
         ? "bg-vert text-white shadow-sm hover:bg-vert hover:text-white"
         : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -107,9 +120,19 @@ export function AdminSidebar({ utilisateur }: { utilisateur: string }) {
                     onClick={() => setOpenMobile(false)}
                   >
                     <Link href={item.href}>
-                      <span className={rail ? "truncate" : undefined}>
-                        {rail ? item.court : item.label}
-                      </span>
+                      {rail ? (
+                        <span className="flex flex-col items-center gap-1">
+                          <item.icon className="size-5" />
+                          <span className="w-full truncate text-center">
+                            {item.court}
+                          </span>
+                        </span>
+                      ) : (
+                        <>
+                          <item.icon className="size-4" />
+                          <span>{item.label}</span>
+                        </>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -137,7 +160,10 @@ export function AdminSidebar({ utilisateur }: { utilisateur: string }) {
                   className={boutonRail(false)}
                 >
                   <Link href="/">
-                    <span className="truncate">Boutique</span>
+                    <span className="flex flex-col items-center gap-1">
+                      <Store className="size-5" />
+                      <span className="w-full truncate text-center">Boutique</span>
+                    </span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -148,7 +174,10 @@ export function AdminSidebar({ utilisateur }: { utilisateur: string }) {
                     className={boutonRail(false)}
                   >
                     <button type="submit" className="w-full">
-                      <span>Quitter</span>
+                      <span className="flex flex-col items-center gap-1">
+                        <LogOut className="size-5" />
+                        <span className="w-full truncate text-center">Quitter</span>
+                      </span>
                     </button>
                   </SidebarMenuButton>
                 </form>
@@ -172,6 +201,7 @@ export function AdminSidebar({ utilisateur }: { utilisateur: string }) {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link href="/">
+                    <Store className="size-4" />
                     <span>Voir la boutique</span>
                   </Link>
                 </SidebarMenuButton>
@@ -180,6 +210,7 @@ export function AdminSidebar({ utilisateur }: { utilisateur: string }) {
                 <form action={deconnexion}>
                   <SidebarMenuButton asChild>
                     <button type="submit" className="w-full">
+                      <LogOut className="size-4" />
                       <span>Se déconnecter</span>
                     </button>
                   </SidebarMenuButton>
