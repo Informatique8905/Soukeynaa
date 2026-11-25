@@ -169,7 +169,7 @@ export function CheckoutForm({
             </option>
             {communes.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.nom} — {fcfa(c.tarif)}
+                {c.nom} ({fcfa(c.tarif)})
               </option>
             ))}
           </select>
@@ -208,7 +208,7 @@ export function CheckoutForm({
               {
                 v: "en_ligne" as const,
                 titre: "Payer maintenant",
-                sous: "Mobile money ou carte, sécurisé par Jèko",
+                sous: "Mobile money ou carte bancaire, paiement sécurisé",
               },
               {
                 v: "livraison" as const,
@@ -255,7 +255,7 @@ export function CheckoutForm({
               <div
                 role="radiogroup"
                 aria-label="Moyen de paiement mobile"
-                className="mt-2 flex flex-wrap gap-1.5"
+                className="mt-2 flex flex-wrap justify-center gap-1.5"
               >
                 {MOYENS_EN_LIGNE.map((m) => {
                   const actif = moyen === m.v;
@@ -314,7 +314,7 @@ export function CheckoutForm({
             <span className="tabular-nums">{fcfa(sousTotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span>Livraison{commune ? ` — ${commune.nom}` : ""}</span>
+            <span>Livraison{commune ? ` (${commune.nom})` : ""}</span>
             <span className="tabular-nums">{commune ? fcfa(commune.tarif) : "Choisir une commune"}</span>
           </div>
         </div>
@@ -342,7 +342,7 @@ export function CheckoutForm({
             </>
           ) : mode === "livraison" ? (
             <>
-              Confirmer — payer à la livraison
+              Confirmer et payer à la livraison
             </>
           ) : (
             <>

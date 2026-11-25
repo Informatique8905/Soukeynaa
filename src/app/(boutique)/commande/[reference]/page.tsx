@@ -79,9 +79,6 @@ export default async function CommandePage({
     (p) => p.statut === "en_attente" || p.statut === "a_verifier"
   );
   const enVerification = enAttente && tentativeActive;
-  // Échec/annulation : le webhook a déjà remis le stock en vente — pas de
-  // relance sur cette commande (elle paierait un stock libéré)
-  const echec = ["echoue", "annule"].includes(commande.statutPaiement);
   const payable =
     enAttente && !tentativeActive && commande.statutPaiement === "en_attente";
 
@@ -90,25 +87,6 @@ export default async function CommandePage({
     minute: "2-digit",
   });
 
-  const message = annulee
-    ? { titre: "Commande annulée", detail: "Le stock réservé a été remis en vente." }
-    : echec && commande.statut === "en_attente_paiement"
-      ? { titre: "Le paiement n'a pas abouti", detail: "Aucun montant n'a été débité. Les articles ont été remis en vente — vous pouvez repasser commande." }
-      : payable
-      ? { titre: "Vous y êtes presque !", detail: `Votre panier est réservé jusqu'à ${expire}. Finalisez le paiement pour lancer la préparation.` }
-      : enVerification
-      ? { titre: "Paiement en cours de vérification", detail: "Nous attendons la confirmation de Jèko — cette page se met à jour toute seule." }
-      : commande.statut === "en_attente_paiement"
-      ? { titre: "Réservation expirée", detail: "Le délai de paiement est dépassé — votre panier a été libéré." }
-      : commande.statut === "livree"
-        ? { titre: "Commande livrée !", detail: "Merci pour votre confiance — à très vite chez SOUKEYNA." }
-        : commande.statut === "expediee"
-          ? { titre: "Votre colis est en route !", detail: `Le livreur arrive à ${commande.communeNom}.${aLaLivraison ? ` Préparez ${fcfa(commande.total)}.` : ""}` }
-          : aLaLivraison
-            ? { titre: "Commande confirmée !", detail: `Nous préparons votre colis. Vous réglerez ${fcfa(commande.total)} au livreur.` }
-            : { titre: "Paiement confirmé !", detail: "Votre commande est en préparation chez SOUKEYNA." };
-
-  const succes = !annulee && (aLaLivraison || commande.statutPaiement === "confirme");
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 md:py-10">
@@ -127,41 +105,6 @@ export default async function CommandePage({
 
       <div className="mt-5 md:grid md:grid-cols-5 md:gap-6">
         <div className="flex flex-col gap-4 md:col-span-3">
-          {/* Bandeau d'état — compact et statique */}
-          <section
-            data-reveal
-            className={`flex items-center gap-3.5 rounded-3xl p-4 shadow-sm ring-1 ${
-              annulee
-                ? "bg-red-50 ring-red-100"
-                : succes
-                  ? "bg-vert-clair/70 ring-vert/15"
-                  : "bg-amber-50/80 ring-amber-100"
-            }`}
-          >
-            <span
-              className={`grid size-10 shrink-0 place-items-center rounded-full text-base font-bold ${
-                succes
-                  ? "bg-vert text-white"
-                  : annulee
-                    ? "bg-red-100 text-red-600"
-                    : "bg-amber-100 text-amber-700"
-              }`}
-            >
-              {succes ? "✓" : annulee ? "✕" : "…"}
-            </span>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-[15px] font-extrabold leading-tight text-noir">
-                {message.titre}
-              </h1>
-              <p className="mt-0.5 text-xs leading-snug text-gris-fonce">
-                {message.detail}
-              </p>
-              <p className="mt-1 text-[10px] text-gris-fonce/70">
-                Passée le {dateFr(commande.createdAt)}
-              </p>
-            </div>
-          </section>
-
           {/* Suivi */}
           {!annulee && (
             <section data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
@@ -179,33 +122,6 @@ export default async function CommandePage({
               />
             </section>
           )}
-
-          {/* Mode de paiement */}
-          <section data-reveal className="flex items-center gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-noir">
-                {aLaLivraison ? "Paiement à la livraison" : "Paiement en ligne (Jèko)"}
-              </p>
-              <p className="text-xs text-gris-fonce">
-                {aLaLivraison
-                  ? commande.statutPaiement === "confirme"
-                    ? "Encaissé à la livraison — merci !"
-                    : "Espèces ou mobile money remis au livreur"
-                  : commande.statutPaiement === "confirme"
-                    ? "Paiement confirmé — bon de commande envoyé par email"
-                    : "Mobile money ou carte bancaire"}
-              </p>
-            </div>
-            <span
-              className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                commande.statutPaiement === "confirme"
-                  ? "bg-vert text-white"
-                  : "bg-amber-100 text-amber-800"
-              }`}
-            >
-              {commande.statutPaiement === "confirme" ? "Payé" : aLaLivraison ? "À la remise" : "En attente"}
-            </span>
-          </section>
 
           {/* Adresse */}
           <section data-reveal className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5">
@@ -257,7 +173,7 @@ export default async function CommandePage({
                 <span className="tabular-nums">{fcfa(commande.sousTotal)}</span>
               </div>
               <div className="flex justify-between text-gris-fonce">
-                <span>Livraison — {commande.communeNom}</span>
+                <span>Livraison à {commande.communeNom}</span>
                 <span className="tabular-nums">{fcfa(commande.fraisLivraison)}</span>
               </div>
               <div className="flex justify-between pt-1.5 text-base font-extrabold text-noir">

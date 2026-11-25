@@ -44,7 +44,7 @@ export function BoutonPayer({
           setErreur(data.erreur || "Paiement indisponible pour le moment");
         }
       } catch {
-        setErreur("Erreur réseau — réessayez");
+        setErreur("Erreur réseau, réessayez");
       }
     });
   }
@@ -54,7 +54,7 @@ export function BoutonPayer({
       <div
         role="radiogroup"
         aria-label="Moyen de paiement"
-        className="mb-3 grid grid-cols-3 gap-1.5"
+        className="mb-3 flex flex-wrap justify-center gap-1.5"
       >
         {MOYENS.map((m) => (
           <button
@@ -63,7 +63,7 @@ export function BoutonPayer({
             role="radio"
             aria-checked={moyen === m.v}
             onClick={() => setMoyen(m.v)}
-            className={`press flex flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[11px] font-bold transition ${
+            className={`press flex w-[calc(33.333%-4px)] flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[11px] font-bold transition ${
               moyen === m.v
                 ? "border-vert bg-vert text-white shadow-md shadow-vert/25"
                 : "border-black/10 bg-blanc-casse text-noir hover:border-vert/50"
