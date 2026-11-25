@@ -46,6 +46,7 @@ export function NavBas({ cartCount }: { cartCount: number }) {
         renderSlot={({ i, item, active, onPress }) => (
           <Link
             href={ITEMS[i].href}
+            prefetch={true}
             onClick={onPress}
             aria-label={item.label}
             aria-current={active ? "page" : undefined}

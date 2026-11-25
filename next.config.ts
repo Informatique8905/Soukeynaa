@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  experimental: {
+    // Cache client du routeur : re-navigations et retours instantanés.
+    // revalidatePath côté serveur invalide les entrées sensibles (panier…).
+    staleTimes: { dynamic: 30, static: 300 },
+  },
   // Aperçu navigateur / téléphone sur le dev server (HMR, chunks dev)
   allowedDevOrigins: ["127.0.0.1", "192.168.16.1"],
   images: {

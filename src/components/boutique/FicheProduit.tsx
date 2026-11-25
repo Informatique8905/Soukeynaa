@@ -145,7 +145,7 @@ export function FicheProduit({
     }
     const urls = images
       .filter((i) => i.url)
-      .map((i) => cloud(i.url, 1200) ?? i.url!);
+      .map((i) => cloud(i.url, 800) ?? i.url!);
     const img = (k: number) => (urls.length ? urls[k % urls.length] : "");
     const barre = prixBase && prixBase > prix ? prixBase : undefined;
 

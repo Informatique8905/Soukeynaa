@@ -20,6 +20,7 @@ export function ProductCard({ p }: { p: CarteProduit }) {
   return (
     <Link
       href={`/produit/${p.slug}`}
+      prefetch={true}
       data-reveal
       className="lift press group block rounded-3xl bg-white p-2 shadow-sm ring-1 ring-black/5"
     >
