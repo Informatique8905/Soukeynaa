@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getPrisma } from "@/lib/db";
 import { auth } from "@/auth";
-import { fcfa, dateFr } from "@/lib/format";
+import { fcfa } from "@/lib/format";
 import { cloud } from "@/lib/image";
 import { BoutonPayer, RafraichirAuto } from "@/components/boutique/BoutonPayer";
 import { TrajetLivraison } from "@/components/motion/TrajetLivraison";
