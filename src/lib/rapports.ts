@@ -16,7 +16,6 @@ export interface RapportVentes {
   fraisLivraison: number;
   panierMoyen: number;
   parJour: { jour: string; commandes: number; ca: number }[];
-  parUnivers: { univers: string; quantite: number; ca: number }[];
   topProduits: { nom: string; quantite: number; ca: number }[];
   parCommune: { commune: string; commandes: number; frais: number }[];
   paiements: { statut: string; nombre: number }[];
@@ -70,25 +69,6 @@ export async function rapportVentes(periode: Periode, db?: Db): Promise<RapportV
       }),
     ]);
 
-  // Univers : rejointe produit par produitId
-  const produitIds = [...new Set(lignes.map((l) => l.produitId))];
-  const universMap = new Map<number, string>();
-  if (produitIds.length) {
-    const produits = await prisma.product.findMany({
-      where: { id: { in: produitIds } },
-      select: { id: true, univers: true },
-    });
-    for (const p of produits) universMap.set(p.id, p.univers);
-  }
-  const parUnivers = new Map<string, { quantite: number; ca: number }>();
-  for (const l of lignes) {
-    const u = universMap.get(l.produitId) ?? "—";
-    const e = parUnivers.get(u) ?? { quantite: 0, ca: 0 };
-    e.quantite += l._sum.quantite ?? 0;
-    e.ca += l._sum.total ?? 0;
-    parUnivers.set(u, e);
-  }
-
   const parJour = new Map<string, { commandes: number; ca: number }>();
   for (const c of commandes) {
     const jour = c.createdAt.toISOString().slice(0, 10);
@@ -107,9 +87,6 @@ export async function rapportVentes(periode: Periode, db?: Db): Promise<RapportV
     parJour: [...parJour.entries()]
       .map(([jour, e]) => ({ jour, ...e }))
       .sort((a, b) => a.jour.localeCompare(b.jour)),
-    parUnivers: [...parUnivers.entries()]
-      .map(([univers, e]) => ({ univers, ...e }))
-      .sort((a, b) => b.ca - a.ca),
     topProduits: lignes
       .map((l) => ({
         nom: l.nom,

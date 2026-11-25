@@ -23,7 +23,7 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
   if (!parsed.success) {
     return { erreur: "Informations de commande invalides" };
   }
-  const { client, livraison, modePaiement } = parsed.data;
+  const { client, livraison, modePaiement, moyenPaiement } = parsed.data;
   const aLaLivraison = modePaiement === "livraison";
 
   const prisma = getPrisma();
@@ -188,5 +188,9 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
     }
   }
 
-  redirect(`/commande/${reference}${aLaLivraison ? "?ok=1" : ""}`);
+  redirect(
+    `/commande/${reference}${
+      aLaLivraison ? "?ok=1" : `?moyen=${moyenPaiement ?? "wave"}`
+    }`
+  );
 }

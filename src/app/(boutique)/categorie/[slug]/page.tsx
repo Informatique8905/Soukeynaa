@@ -38,10 +38,7 @@ export default async function CategoriePage({
       <EnTetePage
         titre={categorie.nom}
         compteur={produits.length}
-        ariane={[
-          { href: "/", label: "Accueil" },
-          { href: `/${categorie.univers}`, label: categorie.univers },
-        ]}
+        ariane={[{ href: "/", label: "Accueil" }]}
         puces={enfants.map((c) => ({ href: `/categorie/${c.slug}`, label: c.nom }))}
       />
 
@@ -49,7 +46,7 @@ export default async function CategoriePage({
         <EtatVide
           dessin="boite"
           titre="Aucun produit dans cette catégorie"
-          texte="Explorez les autres univers en attendant."
+          texte="Explorez les autres catégories en attendant."
           action={{ href: "/", label: "Retour à l'accueil" }}
         />
       ) : (

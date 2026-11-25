@@ -88,7 +88,7 @@ export default async function PageProduits() {
                     {p.nom}
                   </Link>
                   <p className="mt-0.5 text-xs capitalize text-muted-foreground">
-                    {p.univers} · {p.categorie.nom}
+                    {p.categorie.nom}
                   </p>
                 </div>
                 <StatutProduit statut={p.statut} />
@@ -116,7 +116,7 @@ export default async function PageProduits() {
               <thead>
                 <tr>
                   <th>Produit</th>
-                  <th>Univers / Catégorie</th>
+                  <th>Catégorie</th>
                   <th className="num">Prix</th>
                   <th className="num">Stock</th>
                   <th>Statut</th>
@@ -139,7 +139,7 @@ export default async function PageProduits() {
                         )}
                       </td>
                       <td className="text-muted-foreground">
-                        <span className="capitalize">{p.univers}</span> · {p.categorie.nom}
+                        {p.categorie.nom}
                       </td>
                       <td className="num">{prix(p)}</td>
                       <td className={`num ${stock === 0 ? "font-semibold text-destructive" : ""}`}>

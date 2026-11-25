@@ -26,8 +26,8 @@ export default async function ModifierProduit({
     }),
     prisma.category.findMany({
       where: { active: true },
-      orderBy: [{ univers: "asc" }, { ordre: "asc" }],
-      select: { id: true, nom: true, univers: true, parentId: true },
+      orderBy: [{ parentId: "asc" }, { ordre: "asc" }, { nom: "asc" }],
+      select: { id: true, nom: true, parentId: true },
     }),
   ]);
   if (!produit) notFound();
@@ -39,7 +39,6 @@ export default async function ModifierProduit({
     prix: produit.prix,
     prixReduit: produit.prixReduit,
     categorieId: produit.categorieId,
-    univers: produit.univers,
     images: produit.images as unknown as ImageJson[],
     aVariantes: produit.aVariantes,
     variantes: produit.variantes.map((v) => ({

@@ -1,5 +1,4 @@
 import { getPrisma } from "@/lib/db";
-import { UNIVERSES } from "@/lib/constants";
 import { creerCategorie, basculerCategorie } from "./actions";
 import {
   CarteListe,
@@ -16,7 +15,7 @@ import {
 export default async function PageCategories() {
   const prisma = getPrisma();
   const categories = await prisma.category.findMany({
-    orderBy: [{ univers: "asc" }, { parentId: "asc" }, { ordre: "asc" }],
+    orderBy: [{ parentId: "asc" }, { ordre: "asc" }, { nom: "asc" }],
     include: { parent: { select: { nom: true } }, _count: { select: { produits: true, enfants: true } } },
   });
   const racines = categories.filter((c) => !c.parentId);
@@ -40,35 +39,23 @@ export default async function PageCategories() {
     <div className="flex flex-col gap-6">
       <EnTetePage
         titre="Catégories"
-        description="Organisez le catalogue par univers, catégories et sous-catégories."
+        description="Organisez le catalogue par catégories et sous-catégories."
       />
 
       <Panneau titre="Nouvelle catégorie">
         <form
           action={creerCategorie}
-          className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1.4fr_6rem_auto_auto]"
+          className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-[1.4fr_1.4fr_6rem_auto_auto]"
         >
           <Champ label="Nom">
             <input name="nom" required className={champ} />
-          </Champ>
-          <Champ label="Univers">
-            <select name="univers" required className={`${champ} capitalize`}>
-              <option value="" disabled>
-                Choisir un univers
-              </option>
-              {UNIVERSES.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
           </Champ>
           <Champ label="Parent">
             <select name="parent" className={champ}>
               <option value="">Aucun (catégorie racine)</option>
               {racines.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.univers} / {c.nom}
+                  {c.nom}
                 </option>
               ))}
             </select>
@@ -91,8 +78,7 @@ export default async function PageCategories() {
               <div className="min-w-0">
                 <p className="truncate font-semibold">{c.nom}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  <span className="capitalize">{c.univers}</span>
-                  {c.parent && ` · dans ${c.parent.nom}`} · {c._count.produits} produit(s)
+                  {c.parent ? `Dans ${c.parent.nom} · ` : ""}{c._count.produits} produit(s)
                 </p>
               </div>
               {etat(c.active)}
@@ -113,7 +99,6 @@ export default async function PageCategories() {
               <thead>
                 <tr>
                   <th>Nom</th>
-                  <th>Univers</th>
                   <th>Parent</th>
                   <th className="num">Produits</th>
                   <th>État</th>
@@ -129,7 +114,6 @@ export default async function PageCategories() {
                         {c.nom}
                       </span>
                     </td>
-                    <td className="capitalize text-muted-foreground">{c.univers}</td>
                     <td className="text-muted-foreground">{c.parent?.nom ?? "—"}</td>
                     <td className="num">{c._count.produits}</td>
                     <td>{etat(c.active)}</td>

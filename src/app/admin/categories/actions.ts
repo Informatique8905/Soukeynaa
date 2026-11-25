@@ -33,7 +33,6 @@ export async function creerCategorie(formData: FormData) {
   const prisma = getPrisma();
   const parsed = categorieSchema.safeParse({
     nom: formData.get("nom"),
-    univers: formData.get("univers"),
     parent: formData.get("parent") || null,
     ordre: Number(formData.get("ordre") ?? 0),
     active: formData.get("active") === "on",
@@ -41,11 +40,11 @@ export async function creerCategorie(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message);
   const { nom, univers, parent, ordre, active } = parsed.data;
 
-  // Max 2 niveaux sous l'univers (CDC 4.6)
+  // Max 2 niveaux (CDC 4.6)
   if (parent) {
     const p = await prisma.category.findUnique({ where: { id: parent } });
-    if (!p || p.univers !== univers || p.parentId) {
-      throw new Error("Sous-catégorie invalide (univers différent ou trop de niveaux)");
+    if (!p || p.parentId) {
+      throw new Error("Sous-catégorie invalide (trop de niveaux)");
     }
   }
 
@@ -63,7 +62,7 @@ export async function creerCategorie(formData: FormData) {
     action: "categorie.creee",
     entiteType: "Category",
     entiteId: cat.id,
-    apres: { nom, univers, parent },
+    apres: { nom, parent },
   });
   revaliderCategories();
 }
@@ -74,7 +73,6 @@ export async function modifierCategorie(id: number, formData: FormData) {
   const avant = await prisma.category.findUniqueOrThrow({ where: { id } });
   const parsed = categorieSchema.safeParse({
     nom: formData.get("nom"),
-    univers: formData.get("univers"),
     parent: formData.get("parent") || null,
     ordre: Number(formData.get("ordre") ?? 0),
     active: formData.get("active") === "on",
@@ -85,7 +83,7 @@ export async function modifierCategorie(id: number, formData: FormData) {
   if (parent) {
     if (parent === id) throw new Error("Une catégorie ne peut pas être son propre parent");
     const p = await prisma.category.findUnique({ where: { id: parent } });
-    if (!p || p.univers !== univers || p.parentId) {
+    if (!p || p.parentId) {
       throw new Error("Sous-catégorie invalide");
     }
   }
@@ -105,8 +103,8 @@ export async function modifierCategorie(id: number, formData: FormData) {
     action: "categorie.modifiee",
     entiteType: "Category",
     entiteId: id,
-    avant: { nom: avant.nom, univers: avant.univers, active: avant.active },
-    apres: { nom, univers, active },
+    avant: { nom: avant.nom, active: avant.active },
+    apres: { nom, active },
   });
   revaliderCategories();
 }

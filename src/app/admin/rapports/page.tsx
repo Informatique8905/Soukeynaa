@@ -16,13 +16,6 @@ import {
 } from "@/components/admin/ui";
 import { Download } from "lucide-react";
 
-const UNIVERS_LABELS: Record<string, string> = {
-  enfants: "Enfants",
-  hommes: "Hommes",
-  femmes: "Femmes",
-  accessoires: "Accessoires",
-};
-
 const MOYEN_LABELS: Record<string, string> = {
   wave: "Wave",
   orange_money: "Orange Money",
@@ -156,38 +149,6 @@ export default async function RapportsPage({
                   <tr>
                     <td colSpan={3} className="text-center text-muted-foreground">
                       Aucune vente sur la période.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Panneau>
-
-        <Panneau titre="Ventes par univers" corps="p-0">
-          <div className="overflow-x-auto">
-            <table className="admin-table compact">
-              <thead>
-                <tr>
-                  <th>Univers</th>
-                  <th className="num">Articles</th>
-                  <th className="num">CA</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ventes.parUnivers.map((u) => (
-                  <tr key={u.univers}>
-                    <td className="font-medium">
-                      {UNIVERS_LABELS[u.univers] ?? u.univers}
-                    </td>
-                    <td className="num">{u.quantite}</td>
-                    <td className="num font-medium">{fcfa(u.ca)}</td>
-                  </tr>
-                ))}
-                {ventes.parUnivers.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="text-center text-muted-foreground">
-                      Aucune vente.
                     </td>
                   </tr>
                 )}

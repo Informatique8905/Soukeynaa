@@ -22,7 +22,7 @@ export default async function PagePromotions() {
       orderBy: { nom: "asc" },
     }),
     prisma.category.findMany({
-      select: { id: true, nom: true, univers: true },
+      select: { id: true, nom: true },
       orderBy: { nom: "asc" },
     }),
   ]);
@@ -133,9 +133,7 @@ export default async function PagePromotions() {
                 {categories.map((c) => (
                   <li key={c.id} className="flex gap-3">
                     <span className="w-8 shrink-0 text-right font-mono text-muted-foreground">{c.id}</span>
-                    <span className="truncate">
-                      <span className="capitalize text-muted-foreground">{c.univers}</span> / {c.nom}
-                    </span>
+                    <span className="truncate">{c.nom}</span>
                   </li>
                 ))}
               </ul>

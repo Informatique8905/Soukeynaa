@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { ImageUpload, type ImageProduit } from "./ImageUpload";
-import { UNIVERSES, PRODUCT_STATUSES } from "@/lib/constants";
+import { PRODUCT_STATUSES } from "@/lib/constants";
 import {
   Alerte,
   CaseLibellee,
@@ -19,7 +19,6 @@ import {
 interface Categorie {
   id: number;
   nom: string;
-  univers: string;
   parentId: number | null;
 }
 
@@ -39,7 +38,6 @@ export interface ProduitInitial {
   prix: number;
   prixReduit?: number | null;
   categorieId: number;
-  univers: string;
   images: ImageProduit[];
   aVariantes: boolean;
   variantes: Variante[];
@@ -63,15 +61,12 @@ export function ProduitForm({
   initial?: ProduitInitial;
   action: (formData: FormData) => Promise<void>;
 }) {
-  const [univers, setUnivers] = useState(initial?.univers ?? "femmes");
   const [aVariantes, setAVariantes] = useState(initial?.aVariantes ?? false);
   const [variantes, setVariantes] = useState<Variante[]>(
     initial?.variantes ?? []
   );
   const [images, setImages] = useState<ImageProduit[]>(initial?.images ?? []);
   const [erreur, setErreur] = useState("");
-
-  const catsUnivers = categories.filter((c) => c.univers === univers);
 
   function ajouterVariante() {
     setVariantes([...variantes, { taille: "", couleur: "", sku: "", stock: 0 }]);
@@ -235,31 +230,16 @@ export function ProduitForm({
 
         <Panneau titre="Organisation">
           <div className="grid gap-4">
-            <Champ label="Univers *">
-              <select
-                name="univers"
-                value={univers}
-                onChange={(e) => setUnivers(e.target.value)}
-                className={`${champ} capitalize`}
-              >
-                {UNIVERSES.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </Champ>
             <Champ label="Catégorie *">
               <select
-                key={univers}
                 name="categorie"
                 required
                 defaultValue={initial?.categorieId}
-                disabled={catsUnivers.length === 0}
+                disabled={categories.length === 0}
                 className={champ}
               >
                 <option value="">Choisir une catégorie</option>
-                {catsUnivers.map((c) => (
+                {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.parentId ? "\u00a0\u00a0\u00a0\u00a0" : ""}
                     {c.nom}
@@ -267,12 +247,12 @@ export function ProduitForm({
                 ))}
               </select>
             </Champ>
-            {catsUnivers.length === 0 && (
-              <Alerte ton="alerte" titre="Aucune catégorie active dans cet univers">
+            {categories.length === 0 && (
+              <Alerte ton="alerte" titre="Aucune catégorie active">
                 <Link href="/admin/categories" className={lien}>
                   Créez une catégorie
                 </Link>{" "}
-                pour « {univers} », puis revenez créer le produit.
+                puis revenez créer le produit.
               </Alerte>
             )}
           </div>
@@ -297,7 +277,7 @@ export function ProduitForm({
         <div className="sticky bottom-4 z-10 flex gap-2 lg:static">
           <button
             className={bouton("primaire", "md", "flex-1 shadow-md lg:shadow-sm")}
-            disabled={catsUnivers.length === 0}
+            disabled={categories.length === 0}
           >
             {initial?.id ? "Enregistrer les modifications" : "Créer le produit"}
           </button>

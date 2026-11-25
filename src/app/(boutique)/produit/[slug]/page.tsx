@@ -35,13 +35,6 @@ export default async function ProduitPage({
         </Link>
         <span aria-hidden="true">›</span>
         <Link
-          href={`/${produit.univers}`}
-          className="capitalize transition hover:text-vert"
-        >
-          {produit.univers}
-        </Link>
-        <span aria-hidden="true">›</span>
-        <Link
           href={`/categorie/${produit.categorie.slug}`}
           className="transition hover:text-vert"
         >

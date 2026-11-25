@@ -8,13 +8,6 @@ import { auth } from "@/auth";
 import { ProductCard, type CarteProduit } from "@/components/boutique/ProductCard";
 import { DealCard } from "@/components/boutique/DealCard";
 
-const UNIVERS = [
-  { slug: "enfants", label: "Enfants" },
-  { slug: "hommes", label: "Hommes" },
-  { slug: "femmes", label: "Femmes" },
-  { slug: "accessoires", label: "Accessoires" },
-] as const;
-
 const AVANTAGES = [
   "Livraison dans tout Abidjan",
   "Paiement à la livraison",
@@ -196,31 +189,10 @@ export default async function Accueil() {
         </div>
       </div>
 
-      {/* Univers en chips */}
-      <nav
-        aria-label="Univers"
-        className="no-scrollbar mt-5 flex gap-2 overflow-x-auto pb-1"
-      >
-        {UNIVERS.map((u, i) => (
-          <Link
-            key={u.slug}
-            href={`/${u.slug}`}
-            data-reveal="scale"
-            className={`press shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold ${
-              i === 0
-                ? "bg-vert text-white shadow-md shadow-vert/25"
-                : "bg-white text-noir ring-1 ring-black/10 hover:bg-vert-clair hover:text-vert"
-            }`}
-          >
-            {u.label}
-          </Link>
-        ))}
-      </nav>
-
       {/* Catégories en cartes illustrées */}
       {cartesCategories.length > 0 && (
         <section className="mt-8">
-          <h2 data-reveal="left" className="text-lg font-extrabold text-noir">Nos univers</h2>
+          <h2 data-reveal="left" className="text-lg font-extrabold text-noir">Nos catégories</h2>
           <div className="no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible xl:grid-cols-8">
             {cartesCategories.map((cat) => (
               <Link

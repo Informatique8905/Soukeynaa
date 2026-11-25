@@ -8,8 +8,8 @@ export default async function NouveauProduit() {
   const prisma = getPrisma();
   const categories = await prisma.category.findMany({
     where: { active: true },
-    orderBy: [{ univers: "asc" }, { ordre: "asc" }],
-    select: { id: true, nom: true, univers: true, parentId: true },
+    orderBy: [{ parentId: "asc" }, { ordre: "asc" }, { nom: "asc" }],
+    select: { id: true, nom: true, parentId: true },
   });
 
   return (

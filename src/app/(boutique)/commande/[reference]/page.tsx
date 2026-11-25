@@ -20,10 +20,12 @@ interface ImageJson {
 
 export default async function CommandePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ reference: string }>;
+  searchParams: Promise<{ moyen?: string }>;
 }) {
-  const { reference } = await params;
+  const [{ reference }, { moyen }] = await Promise.all([params, searchParams]);
   const prisma = getPrisma();
   const commande = await prisma.order.findUnique({
     where: { reference },
@@ -261,7 +263,11 @@ export default async function CommandePage({
 
             {payable && (
               <div className="mt-5">
-                <BoutonPayer commandeId={commande.id} montant={commande.total} />
+                <BoutonPayer
+                  commandeId={commande.id}
+                  montant={commande.total}
+                  moyenInitial={moyen}
+                />
                 <p className="mt-2 text-center text-xs text-gris-fonce">
                   Panier réservé jusqu&apos;à {expire}
                 </p>

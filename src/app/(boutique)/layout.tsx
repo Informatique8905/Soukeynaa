@@ -5,7 +5,6 @@ import { getPrisma } from "@/lib/db";
 import { getCart } from "@/lib/cart";
 import { NavBas } from "@/components/boutique/NavBas";
 import { Splash } from "@/components/boutique/Splash";
-import { NavUnivers } from "@/components/boutique/NavUnivers";
 import { MotionRoot } from "@/components/motion/MotionRoot";
 
 export default async function BoutiqueLayout({
@@ -39,7 +38,6 @@ export default async function BoutiqueLayout({
               className="h-10 w-auto"
             />
           </Link>
-          <NavUnivers />
           <div className="flex items-center gap-2">
             <Link
               href="/recherche"

@@ -25,6 +25,8 @@ export const checkoutSchema = z.object({
     adresse: z.string().trim().min(5).max(500),
   }),
   modePaiement: z.enum(["en_ligne", "livraison"]).default("en_ligne"),
+  // Opérateur choisi au checkout — repris sur la page de paiement Jèko
+  moyenPaiement: z.enum(["wave", "orange", "mtn", "moov", "djamo"]).optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
@@ -44,7 +46,7 @@ export const produitSchema = z
     prix: z.number().int().min(0),
     prixReduit: z.number().int().min(0).optional(),
     categorie: id,
-    univers: z.enum(UNIVERSES),
+    univers: z.enum(UNIVERSES).default("femmes"),
     aVariantes: z.boolean().default(false),
     variantes: z.array(varianteSchema).default([]),
     stock: z.number().int().min(0).default(0),
@@ -60,7 +62,7 @@ export type ProduitInput = z.infer<typeof produitSchema>;
 // ===== Catégorie (admin, CDC 4.6)
 export const categorieSchema = z.object({
   nom: z.string().trim().min(2).max(120),
-  univers: z.enum(UNIVERSES),
+  univers: z.enum(UNIVERSES).default("femmes"),
   parent: id.nullable().default(null),
   ordre: z.number().int().default(0),
   active: z.boolean().default(true),
