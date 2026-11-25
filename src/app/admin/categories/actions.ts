@@ -7,6 +7,13 @@ import { logAudit } from "@/lib/audit";
 import { slugify } from "@/lib/format";
 import { categorieSchema } from "@/lib/validation";
 
+function revaliderCategories() {
+  revalidatePath("/admin/categories");
+  revalidatePath("/admin/produits/nouveau");
+  revalidatePath("/admin/produits/[id]", "page");
+  revalidatePath("/", "layout");
+}
+
 async function slugUnique(base: string, exclureId?: number) {
   const prisma = getPrisma();
   let slug = base;
@@ -58,7 +65,7 @@ export async function creerCategorie(formData: FormData) {
     entiteId: cat.id,
     apres: { nom, univers, parent },
   });
-  revalidatePath("/admin/categories");
+  revaliderCategories();
 }
 
 export async function modifierCategorie(id: number, formData: FormData) {
@@ -101,7 +108,7 @@ export async function modifierCategorie(id: number, formData: FormData) {
     avant: { nom: avant.nom, univers: avant.univers, active: avant.active },
     apres: { nom, univers, active },
   });
-  revalidatePath("/admin/categories");
+  revaliderCategories();
 }
 
 export async function basculerCategorie(id: number) {
@@ -119,5 +126,5 @@ export async function basculerCategorie(id: number) {
     avant: { active: cat.active },
     apres: { active: !cat.active },
   });
-  revalidatePath("/admin/categories");
+  revaliderCategories();
 }

@@ -53,6 +53,9 @@ export default async function PageCategories() {
           </Champ>
           <Champ label="Univers">
             <select name="univers" required className={`${champ} capitalize`}>
+              <option value="" disabled>
+                Choisir un univers
+              </option>
               {UNIVERSES.map((u) => (
                 <option key={u} value={u}>
                   {u}
