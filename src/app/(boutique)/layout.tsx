@@ -28,7 +28,7 @@ export default async function BoutiqueLayout({
       <Splash />
       <MotionRoot />
       {/* En-tête façon app : se compacte et prend une ombre au scroll */}
-      <header className="hdr-scroll sticky top-0 z-40 border-b border-black/5 bg-white/95 backdrop-blur-md">
+      <header className="hdr-scroll sticky top-0 z-40 border-b border-black/5 bg-white/95 backdrop-blur-md print:hidden">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
           <Link href="/" aria-label="Accueil SOUKEYNA" className="press shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -88,9 +88,9 @@ export default async function BoutiqueLayout({
 
       <div className="flex-1 pb-[100px] md:pb-0">{children}</div>
 
-      <NavBas cartCount={panierCount} />
+      <div className="print:hidden"><NavBas cartCount={panierCount} /></div>
 
-      <footer className="relative mt-10 overflow-hidden rounded-t-[1.5rem] bg-noir text-white md:mt-16 md:rounded-t-[2rem]">
+      <footer className="relative mt-10 overflow-hidden rounded-t-[1.5rem] bg-noir text-white md:mt-16 md:rounded-t-[2rem] print:hidden">
         <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-vert/25 blur-3xl" />
 
         {/* Mobile : footer compact, sections repliables */}

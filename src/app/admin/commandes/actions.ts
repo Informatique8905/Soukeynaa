@@ -76,28 +76,33 @@ export async function changerStatutCommande(
   revalidatePath("/admin/commandes");
 }
 
-export async function definirDelaiLivraison(id: number, formData: FormData) {
+export async function definirDelaiLivraison(
+  id: number,
+  delai: string
+): Promise<{ ok: boolean; erreur?: string; notifie?: boolean }> {
   await requireAdmin();
   const prisma = getPrisma();
-  const delai = String(formData.get("delaiLivraison") ?? "").trim();
-  if (delai.length < 2 || delai.length > 200) {
-    throw new Error("Délai invalide (2 à 200 caractères)");
+  const valeur = String(delai ?? "").trim();
+  if (valeur.length < 2 || valeur.length > 200) {
+    return { ok: false, erreur: "Délai invalide (2 à 200 caractères)" };
   }
   const avant = await prisma.order.findUniqueOrThrow({ where: { id } });
   await prisma.order.update({
     where: { id },
-    data: { delaiLivraison: delai },
+    data: { delaiLivraison: valeur },
   });
   await logAudit({
     action: "commande.delai_livraison",
     entiteType: "Order",
     entiteId: id,
     avant: { delaiLivraison: avant.delaiLivraison },
-    apres: { delaiLivraison: delai },
+    apres: { delaiLivraison: valeur },
   });
-  // Email du délai au client (CDC 12.3) — dédupliqué par la valeur saisie
-  envoyerDelaiLivraison(id).catch(() => {});
   revalidatePath(`/admin/commandes/${id}`);
+  // Email du délai au client (CDC 12.3) — await nécessaire : en serverless,
+  // un envoi « fire-and-forget » peut être tué avant d'aboutir
+  const notifie = await envoyerDelaiLivraison(id).catch(() => false);
+  return { ok: true, notifie };
 }
 
 export async function enregistrerNoteInterne(id: number, formData: FormData) {

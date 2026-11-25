@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { fcfa } from "@/lib/format";
 import { cloud } from "@/lib/image";
 import { BoutonPayer, RafraichirAuto } from "@/components/boutique/BoutonPayer";
+import { BonCommande } from "@/components/boutique/BonCommande";
 import { TrajetLivraison } from "@/components/motion/TrajetLivraison";
 
 const ETAPES_EN_LIGNE = ["en_attente_paiement", "payee", "en_preparation", "expediee", "livree"] as const;
@@ -86,12 +87,18 @@ export default async function CommandePage({
     hour: "2-digit",
     minute: "2-digit",
   });
+  // Bon de commande : visible dès que la commande est validée ou qu'un délai
+  // a été annoncé — réservé au propriétaire (données complètes, CDC 14.5)
+  const bonVisible =
+    proprietaire &&
+    !annulee &&
+    (commande.delaiLivraison !== null || etapeCourante >= 1);
 
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 md:py-10">
       <RafraichirAuto actif={enVerification} />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between print:hidden">
         <Link
           href="/commandes"
           className="press inline-flex items-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-noir ring-1 ring-black/10 hover:bg-vert-clair"
@@ -107,7 +114,7 @@ export default async function CommandePage({
         <div className="flex flex-col gap-4 md:col-span-3">
           {/* Suivi */}
           {!annulee && (
-            <section data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+            <section data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 print:hidden">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-extrabold text-noir">Suivi</h2>
                 {commande.delaiLivraison && (
@@ -124,7 +131,7 @@ export default async function CommandePage({
           )}
 
           {/* Adresse */}
-          <section data-reveal className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+          <section data-reveal className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5 print:hidden">
             <p className="text-sm font-bold text-noir">
               Livraison à {commande.communeNom}
             </p>
@@ -137,10 +144,12 @@ export default async function CommandePage({
               Tél : {telAffiche}
             </p>
           </section>
+
+          {bonVisible && <BonCommande c={commande} />}
         </div>
 
         {/* Récapitulatif + action */}
-        <aside className="mt-4 md:col-span-2 md:mt-0">
+        <aside className="mt-4 md:col-span-2 md:mt-0 print:hidden">
           <div data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 md:sticky md:top-24">
             <h2 className="font-extrabold text-noir">Récapitulatif</h2>
             <ul className="mt-3 space-y-3">

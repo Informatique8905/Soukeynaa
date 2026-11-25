@@ -99,6 +99,7 @@ export async function envoyerBonCommande(commandeId: number) {
       </table>
       <h3>Livraison</h3>
       <p>${c.adresseLivraison}, ${c.communeNom}<br/>Tél : ${c.clientTelephone}</p>
+      <p><a href="${process.env.AUTH_URL ?? ""}/commande/${c.reference}" style="display:inline-block;background:#1e7b4f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Voir mon bon de commande en ligne</a></p>
       <p style="font-size:12px;color:#888">Passée le ${dateFr(c.createdAt)}. Pour tout retour ou échange, contactez-nous par téléphone ou WhatsApp.</p>
     </div>`;
 
@@ -167,11 +168,12 @@ export async function alerterAdmin(
 // Email du délai prévisionnel de livraison (CDC 11.7, 12.3) — envoyé quand
 // l'admin renseigne le délai. La clé contient la valeur du délai : une
 // correction déclenche un nouvel envoi, un double appel non.
-export async function envoyerDelaiLivraison(commandeId: number) {
+export async function envoyerDelaiLivraison(commandeId: number): Promise<boolean> {
   const prisma = getPrisma();
   const c = await prisma.order.findUnique({ where: { id: commandeId } });
-  if (!c?.delaiLivraison) return;
-  await notifier(
+  if (!c?.delaiLivraison || !c.clientEmail) return false;
+  const lien = `${process.env.AUTH_URL ?? ""}/commande/${c.reference}`;
+  return !!(await notifier(
     `delai:${c.reference}:${c.delaiLivraison.trim().toLowerCase()}`,
     "delai_livraison",
     c.clientEmail,
@@ -181,10 +183,11 @@ export async function envoyerDelaiLivraison(commandeId: number) {
       <p>Bonjour ${c.clientNom},<br/>bonne nouvelle : votre commande <strong>${c.reference}</strong> arrive bientôt.</p>
       <p style="font-size:16px">Délai annoncé : <strong>${c.delaiLivraison}</strong></p>
       <p>Commune : ${c.communeNom} — ${c.adresseLivraison}<br/>Tél : ${c.clientTelephone}</p>
+      <p><a href="${lien}" style="display:inline-block;background:#1e7b4f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Voir mon bon de commande</a></p>
       <p style="font-size:12px;color:#888">Une question ? Répondez à cet email ou contactez-nous par téléphone/WhatsApp.</p>
     </div>`,
     c.id
-  );
+  ));
 }
 
 // Récapitulatif de rapport automatique (CDC 13.8) — envoyé à l'admin si

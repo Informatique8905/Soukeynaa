@@ -4,20 +4,18 @@ import { getPrisma } from "@/lib/db";
 import { fcfa, dateHeureFr } from "@/lib/format";
 import {
   changerStatutCommande,
-  definirDelaiLivraison,
   enregistrerNoteInterne,
 } from "../actions";
 import type { StatutCommande as StatutCmd } from "@/generated/prisma/enums";
+import { DelaiLivraisonForm } from "@/components/admin/DelaiLivraisonForm";
 import {
   Alerte,
-  Champ,
   EnTetePage,
   Panneau,
   StatutCommande,
   StatutPaiement,
   Pastille,
   bouton,
-  champ,
   zoneTexte,
   lien,
 } from "@/components/admin/ui";
@@ -212,23 +210,14 @@ export default async function DetailCommande({
       </Panneau>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panneau titre="Délai de livraison" description="Notifié au client (CDC 11.6)">
-          <form
-            action={definirDelaiLivraison.bind(null, commande.id)}
-            className="flex flex-col gap-3 sm:flex-row"
-          >
-            <Champ label="Délai affiché au client" className="flex-1">
-              <input
-                name="delaiLivraison"
-                defaultValue={commande.delaiLivraison ?? ""}
-                placeholder="Ex. livraison prévue jeudi 27 novembre"
-                className={champ}
-              />
-            </Champ>
-            <button className={`${bouton("primaire")} self-end`}>
-              Enregistrer & notifier
-            </button>
-          </form>
+        <Panneau
+          titre="Délai de livraison"
+          description="Délai annoncé au client, envoyé par email (CDC 11.6)"
+        >
+          <DelaiLivraisonForm
+            commandeId={commande.id}
+            valeurInitiale={commande.delaiLivraison}
+          />
         </Panneau>
 
         <Panneau
