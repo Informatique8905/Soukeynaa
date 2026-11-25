@@ -14,7 +14,14 @@ interface Commune {
 
 type Mode = "en_ligne" | "livraison";
 
-const MOYENS_EN_LIGNE = ["Wave", "Orange Money", "MTN MoMo", "Moov Money", "Djamo"];
+const MOYENS_EN_LIGNE = [
+  { v: "wave", label: "Wave" },
+  { v: "orange", label: "Orange Money" },
+  { v: "mtn", label: "MTN MoMo" },
+  { v: "moov", label: "Moov Money" },
+  { v: "djamo", label: "Djamo" },
+] as const;
+type Moyen = (typeof MOYENS_EN_LIGNE)[number]["v"];
 
 const champ =
   "peer w-full rounded-2xl border border-black/10 bg-blanc-casse px-4 pb-2.5 pt-6 text-sm text-noir outline-none transition placeholder:text-transparent focus:border-vert focus:bg-white focus:ring-4 focus:ring-vert/10";
@@ -68,6 +75,7 @@ export function CheckoutForm({
   const [communeId, setCommuneId] = useState<number | null>(null);
   const [filtre, setFiltre] = useState("");
   const [mode, setMode] = useState<Mode>("en_ligne");
+  const [moyen, setMoyen] = useState<Moyen>("wave");
   const [infos, setInfos] = useState({
     ...defauts,
     adresse: "",
@@ -108,6 +116,7 @@ export function CheckoutForm({
         client: { nom: infos.nom, telephone: infos.telephone, email: infos.email },
         livraison: { communeId: Number(communeId), adresse: infos.adresse },
         modePaiement: mode,
+        moyenPaiement: mode === "en_ligne" ? moyen : undefined,
       });
       if ("erreur" in res) setErreur(res.erreur);
       // ok => redirect() côté serveur
@@ -264,18 +273,35 @@ export function CheckoutForm({
         <div key={mode} className="page-in mt-3 rounded-2xl bg-blanc-casse p-3.5 text-xs text-gris-fonce">
           {mode === "en_ligne" ? (
             <>
-              <p className="font-semibold text-noir">Moyens acceptés</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {MOYENS_EN_LIGNE.map((m) => (
-                  <span key={m} className="rounded-full bg-white px-2.5 py-1 font-semibold text-noir ring-1 ring-black/5">
-                    {m}
-                  </span>
-                ))}
+              <p className="font-semibold text-noir">Choisissez votre moyen</p>
+              <div
+                role="radiogroup"
+                aria-label="Moyen de paiement mobile"
+                className="mt-2 flex flex-wrap gap-1.5"
+              >
+                {MOYENS_EN_LIGNE.map((m) => {
+                  const actif = moyen === m.v;
+                  return (
+                    <button
+                      key={m.v}
+                      type="button"
+                      role="radio"
+                      aria-checked={actif}
+                      onClick={() => setMoyen(m.v)}
+                      className={`press rounded-full px-3 py-1.5 font-semibold transition ${
+                        actif
+                          ? "bg-vert text-white shadow-md shadow-vert/25"
+                          : "bg-white text-noir ring-1 ring-black/5 hover:ring-vert/50"
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  );
+                })}
               </div>
               <p className="mt-2">
-                Stock réservé 30 min le temps du paiement — vous choisirez votre
-                moyen juste après la commande, avant la redirection sécurisée
-                Jèko.
+                Stock réservé 30 min — après validation, redirection sécurisée
+                Jèko pour régler avec {MOYENS_EN_LIGNE.find((m) => m.v === moyen)?.label}.
               </p>
             </>
           ) : (

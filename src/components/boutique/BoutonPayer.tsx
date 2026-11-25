@@ -16,12 +16,16 @@ const MOYENS = [
 export function BoutonPayer({
   commandeId,
   montant,
+  moyenInitial,
 }: {
   commandeId: number;
   montant?: number;
+  moyenInitial?: string;
 }) {
   const [erreur, setErreur] = useState("");
-  const [moyen, setMoyen] = useState("wave");
+  const [moyen, setMoyen] = useState(() =>
+    MOYENS.some((m) => m.v === moyenInitial) ? moyenInitial! : "wave"
+  );
   const [pending, start] = useTransition();
 
   function payer() {

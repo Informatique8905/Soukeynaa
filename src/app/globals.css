@@ -90,10 +90,15 @@
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
+  overflow-x: clip;
+  /* La page ne doit jamais pouvoir être déplacée : ni pan horizontal,
+     ni rebond élastique, ni chaînage de scroll depuis les carrousels */
+  overscroll-behavior: none;
 }
 
 body {
   overflow-x: clip;
+  overscroll-behavior: none;
   background: var(--background);
   color: var(--foreground);
   text-rendering: optimizeLegibility;
@@ -302,6 +307,7 @@ html.js-motion [data-reveal] {
 /* Défilement horizontal sans barre */
 .no-scrollbar {
   scrollbar-width: none;
+  overscroll-behavior: contain;
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
