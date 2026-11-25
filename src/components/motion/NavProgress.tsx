@@ -49,7 +49,6 @@ export function NavProgress() {
     setPhase("fin");
     timer.current = setTimeout(() => setPhase("repos"), 400);
     return () => clearTimeout(timer.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   if (phase === "repos") return null;
