@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { ImageUpload, type ImageProduit } from "./ImageUpload";
 import { UNIVERSES, PRODUCT_STATUSES } from "@/lib/constants";
@@ -11,6 +12,7 @@ import {
   Panneau,
   bouton,
   champ,
+  lien,
   zoneTexte,
 } from "./ui";
 
@@ -249,9 +251,11 @@ export function ProduitForm({
             </Champ>
             <Champ label="Catégorie *">
               <select
+                key={univers}
                 name="categorie"
                 required
                 defaultValue={initial?.categorieId}
+                disabled={catsUnivers.length === 0}
                 className={champ}
               >
                 <option value="">Choisir une catégorie</option>
@@ -263,6 +267,14 @@ export function ProduitForm({
                 ))}
               </select>
             </Champ>
+            {catsUnivers.length === 0 && (
+              <Alerte ton="alerte" titre="Aucune catégorie active dans cet univers">
+                <Link href="/admin/categories" className={lien}>
+                  Créez une catégorie
+                </Link>{" "}
+                pour « {univers} », puis revenez créer le produit.
+              </Alerte>
+            )}
           </div>
         </Panneau>
 
@@ -283,7 +295,10 @@ export function ProduitForm({
         {erreur && <Alerte ton="danger">{erreur}</Alerte>}
 
         <div className="sticky bottom-4 z-10 flex gap-2 lg:static">
-          <button className={bouton("primaire", "md", "flex-1 shadow-md lg:shadow-sm")}>
+          <button
+            className={bouton("primaire", "md", "flex-1 shadow-md lg:shadow-sm")}
+            disabled={catsUnivers.length === 0}
+          >
             {initial?.id ? "Enregistrer les modifications" : "Créer le produit"}
           </button>
         </div>
