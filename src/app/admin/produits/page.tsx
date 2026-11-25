@@ -19,6 +19,30 @@ export default async function PageProduits() {
     },
   });
 
+  const actions = (p: { id: number; statut: string }) => (
+    <>
+      {p.statut !== "publie" && (
+        <form action={changerStatutProduit.bind(null, p.id, "publie")}>
+          <button className="font-semibold text-green-700">Publier</button>
+        </form>
+      )}
+      {p.statut === "publie" && (
+        <form
+          action={changerStatutProduit.bind(null, p.id, "brouillon")}
+        >
+          <button className="font-semibold text-orange-600">Dépublier</button>
+        </form>
+      )}
+      {p.statut !== "desactive" && (
+        <form
+          action={changerStatutProduit.bind(null, p.id, "desactive")}
+        >
+          <button className="font-semibold text-red-600">Désactiver</button>
+        </form>
+      )}
+    </>
+  );
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -31,8 +55,67 @@ export default async function PageProduits() {
         </Link>
       </div>
 
-      <div className="overflow-x-auto">
-      <table className="mt-6 w-full border bg-white text-sm">
+      {/* Mobile : cartes tactiles */}
+      <div className="mt-5 space-y-2.5 md:hidden">
+        {produits.map((p) => {
+          const stock = p.aVariantes
+            ? p.variantes.reduce((s, v) => s + v.stock, 0)
+            : p.stock;
+          return (
+            <div
+              key={p.id}
+              className="rounded-2xl border bg-white p-3.5 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <Link
+                    href={`/admin/produits/${p.id}`}
+                    className="font-semibold text-vert"
+                  >
+                    {p.nom}
+                  </Link>
+                  <p className="mt-0.5 text-xs text-gris-fonce">
+                    {p.univers} / {p.categorie.nom}
+                  </p>
+                </div>
+                <Badge
+                  variant={PRODUCT_BADGE_VARIANT[p.statut as ProductStatus]}
+                  className="shrink-0"
+                >
+                  {PRODUCT_STATUS_LABELS[p.statut as ProductStatus]}
+                </Badge>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm">
+                <p>
+                  {fcfa(p.prixReduit ?? p.prix)}
+                  {p.prixReduit && (
+                    <span className="ml-1 text-xs line-through opacity-50">
+                      {fcfa(p.prix)}
+                    </span>
+                  )}
+                </p>
+                <p
+                  className={`text-xs ${stock === 0 ? "font-bold text-red-600" : "opacity-70"}`}
+                >
+                  Stock : {stock}
+                </p>
+              </div>
+              <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-black/5 pt-2.5 text-xs">
+                {actions(p)}
+              </div>
+            </div>
+          );
+        })}
+        {produits.length === 0 && (
+          <p className="rounded-2xl border bg-white p-4 text-center text-sm opacity-60">
+            Aucun produit — créez le premier.
+          </p>
+        )}
+      </div>
+
+      {/* Desktop : table */}
+      <div className="mt-6 hidden overflow-x-auto md:block">
+        <table className="w-full border bg-white text-sm">
         <thead className="bg-gris text-left">
           <tr>
             <th className="p-2">Produit</th>

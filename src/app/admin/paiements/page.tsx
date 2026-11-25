@@ -74,8 +74,53 @@ export default async function PagePaiements() {
         </section>
       )}
 
-      <div className="overflow-x-auto">
-      <table className="mt-6 w-full border bg-white text-sm">
+      {/* Mobile : cartes tactiles */}
+      <div className="mt-5 space-y-2.5 md:hidden">
+        {paiements.map((p) => (
+          <div
+            key={p.id}
+            className="rounded-2xl border bg-white p-3.5 shadow-sm"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <Link
+                href={`/admin/commandes/${p.commandeId}`}
+                className="truncate font-semibold text-vert"
+              >
+                {p.commande.reference}
+              </Link>
+              <Badge
+                variant={PAYMENT_BADGE_VARIANT[p.statut as PaymentStatus]}
+                className="shrink-0"
+              >
+                {PAYMENT_STATUS_LABELS[p.statut as PaymentStatus] ?? p.statut}
+              </Badge>
+            </div>
+            <p className="mt-0.5 text-sm">{p.commande.clientNom}</p>
+            <div className="mt-2 flex items-center justify-between text-xs text-gris-fonce">
+              <p>
+                {p.moyen ?? "—"} — {dateHeureFr(p.createdAt)}
+              </p>
+              <p className="text-sm font-bold text-noir tabular-nums">
+                {fcfa(p.montant)}
+              </p>
+            </div>
+            {p.transactionJeko && (
+              <p className="mt-1 truncate text-[11px] opacity-50">
+                txn : {p.transactionJeko}
+              </p>
+            )}
+          </div>
+        ))}
+        {paiements.length === 0 && (
+          <p className="rounded-2xl border bg-white p-4 text-center text-sm opacity-60">
+            Aucun paiement.
+          </p>
+        )}
+      </div>
+
+      {/* Desktop : table */}
+      <div className="mt-6 hidden overflow-x-auto md:block">
+        <table className="w-full border bg-white text-sm">
         <thead className="bg-gris text-left">
           <tr>
             <th className="p-2">Commande</th>

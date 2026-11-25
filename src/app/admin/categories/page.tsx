@@ -60,8 +60,56 @@ export default async function PageCategories() {
         </button>
       </form>
 
-      <div className="overflow-x-auto">
-      <table className="mt-6 w-full border bg-white text-sm">
+      {/* Mobile : cartes tactiles */}
+      <div className="mt-5 space-y-2.5 md:hidden">
+        {categories.map((c) => (
+          <div
+            key={c.id}
+            className="flex items-center gap-3 rounded-2xl border bg-white p-3.5 shadow-sm"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">
+                {c.parentId ? "↳ " : ""}
+                {c.nom}
+              </p>
+              <p className="mt-0.5 text-xs text-gris-fonce">
+                {c.univers}
+                {c.parent && ` — parent : ${c.parent.nom}`} —{" "}
+                {c._count.produits} produit(s)
+              </p>
+            </div>
+            {c.active ? (
+              <span
+                className="shrink-0 font-bold text-vert"
+                aria-label="Active"
+              >
+                ✓
+              </span>
+            ) : (
+              <span
+                className="shrink-0 font-bold text-red-600"
+                aria-label="Inactive"
+              >
+                ×
+              </span>
+            )}
+            <form action={basculerCategorie.bind(null, c.id)}>
+              <button className="shrink-0 rounded-full bg-gris px-3 py-1.5 text-xs font-semibold text-gris-fonce">
+                {c.active ? "Désactiver" : "Activer"}
+              </button>
+            </form>
+          </div>
+        ))}
+        {categories.length === 0 && (
+          <p className="rounded-2xl border bg-white p-4 text-center text-sm opacity-60">
+            Aucune catégorie — créez la première ci-dessus.
+          </p>
+        )}
+      </div>
+
+      {/* Desktop : table */}
+      <div className="mt-6 hidden overflow-x-auto md:block">
+        <table className="w-full border bg-white text-sm">
         <thead className="bg-gris text-left">
           <tr>
             <th className="p-2">Nom</th>

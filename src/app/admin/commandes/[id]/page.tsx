@@ -160,29 +160,47 @@ export default async function DetailCommande({
         <h2 className="flex items-center gap-2 font-bold">
           Articles
         </h2>
-        <div className="overflow-x-auto">
-        <table className="mt-2 w-full">
-          <thead className="text-left text-xs text-gris-fonce">
-            <tr>
-              <th>Produit</th>
-              <th>Variante</th>
-              <th>Qté</th>
-              <th>P.U.</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {commande.lignes.map((l) => (
-              <tr key={l.id}>
-                <td>{l.nom}</td>
-                <td>{l.varianteLabel || "—"}</td>
-                <td>{l.quantite}</td>
-                <td>{fcfa(l.prixUnitaire)}</td>
-                <td>{fcfa(l.total)}</td>
+        {/* Mobile : lignes empilées */}
+        <div className="mt-2 divide-y divide-black/5 md:hidden">
+          {commande.lignes.map((l) => (
+            <div key={l.id} className="flex items-center justify-between gap-3 py-2">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{l.nom}</p>
+                <p className="text-xs opacity-60">
+                  {l.varianteLabel || "—"} — {l.quantite} ×{" "}
+                  {fcfa(l.prixUnitaire)}
+                </p>
+              </div>
+              <p className="shrink-0 font-semibold tabular-nums">
+                {fcfa(l.total)}
+              </p>
+            </div>
+          ))}
+        </div>
+        {/* Desktop : table */}
+        <div className="mt-2 hidden overflow-x-auto md:block">
+          <table className="w-full">
+            <thead className="text-left text-xs text-gris-fonce">
+              <tr>
+                <th>Produit</th>
+                <th>Variante</th>
+                <th>Qté</th>
+                <th>P.U.</th>
+                <th>Total</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {commande.lignes.map((l) => (
+                <tr key={l.id}>
+                  <td>{l.nom}</td>
+                  <td>{l.varianteLabel || "—"}</td>
+                  <td>{l.quantite}</td>
+                  <td>{fcfa(l.prixUnitaire)}</td>
+                  <td>{fcfa(l.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
         <div className="mt-3 space-y-0.5 text-right">
           <p className="text-gris-fonce">

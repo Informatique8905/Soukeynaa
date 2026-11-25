@@ -18,6 +18,24 @@ export default async function PagePromotions() {
   ]);
   const now = new Date();
 
+  const etat = (p: (typeof promotions)[number]) => {
+    const enCours = p.active && p.debut <= now && p.fin >= now;
+    return enCours ? (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-vert/10 px-2.5 py-0.5 text-xs font-bold text-vert ring-1 ring-vert/20">
+        <span className="size-1.5 rounded-full bg-vert" />
+        En cours
+      </span>
+    ) : p.active ? (
+      <span className="inline-flex rounded-full bg-gris px-2.5 py-0.5 text-xs font-semibold text-gris-fonce">
+        Programmée / terminée
+      </span>
+    ) : (
+      <span className="inline-flex rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-red-200">
+        Arrêtée
+      </span>
+    );
+  };
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-vert">Promotions</h1>
@@ -117,8 +135,50 @@ export default async function PagePromotions() {
         </div>
       </details>
 
-      <div className="overflow-x-auto">
-      <table className="mt-6 w-full border bg-white text-sm">
+      {/* Mobile : cartes tactiles */}
+      <div className="mt-5 space-y-2.5 md:hidden">
+        {promotions.map((p) => (
+          <div
+            key={p.id}
+            className="rounded-2xl border bg-white p-3.5 shadow-sm"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <p className="min-w-0 font-medium">{p.nom}</p>
+              {etat(p)}
+            </div>
+            <p className="mt-1 text-sm font-semibold text-vert">
+              {p.type === "pourcentage"
+                ? `-${p.valeur}%`
+                : `-${p.valeur} FCFA`}{" "}
+              <span className="text-xs font-normal text-gris-fonce">
+                — {p.portee} (
+                {(p.portee === "produits" ? p.produitIds : p.categorieIds)
+                  .length}{" "}
+                cible(s))
+              </span>
+            </p>
+            <p className="mt-0.5 text-xs text-gris-fonce">
+              {dateHeureFr(p.debut)} → {dateHeureFr(p.fin)}
+            </p>
+            <div className="mt-2.5 border-t border-black/5 pt-2.5">
+              <form action={basculerPromotion.bind(null, p.id)}>
+                <button className="text-xs font-semibold text-vert">
+                  {p.active ? "Arrêter" : "Réactiver"}
+                </button>
+              </form>
+            </div>
+          </div>
+        ))}
+        {promotions.length === 0 && (
+          <p className="rounded-2xl border bg-white p-4 text-center text-sm opacity-60">
+            Aucune promotion.
+          </p>
+        )}
+      </div>
+
+      {/* Desktop : table */}
+      <div className="mt-6 hidden overflow-x-auto md:block">
+        <table className="w-full border bg-white text-sm">
         <thead className="bg-gris text-left">
           <tr>
             <th className="p-2">Nom</th>
@@ -131,7 +191,6 @@ export default async function PagePromotions() {
         </thead>
         <tbody>
           {promotions.map((p) => {
-            const enCours = p.active && p.debut <= now && p.fin >= now;
             return (
               <tr key={p.id} className="border-t">
                 <td className="p-2 font-medium">{p.nom}</td>
@@ -151,22 +210,7 @@ export default async function PagePromotions() {
                 <td className="p-2 text-xs">
                   {dateHeureFr(p.debut)} → {dateHeureFr(p.fin)}
                 </td>
-                <td className="p-2">
-                  {enCours ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-vert/10 px-2.5 py-0.5 text-xs font-bold text-vert ring-1 ring-vert/20">
-                      <span className="size-1.5 rounded-full bg-vert" />
-                      En cours
-                    </span>
-                  ) : p.active ? (
-                    <span className="inline-flex rounded-full bg-gris px-2.5 py-0.5 text-xs font-semibold text-gris-fonce">
-                      Programmée / terminée
-                    </span>
-                  ) : (
-                    <span className="inline-flex rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-red-200">
-                      Arrêtée
-                    </span>
-                  )}
-                </td>
+                <td className="p-2">{etat(p)}</td>
                 <td className="p-2">
                   <form action={basculerPromotion.bind(null, p.id)}>
                     <button className="text-vert underline">

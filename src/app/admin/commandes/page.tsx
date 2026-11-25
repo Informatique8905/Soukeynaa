@@ -52,8 +52,54 @@ export default async function PageCommandes({
         ))}
       </div>
 
-      <div className="overflow-x-auto">
-      <table className="mt-4 w-full border bg-white text-sm">
+      {/* Mobile : cartes tactiles */}
+      <div className="mt-4 space-y-2.5 md:hidden">
+        {commandes.map((c) => (
+          <Link
+            key={c.id}
+            href={`/admin/commandes/${c.id}`}
+            className="block rounded-2xl border bg-white p-3.5 shadow-sm transition active:scale-[0.99]"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate font-semibold text-vert">{c.reference}</p>
+              <p className="shrink-0 font-bold tabular-nums">{fcfa(c.total)}</p>
+            </div>
+            <p className="mt-0.5 text-sm">
+              {c.clientNom}{" "}
+              <span className="text-xs opacity-60">{c.clientTelephone}</span>
+            </p>
+            <p className="mt-0.5 text-xs text-gris-fonce">
+              {c.communeNom} — {dateFr(c.createdAt)}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <Badge variant={ORDER_BADGE_VARIANT[c.statut as OrderStatus]}>
+                {ORDER_STATUS_LABELS[c.statut as OrderStatus]}
+              </Badge>
+              <Badge
+                variant={
+                  PAYMENT_BADGE_VARIANT[c.statutPaiement as PaymentStatus]
+                }
+              >
+                {PAYMENT_STATUS_LABELS[c.statutPaiement as PaymentStatus]}
+              </Badge>
+              {c.modePaiement === "livraison" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800 ring-1 ring-amber-200">
+                  À la livraison
+                </span>
+              )}
+            </div>
+          </Link>
+        ))}
+        {commandes.length === 0 && (
+          <p className="rounded-2xl border bg-white p-4 text-center text-sm opacity-60">
+            Aucune commande.
+          </p>
+        )}
+      </div>
+
+      {/* Desktop : table */}
+      <div className="mt-4 hidden overflow-x-auto md:block">
+        <table className="w-full border bg-white text-sm">
         <thead className="bg-gris text-left">
           <tr>
             <th className="p-2">Référence</th>
