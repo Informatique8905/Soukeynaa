@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { auth } from "@/auth";
 import { getPrisma } from "@/lib/db";
 import { getCart } from "@/lib/cart";
@@ -91,9 +92,65 @@ export default async function BoutiqueLayout({
 
       <NavBas cartCount={panierCount} />
 
-      <footer className="relative mt-16 overflow-hidden rounded-t-[2rem] bg-noir text-white">
+      <footer className="relative mt-10 overflow-hidden rounded-t-[1.5rem] bg-noir text-white md:mt-16 md:rounded-t-[2rem]">
         <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-vert/25 blur-3xl" />
-        <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-12 text-sm md:grid-cols-3">
+
+        {/* Mobile : footer compact, sections repliables */}
+        <div className="relative px-4 pb-[calc(96px+env(safe-area-inset-bottom))] pt-5 text-xs md:hidden">
+          <div className="flex items-center gap-3">
+            <span className="inline-block shrink-0 rounded-lg bg-white px-2 py-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo-soukeyna.png"
+                alt="Soukeyna Styl'"
+                className="h-6 w-auto"
+              />
+            </span>
+            <p className="opacity-60">
+              L&apos;élégance ivoirienne, livrée chez vous.
+            </p>
+          </div>
+
+          <details className="group mt-3 border-t border-white/10">
+            <summary className="flex cursor-pointer list-none items-center justify-between py-3 font-semibold [&::-webkit-details-marker]:hidden">
+              Contact &amp; retours
+              <ChevronDown className="size-4 opacity-60 transition group-open:rotate-180" />
+            </summary>
+            <div className="space-y-1 pb-3 opacity-80">
+              {tel && <p>Tél : {tel}</p>}
+              {wa && <p>WhatsApp : {wa}</p>}
+              <p className="opacity-70">
+                Retours/échanges : par appel ou message (CDC 9.7).
+              </p>
+            </div>
+          </details>
+
+          <details className="group border-t border-white/10">
+            <summary className="flex cursor-pointer list-none items-center justify-between py-3 font-semibold [&::-webkit-details-marker]:hidden">
+              Livraison &amp; paiement
+              <ChevronDown className="size-4 opacity-60 transition group-open:rotate-180" />
+            </summary>
+            <div className="pb-3 opacity-80">
+              <p>
+                Abidjan et environs — tarif fixe selon la commune. Paiement en
+                ligne (Wave, Orange Money, MTN, Moov, carte) ou à la livraison.
+              </p>
+              <Link
+                href="/commandes"
+                className="mt-2 inline-block rounded-full bg-white/10 px-3 py-1.5 font-semibold"
+              >
+                Suivre ma commande
+              </Link>
+            </div>
+          </details>
+
+          <p className="border-t border-white/10 pt-3 text-center text-[11px] opacity-50">
+            © SOUKEYNA — Abidjan, Côte d&apos;Ivoire
+          </p>
+        </div>
+
+        {/* Desktop : grille 3 colonnes */}
+        <div className="relative mx-auto hidden max-w-7xl gap-8 px-4 py-12 text-sm md:grid md:grid-cols-3">
           <div data-reveal>
             <span className="inline-block rounded-xl bg-white px-3 py-1.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
