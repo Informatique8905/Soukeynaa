@@ -87,7 +87,7 @@ export default async function BoutiqueLayout({
         </div>
       </header>
 
-      <div className="flex-1 pb-[110px] md:pb-0">{children}</div>
+      <div className="flex-1 pb-[100px] md:pb-0">{children}</div>
 
       <NavBas cartCount={panierCount} />
 

@@ -14,7 +14,7 @@ import {
 } from "react";
 
 export const LIQUID_DEFAULT_CFG = {
-  R: 24, gap: 5, lift: 4, shoulder: 0.75, barH: 62,
+  R: 22, gap: 5, lift: 4, shoulder: 0.75, barH: 50,
   zeta: 0.7, omega: 14.66,
   sinkMs: 180, moveDelayMs: 90, emergeAfterMs: 210, emergeMs: 340, settleMs: 250,
   troughR: 1.05, troughD: 0.9, stretch: 0.3, squash: 0.2,
@@ -312,6 +312,13 @@ export function LiquidTabBar({
     return () => { ro.disconnect(); if (rafRef.current) cancelAnimationFrame(rafRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length, cfg, bottomInset]);
+
+  // Le path SVG n'a pas de "d" au 1er rendu (L était null) : repeindre
+  // dès que le layout est disponible, sinon la barre reste invisible
+  // jusqu'à la première interaction.
+  useEffect(() => {
+    if (L) paint();
+  }, [L, paint]);
 
   // index contrôlé par le parent → rejoue la transition
   useEffect(() => {
