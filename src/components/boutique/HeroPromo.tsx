@@ -18,6 +18,8 @@ export function HeroPromo({
     const el = root.current;
     if (!el) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Téléphone : bannière statique (page fixe)
+    if (!window.matchMedia("(min-width: 768px)").matches) return;
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ delay: 0.15 });
       tl.from(".hp-txt > *", { y: 18, opacity: 0, duration: 0.6, stagger: 0.09, ease: "power3.out" })

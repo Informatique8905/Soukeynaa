@@ -90,14 +90,22 @@
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
+  /* hidden en repli pour les iOS < 16 qui ignorent clip */
+  overflow-x: hidden;
   overflow-x: clip;
+  /* pas de zoom au double-tap */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   /* La page ne doit jamais pouvoir être déplacée : ni pan horizontal,
      ni rebond élastique, ni chaînage de scroll depuis les carrousels */
   overscroll-behavior: none;
 }
 
 body {
+  overflow-x: hidden;
   overflow-x: clip;
+  width: 100%;
   overscroll-behavior: none;
   background: var(--background);
   color: var(--foreground);
@@ -171,8 +179,17 @@ html.js-motion [data-reveal] {
     background-color 0.2s ease,
     color 0.2s ease;
 }
-.press:active {
-  transform: scale(0.96);
+/* Souris/trackpad uniquement : au doigt, le :active se déclenche pendant
+   le scroll et fait « trembler » cartes et boutons */
+@media (hover: hover) {
+  .press:active {
+    transform: scale(0.96);
+  }
+}
+@media (hover: none) {
+  .press:active {
+    opacity: 0.8;
+  }
 }
 
 /* Carte qui se soulève au survol (pointeurs fins uniquement) */
@@ -317,6 +334,28 @@ html.js-motion [data-reveal] {
   display: none;
 }
 
+/* ================= Téléphone : page fixe ================= */
+@media (max-width: 767px) {
+  /* < 16px, Safari iOS zoome au focus et la page se déplace ensuite */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  /* Aucune animation décorative permanente ni de fondu de navigation */
+  .float,
+  .shine::after,
+  .defile,
+  .page-fade,
+  .page-in,
+  [class*="animate-entree"] {
+    animation: none !important;
+  }
+  .shine::after {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html.js-motion [data-reveal] {
     opacity: 1;
@@ -406,4 +445,21 @@ html.js-motion [data-reveal] {
   .admin-table thead th {
     position: static;
   }
+}
+
+/* Barre de progression de navigation (NavProgress) — file lentement
+   vers ~90 % en attendant la route, puis fond en se terminant */
+.nvp-charge {
+  animation: nvp-charge 6s cubic-bezier(0.05, 0.5, 0.15, 1) forwards;
+}
+@keyframes nvp-charge {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(0.9); }
+}
+.nvp-fin {
+  animation: nvp-fin 0.4s ease-out forwards;
+}
+@keyframes nvp-fin {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }

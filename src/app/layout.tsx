@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,6 +15,18 @@ const geistMono = Geist_Mono({
 // Toute l'app est dynamique (catalogue, panier, compte, admin) — les requêtes
 // Prisma ne marquent pas une route dynamique, donc on force le rendu à la demande.
 export const dynamic = "force-dynamic";
+
+// Mobile : largeur de l'appareil, pas de zoom (ni pincement, ni zoom auto
+// iOS au focus d'un champ) — la page reste fixe. viewportFit pour les
+// encoches (env(safe-area-inset-*) utilisés par la nav basse).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#ffffff",
+};
 
 export const metadata: Metadata = {
   title: {
