@@ -263,7 +263,7 @@ export function ProduitForm({
             <Champ label="Prix (FCFA) *">
               <input name="prix" type="number" min={0} required defaultValue={initial?.prix} className={champ} />
             </Champ>
-            <Champ label="Prix réduit (FCFA)" aide="Optionnel — affiché barré à côté du prix">
+            <Champ label="Prix réduit (FCFA)" aide="Optionnel, affiché barré à côté du prix">
               <input name="prixReduit" type="number" min={0} defaultValue={initial?.prixReduit ?? ""} className={champ} />
             </Champ>
             <Champ label="Poids (g)" aide="Optionnel">

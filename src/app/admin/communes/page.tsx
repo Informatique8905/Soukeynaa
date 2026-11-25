@@ -20,7 +20,7 @@ export default async function PageCommunes() {
     <div className="flex flex-col gap-6">
       <EnTetePage
         titre="Communes et livraison"
-        description="Le tarif appliqué à une commande est figé au moment de l'achat (CDC 11.5) — modifier un tarif n'affecte pas les commandes passées."
+        description="Le tarif appliqué à une commande est figé au moment de l'achat (CDC 11.5). Modifier un tarif n'affecte pas les commandes passées."
       />
 
       <Panneau titre="Nouvelle commune">
@@ -51,7 +51,7 @@ export default async function PageCommunes() {
       >
         {communes.length === 0 ? (
           <p className="px-6 py-10 text-center text-sm text-muted-foreground">
-            Aucune commune — ajoutez la première ci-dessus.
+            Aucune commune. Ajoutez la première ci-dessus.
           </p>
         ) : (
           <ul className="divide-y divide-border">

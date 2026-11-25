@@ -18,11 +18,11 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
-    default: "SOUKEYNA — Boutique",
+    default: "Boutique SOUKEYNA",
     template: "%s | SOUKEYNA",
   },
   description:
-    "Boutique en ligne SOUKEYNA — vêtements, chaussures, sacs et accessoires à Abidjan. Livraison dans toutes les communes.",
+    "Boutique en ligne SOUKEYNA : vêtements, chaussures, sacs et accessoires à Abidjan. Livraison dans toutes les communes.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

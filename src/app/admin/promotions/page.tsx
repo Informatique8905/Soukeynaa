@@ -63,7 +63,7 @@ export default async function PagePromotions() {
     <div className="flex flex-col gap-6">
       <EnTetePage
         titre="Promotions"
-        description="Soldes, réductions ponctuelles et ventes flash — pas de codes promo (CDC 6.4)."
+        description="Soldes, réductions ponctuelles et ventes flash, sans codes promo (CDC 6.4)."
       />
 
       <Panneau titre="Nouvelle promotion" description="Les champs marqués * sont obligatoires">
@@ -88,7 +88,7 @@ export default async function PagePromotions() {
           </Champ>
           <Champ
             label="IDs ciblés *"
-            aide="Séparés par des virgules — voir la référence ci-dessous"
+            aide="Séparés par des virgules (voir la référence ci-dessous)"
             className="lg:col-span-3"
           >
             <input

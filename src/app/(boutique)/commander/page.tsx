@@ -51,7 +51,7 @@ export default async function CommanderPage() {
       </h1>
       <p className="mt-1 flex items-center gap-1.5 text-sm text-gris-fonce">
         Paiement sécurisé ou à la
-        livraison — à vous de choisir.
+        livraison, à vous de choisir.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-5 md:items-start">

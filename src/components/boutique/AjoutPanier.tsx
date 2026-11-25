@@ -55,7 +55,7 @@ export function AjoutPanier({
   if (stock === 0) {
     return (
       <p className="rounded bg-gris p-3 text-sm font-medium text-vert">
-        Rupture de stock — contactez-nous sur WhatsApp pour la disponibilité.
+        Rupture de stock. Contactez-nous sur WhatsApp pour la disponibilité.
       </p>
     );
   }

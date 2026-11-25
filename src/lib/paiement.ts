@@ -165,7 +165,7 @@ export async function initierPaiementJeko(params: {
       return {
         ok: false,
         erreur:
-          data?.message ?? data?.error?.message ?? `Erreur Jèko (${res.status})`,
+          data?.message ?? data?.error?.message ?? `Erreur de paiement (${res.status})`,
       };
     }
     return {
@@ -174,7 +174,7 @@ export async function initierPaiementJeko(params: {
       reference: data?.id,
     };
   } catch {
-    return { ok: false, erreur: "Jèko injoignable — réessayez" };
+    return { ok: false, erreur: "Service de paiement injoignable, réessayez" };
   }
 }
 

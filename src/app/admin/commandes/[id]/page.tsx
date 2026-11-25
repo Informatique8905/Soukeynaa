@@ -43,7 +43,7 @@ const SUIVANT_LIVRAISON: typeof SUIVANT_EN_LIGNE = {
     { statut: "annulee", label: "Annuler (refus)" },
   ],
   expediee: [
-    { statut: "livree", label: "Livrée — encaisser" },
+    { statut: "livree", label: "Livrée (encaisser)" },
     { statut: "annulee", label: "Annuler (refus)" },
   ],
 };
@@ -91,7 +91,7 @@ export default async function DetailCommande({
             {livraison ? (
               <Pastille ton="ambre">Paiement à la livraison</Pastille>
             ) : (
-              <Pastille ton="vert">Paiement en ligne (Jèko)</Pastille>
+              <Pastille ton="vert">Paiement en ligne</Pastille>
             )}
           </>
         }
@@ -99,7 +99,7 @@ export default async function DetailCommande({
 
       {livraison && commande.statutPaiement !== "confirme" && (
         <Alerte ton="alerte" titre={`À encaisser à la remise du colis : ${fcfa(commande.total)}`}>
-          Paiement à la livraison — l&apos;encaissement confirme automatiquement
+          Paiement à la livraison : l&apos;encaissement confirme automatiquement
           le paiement.
         </Alerte>
       )}
@@ -233,7 +233,7 @@ export default async function DetailCommande({
 
         <Panneau
           titre="Note interne"
-          description="Retours et échanges — visible uniquement ici (CDC 9.7)"
+          description="Retours et échanges, visible uniquement ici (CDC 9.7)"
         >
           <form action={enregistrerNoteInterne.bind(null, commande.id)}>
             <textarea
@@ -250,11 +250,11 @@ export default async function DetailCommande({
         </Panneau>
       </div>
 
-      <Panneau titre="Paiements" description="Tentatives Jèko et journal des événements">
+      <Panneau titre="Paiements" description="Tentatives de paiement et journal des événements">
         {commande.paiements.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {livraison
-              ? "Aucun paiement en ligne — encaissement prévu à la livraison."
+              ? "Aucun paiement en ligne. Encaissement prévu à la livraison."
               : "Aucune tentative de paiement enregistrée."}
           </p>
         ) : (
@@ -270,12 +270,12 @@ export default async function DetailCommande({
                   </span>
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  txn Jèko : {p.transactionJeko ?? "—"}
+                  Transaction : {p.transactionJeko ?? "—"}
                 </p>
                 {p.evenements.length > 0 && (
                   <details className="mt-1.5 rounded-lg border border-border bg-[#fafbf9]">
                     <summary className="cursor-pointer select-none px-3 py-2 text-xs font-semibold text-muted-foreground">
-                      Journal — {p.evenements.length} événement
+                      Journal ({p.evenements.length} événement
                       {p.evenements.length > 1 ? "s" : ""} (CDC 10.14)
                     </summary>
                     <ul className="space-y-1 border-t border-border px-3 py-2 text-xs">

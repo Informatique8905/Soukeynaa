@@ -70,7 +70,7 @@ export function CompteForms({
           <input
             name="telephone"
             defaultValue={telephone}
-            placeholder="Téléphone — ex. 0707000000"
+            placeholder="Téléphone (ex. 0707000000)"
             className={champ}
           />
           <button

@@ -29,7 +29,7 @@ export default async function PagePaiements() {
 
   const vide = (
     <Vide titre="Aucun paiement">
-      Les tentatives de paiement Jèko apparaîtront ici.
+      Les tentatives de paiement en ligne apparaîtront ici.
     </Vide>
   );
 
@@ -44,7 +44,7 @@ export default async function PagePaiements() {
         <Panneau
           className="border-amber-200 bg-amber-50/60"
           titre={`${aVerifier.length} paiement${aVerifier.length > 1 ? "s" : ""} à vérifier`}
-          description="Vérifiez la transaction sur le portail Jèko, puis résolvez avec un motif — l'action est journalisée (CDC 10.12–10.13). Un double paiement reçu doit être remboursé manuellement via Jèko."
+          description="Vérifiez la transaction auprès du prestataire de paiement, puis résolvez avec un motif. L'action est journalisée (CDC 10.12–10.13). Un double paiement reçu doit être remboursé manuellement."
           corps="p-0"
         >
           <ul className="divide-y divide-amber-200/60">
@@ -63,21 +63,21 @@ export default async function PagePaiements() {
                   </span>
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  txn Jèko : {p.transactionJeko ?? "—"} · {dateHeureFr(p.createdAt)}
+                  Transaction : {p.transactionJeko ?? "—"} · {dateHeureFr(p.createdAt)}
                 </p>
                 <form className="mt-3 flex flex-wrap items-center gap-2">
                   <input
                     name="motif"
                     required
                     minLength={10}
-                    placeholder="Motif (min. 10 caractères) — ex. montant vérifié sur le portail Jèko"
+                    placeholder="Motif (min. 10 caractères). Ex. : montant vérifié"
                     className={`${champ} min-w-64 flex-1 text-xs`}
                   />
                   <button
                     formAction={resoudrePaiement.bind(null, p.id, "confirme")}
                     className={bouton("primaire", "sm")}
                   >
-                    Confirmer (vérifié sur Jèko)
+                    Confirmer (vérifié)
                   </button>
                   <button
                     formAction={resoudrePaiement.bind(null, p.id, "rejete")}
@@ -134,7 +134,7 @@ export default async function PagePaiements() {
                   <th className="num">Montant</th>
                   <th>Statut</th>
                   <th>Date</th>
-                  <th>Txn Jèko</th>
+                  <th>Transaction</th>
                 </tr>
               </thead>
               <tbody>

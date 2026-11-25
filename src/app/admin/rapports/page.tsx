@@ -69,9 +69,9 @@ export default async function RapportsPage({
     <div className="flex flex-col gap-6">
       {/* En-tête d'impression (visible uniquement à l'impression) */}
       <div className="hidden print:block">
-        <h1 className="text-xl font-bold">SOUKEYNA — Rapport d&apos;activité</h1>
+        <h1 className="text-xl font-bold">Rapport d&apos;activité SOUKEYNA</h1>
         <p>
-          Période : {dateFr(debut)} → {dateFr(fin)} — généré le{" "}
+          Période du {dateFr(debut)} au {dateFr(fin)}, généré le{" "}
           {dateHeureFr(new Date())}
         </p>
       </div>
@@ -115,7 +115,7 @@ export default async function RapportsPage({
 
       <p className="text-xs text-muted-foreground">
         Période : <span className="font-medium text-foreground">{dateFr(debut)} → {dateFr(fin)}</span>
-        {" — "}seules les commandes au paiement confirmé comptent dans le CA (CDC 13.8).
+        {" "}Seules les commandes au paiement confirmé comptent dans le CA (CDC 13.8).
       </p>
 
       {/* ===== Indicateurs ===== */}
@@ -252,11 +252,11 @@ export default async function RapportsPage({
 
         <Panneau
           titre="Stock"
-          description={`Instantané — seuil « faible » : ${settings.seuilStockFaible}`}
+          description={`Instantané (seuil « faible » : ${settings.seuilStockFaible})`}
         >
           <p className="text-sm">
             <strong className="tabular-nums">{stockR.articles}</strong> articles
-            suivis — valeur du stock :{" "}
+            suivis. Valeur du stock :{" "}
             <strong className="text-vert tabular-nums">
               {fcfa(stockR.valeurStock)}
             </strong>
@@ -373,7 +373,7 @@ export default async function RapportsPage({
               {instantanes.length === 0 && (
                 <tr>
                   <td colSpan={4} className="text-center text-muted-foreground">
-                    Aucun instantané — configurez le cron (voir vercel.json).
+                    Aucun instantané. Configurez le cron (voir vercel.json).
                   </td>
                 </tr>
               )}

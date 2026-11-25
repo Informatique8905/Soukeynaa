@@ -19,7 +19,7 @@ export function RechercheCommande() {
       <input
         value={ref}
         onChange={(e) => setRef(e.target.value)}
-        placeholder="Référence — ex. SOU-2026-000123"
+        placeholder="Référence (ex. SOU-2026-000123)"
         required
         className="w-full rounded-full bg-white py-3.5 pl-4 pr-24 text-sm shadow-sm ring-1 ring-black/5 outline-none placeholder:text-gris-fonce focus:ring-2 focus:ring-vert"
       />

@@ -141,7 +141,7 @@ export async function POST(req: Request) {
   }
   if (!reponse.url) {
     return NextResponse.json(
-      { erreur: "Réponse Jèko incomplète" },
+      { erreur: "Réponse du service de paiement incomplète" },
       { status: 502 }
     );
   }

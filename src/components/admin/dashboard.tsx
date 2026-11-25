@@ -125,7 +125,7 @@ export function DashboardAdmin({
           label="Paiements à vérifier"
           valeur={stats.paiementsAVerifier}
           ton={stats.paiementsAVerifier > 0 ? "alerte" : "neutre"}
-          note="Anomalies Jèko (CDC 10.12)"
+          note="Anomalies de paiement (CDC 10.12)"
           action={<LienAction href="/admin/paiements">Vérifier</LienAction>}
         />
         <Indicateur
@@ -141,7 +141,7 @@ export function DashboardAdmin({
         <Panneau
           className="xl:col-span-2"
           titre="Activité des ventes"
-          description="Commandes créées et payées — 8 dernières semaines"
+          description="Commandes créées et payées (8 dernières semaines)"
           actions={
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">

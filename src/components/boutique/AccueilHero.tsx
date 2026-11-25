@@ -29,7 +29,7 @@ export function AccueilHero({
       nav={nav}
       activeNav={-1}
       title="L'élégance ivoirienne"
-      blurb="Des pièces choisies avec soin pour toute la famille — livrées dans tout Abidjan."
+      blurb="Des pièces choisies avec soin pour toute la famille, livrées dans tout Abidjan."
       ctaLabel="Découvrir"
       cartCount={cartCount}
       ariaLabel="Collection SOUKEYNA"

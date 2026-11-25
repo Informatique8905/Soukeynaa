@@ -32,7 +32,7 @@ export default async function PanierPage() {
         <EtatVide
           dessin="sac"
           titre="Votre panier est encore vide"
-          texte="Nos pépites vous attendent — commencez par le catalogue."
+          texte="Nos pépites vous attendent. Commencez par le catalogue."
           action={{ href: "/", label: "Découvrir la boutique" }}
         />
       ) : (

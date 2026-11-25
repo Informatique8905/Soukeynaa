@@ -30,7 +30,7 @@ export default async function BoutiqueLayout({
       {/* En-tête façon app : se compacte et prend une ombre au scroll */}
       <header className="hdr-scroll sticky top-0 z-40 border-b border-black/5 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
-          <Link href="/" aria-label="SOUKEYNA — accueil" className="press shrink-0">
+          <Link href="/" aria-label="Accueil SOUKEYNA" className="press shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-soukeyna.png"
@@ -130,7 +130,7 @@ export default async function BoutiqueLayout({
             </summary>
             <div className="pb-3 opacity-80">
               <p>
-                Abidjan et environs — tarif fixe selon la commune. Paiement en
+                Abidjan et environs, tarif fixe selon la commune. Paiement en
                 ligne (Wave, Orange Money, MTN, Moov, carte) ou à la livraison.
               </p>
               <Link
@@ -143,7 +143,7 @@ export default async function BoutiqueLayout({
           </details>
 
           <p className="border-t border-white/10 pt-3 text-center text-[11px] opacity-50">
-            © SOUKEYNA — Abidjan, Côte d&apos;Ivoire
+            © SOUKEYNA, Abidjan, Côte d&apos;Ivoire
           </p>
         </div>
 
@@ -159,7 +159,7 @@ export default async function BoutiqueLayout({
               />
             </span>
             <p className="mt-3 opacity-70">
-              L&apos;élégance ivoirienne, livrée chez vous — Abidjan, Côte
+              L&apos;élégance ivoirienne, livrée chez vous à Abidjan, Côte
               d&apos;Ivoire.
             </p>
           </div>
@@ -175,7 +175,7 @@ export default async function BoutiqueLayout({
           <div data-reveal>
             <p className="font-semibold">Livraison & paiement</p>
             <p className="mt-2 opacity-70">
-              Abidjan et environs — tarif fixe selon la commune. Payez en ligne
+              Abidjan et environs, tarif fixe selon la commune. Payez en ligne
               (Wave, Orange Money, MTN, Moov, carte) ou à la livraison.
             </p>
             <Link

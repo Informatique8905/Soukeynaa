@@ -150,7 +150,7 @@ export default async function RecherchePage({
           <EtatVide
             dessin="loupe"
             titre="Aucun résultat"
-            texte="Essayez un autre mot ou un autre univers — une couleur, un type d'article…"
+            texte="Essayez un autre mot : une couleur, un type d'article…"
             action={{ href: "/", label: "Voir toute la boutique" }}
           />
         )

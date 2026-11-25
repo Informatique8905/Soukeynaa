@@ -56,7 +56,7 @@ export async function GET(req: Request) {
           tx,
           p.id,
           "reconciliation",
-          `Statut réel Jèko : ${statut} → ${final}`
+          `Statut réel : ${statut} → ${final}`
         );
         return appliquerTransition(tx, p, final);
       });
@@ -79,7 +79,7 @@ export async function GET(req: Request) {
         prisma,
         p.id,
         "anomalie",
-        "Réconciliation : pas de retour Jèko dans le délai"
+        "Réconciliation : pas de retour du prestataire dans le délai"
       );
       signales.push(p.commande.reference);
     }

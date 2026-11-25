@@ -101,7 +101,7 @@ export function BannieresForm({ initiales }: { initiales: Banniere[] }) {
               <input
                 value={b.lien ?? ""}
                 onChange={(e) => maj(i, "lien", e.target.value)}
-                placeholder="Lien au clic — ex. /femmes (optionnel)"
+                placeholder="Lien au clic (optionnel)"
                 className={`${champ} h-8 text-xs`}
               />
             </div>
@@ -157,7 +157,7 @@ export function BannieresForm({ initiales }: { initiales: Banniere[] }) {
       {erreur && <p className="mt-2 text-sm text-destructive">{erreur}</p>}
       {bannieres.length === 0 && !erreur && (
         <p className="mt-2 text-xs text-muted-foreground">
-          Aucune bannière — la bannière promo automatique s&apos;affiche à la
+          Aucune bannière. La bannière promo automatique s&apos;affiche à la
           place.
         </p>
       )}
