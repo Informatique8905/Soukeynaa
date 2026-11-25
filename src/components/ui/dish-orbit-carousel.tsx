@@ -261,12 +261,12 @@ const CSS =
   ".dsh-err{font-size:11px;color:#dc2626;margin:6px 0 0;text-align:center}" +  
   "@container (max-width:639px){" +
   // phone: colonne compacte bornée à la hauteur du stage — scroll interne si ça déborde
-  ".dsh-canvas{position:relative;left:auto;top:auto;width:100%;height:auto;max-height:100%;transform:none;display:flex;flex-direction:column;align-items:center;padding:10px 14px 14px;overflow-y:auto;scrollbar-width:none}" +
+  ".dsh-canvas{position:relative;left:auto;top:auto;width:100%;height:auto;max-height:100%;transform:none;display:flex;flex-direction:column;align-items:center;padding:10px 14px 14px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}" +
   ".dsh-canvas::-webkit-scrollbar{display:none}" +
   ".dsh-arc{width:200%;height:auto;left:-60%;top:-30px}" +
   ".dsh-top{position:relative;left:auto;right:auto;top:auto;width:100%;align-self:stretch;margin-bottom:4px;flex:none}" +
   ".dsh-pager{left:10px;top:128px}" +
-  ".dsh-plates{position:relative;left:auto;top:auto;width:min(46vw,25svh);height:min(46vw,25svh);margin-top:0;flex:none;touch-action:none}" +
+  ".dsh-plates{position:relative;left:auto;top:auto;width:min(46vw,25svh);height:min(46vw,25svh);margin-top:0;flex:none;touch-action:pan-y}" +
   ".dsh-orbit>img{width:100%;height:100%}" +
   ".dsh-head{position:relative;left:auto;top:auto;width:100%;height:112px;margin-top:6px;flex:none}" +
   ".dsh-hd{text-align:center;transform:scale(.74);transform-origin:50% 0}" +
@@ -318,6 +318,7 @@ export function DishOrbitCarousel({
   const [tab, setTab] = useState("overview")  
   const [choix, setChoix] = useState({} as Record<number, string>)  
   const [adding, setAdding] = useState(false)
+  const [compact, setCompact] = useState(false)
   const [ajoute, setAjoute] = useState(-1)
   const [addErr, setAddErr] = useState("")
   // Taille/pointure retenue par article : choix explicite, sinon la première en stock.
@@ -349,7 +350,8 @@ export function DishOrbitCarousel({
     const fit = () => {  
       const w = el.clientWidth  
       const h = el.clientHeight  
-      el.style.setProperty("--dsh-s", String(Math.min(w / 960, h / 520, 1.6)))  
+      el.style.setProperty("--dsh-s", String(Math.min(w / 960, h / 520, 1.6)))
+      setCompact(w < 640)  
     }  
     fit()  
     const ro = new ResizeObserver(fit)  
@@ -452,7 +454,9 @@ export function DishOrbitCarousel({
   const steps = scrollSteps(n, loop)  
   useEffect(() => {  
     const track = trackRef.current  
-    if (!track || steps < 1) return  
+    // Sur téléphone : pas de piste de scroll épinglée (la page « bougeait »),
+    // le changement se fait par swipe horizontal, puces, points et flèches.
+    if (!track || steps < 1 || compact) return  
     const trigger = ScrollTrigger.create({  
       trigger: track,  
       start: "top top",  
@@ -494,7 +498,7 @@ export function DishOrbitCarousel({
       trigger.kill()  
       stRef.current = null  
     }  
-  }, [steps, loop, n])  
+  }, [steps, loop, n, compact])  
   
   // Buttons, keys and swipes jump to a dish and move the scroll to its stretch, so the two stay in step.  
   const go = (to: number, dir?: 1 | -1) => {  
@@ -524,14 +528,14 @@ export function DishOrbitCarousel({
     const dx = e.clientX - s.x  
     const dy = e.clientY - s.y
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.4) step(dx < 0 ? 1 : -1)
-    else if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx) * 1.4) step(dy < 0 ? 1 : -1)  
+    else if (!compact && Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx) * 1.4) step(dy < 0 ? 1 : -1)  
   }  
   
   const start = stripStart(index, n, VISIBLE)  
   const dish = dishes[index]  
   
   return (  
-    <div ref={trackRef} className={"dsh-trk" + (className ? " " + className : "")} style={{ height: "calc(" + height + " * " + (1 + steps * SCROLL_PER_DISH) + ")" }}>  
+    <div ref={trackRef} className={"dsh-trk" + (className ? " " + className : "")} style={{ height: compact ? height : "calc(" + height + " * " + (1 + steps * SCROLL_PER_DISH) + ")" }}>  
     <div  
       ref={rootRef}  
       className="dsh-root"  

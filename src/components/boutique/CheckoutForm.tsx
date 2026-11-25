@@ -19,7 +19,7 @@ const MOYENS_EN_LIGNE = [
   { v: "wave", label: "Wave", logo: "/paiements/wave.png", couleur: "#1dc4f2" },
   { v: "orange", label: "Orange Money", logo: "/paiements/orange.png", couleur: "#ff7900" },
   { v: "mtn", label: "MTN MoMo", logo: "/paiements/mtn.png", couleur: "#ffcb05" },
-  { v: "moov", label: "Moov Money", logo: null, couleur: "#005eb8" },
+  { v: "moov", label: "Moov Money", logo: "/paiements/moov.png", couleur: "#005eb8" },
   { v: "djamo", label: "Djamo", logo: null, couleur: "#6e3aff" },
 ] as const;
 type Moyen = (typeof MOYENS_EN_LIGNE)[number]["v"];

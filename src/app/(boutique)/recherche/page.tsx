@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EtatVide } from "@/components/motion/EtatVide";
 import { getPrisma } from "@/lib/db";
 import { prixAvecPromos, promotionsActives } from "@/lib/pricing";
+import { UNIVERSES, type Universe } from "@/lib/constants";
 import { ProductCard } from "@/components/boutique/ProductCard";
 
 export const metadata = { title: "Recherche" };
@@ -10,7 +11,7 @@ interface ImageJson {
   url?: string;
 }
 
-const RACCOURCIS = [
+const RACCOURCIS: { slug: Universe; label: string }[] = [
   { slug: "femmes", label: "Femmes" },
   { slug: "hommes", label: "Hommes" },
   { slug: "enfants", label: "Enfants" },
@@ -20,19 +21,21 @@ const RACCOURCIS = [
 export default async function RecherchePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; promo?: string }>;
+  searchParams: Promise<{ q?: string; promo?: string; u?: string }>;
 }) {
-  const { q, promo } = await searchParams;
+  const { q, promo, u } = await searchParams;
   const terme = (q ?? "").trim();
   const enPromo = promo === "1";
+  const univers = UNIVERSES.includes(u as Universe) ? (u as Universe) : undefined;
   const prisma = getPrisma();
 
   const promos = await promotionsActives();
   const produits =
-    terme || enPromo
+    terme || enPromo || univers
       ? await prisma.product.findMany({
           where: {
             statut: "publie",
+            ...(univers ? { univers } : {}),
             ...(enPromo ? { prixReduit: { not: null } } : {}),
             ...(terme
               ? {
@@ -76,7 +79,14 @@ export default async function RecherchePage({
       {/* Raccourcis */}
       <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
         <Link
-          href={enPromo && !terme ? "/recherche" : `/recherche?promo=1${terme ? `&q=${encodeURIComponent(terme)}` : ""}`}
+          href={(() => {
+            const params = new URLSearchParams();
+            if (!enPromo) params.set("promo", "1");
+            if (univers) params.set("u", univers);
+            if (terme) params.set("q", terme);
+            const qs = params.toString();
+            return qs ? `/recherche?${qs}` : "/recherche";
+          })()}
           className={`press flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold ${
             enPromo
               ? "bg-vert text-white shadow-md shadow-vert/25"
@@ -85,24 +95,37 @@ export default async function RecherchePage({
         >
           En promotion
         </Link>
-        {RACCOURCIS.map((u) => (
-          <Link
-            key={u.slug}
-            href={`/${u.slug}`}
-            className="press shrink-0 rounded-full bg-white px-4 py-2 text-xs font-semibold text-noir ring-1 ring-black/10 hover:bg-vert-clair hover:text-vert"
-          >
-            {u.label}
-          </Link>
-        ))}
+        {RACCOURCIS.map((r) => {
+          const actif = univers === r.slug;
+          const params = new URLSearchParams();
+          if (!actif) params.set("u", r.slug);
+          if (enPromo) params.set("promo", "1");
+          if (terme) params.set("q", terme);
+          const qs = params.toString();
+          return (
+            <Link
+              key={r.slug}
+              href={qs ? `/recherche?${qs}` : "/recherche"}
+              className={`press shrink-0 rounded-full px-4 py-2 text-xs font-semibold ${
+                actif
+                  ? "bg-vert text-white shadow-md shadow-vert/25"
+                  : "bg-white text-noir ring-1 ring-black/10 hover:bg-vert-clair hover:text-vert"
+              }`}
+            >
+              {r.label}
+            </Link>
+          );
+        })}
       </div>
 
       {/* Résultats */}
-      {terme || enPromo ? (
+      {terme || enPromo || univers ? (
         produits.length > 0 ? (
           <>
             <p className="mt-5 text-sm text-gris-fonce">
               {produits.length} résultat{produits.length > 1 ? "s" : ""}
-              {terme ? ` pour « ${terme} »` : " en promotion"}
+              {terme ? ` pour « ${terme} »` : enPromo ? " en promotion" : ""}
+              {univers ? ` · ${RACCOURCIS.find((r) => r.slug === univers)?.label ?? univers}` : ""}
             </p>
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {produits.map((p) => {
@@ -127,7 +150,7 @@ export default async function RecherchePage({
           <EtatVide
             dessin="loupe"
             titre="Aucun résultat"
-            texte="Essayez un autre mot — une couleur, un type d'article…"
+            texte="Essayez un autre mot ou un autre univers — une couleur, un type d'article…"
             action={{ href: "/", label: "Voir toute la boutique" }}
           />
         )
