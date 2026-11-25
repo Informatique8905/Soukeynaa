@@ -1,0 +1,30 @@
+name: Crons SOUKEYNA
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+    - cron: "30 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  crons:
+    runs-on: ubuntu-latest
+    env:
+      URL: ${{ vars.APP_URL || 'https://soukeyna-production.up.railway.app' }}
+      AUTH: "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+    steps:
+      - name: Libérer les réservations expirées
+        run: curl -fsS -H "$AUTH" "$URL/api/cron/liberer-reservations"
+      - name: Réconcilier les paiements
+        if: github.event.schedule != '30 0 * * *'
+        run: |
+          M=$(date -u +%M)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ $((10#$M % 30)) -lt 10 ]; then
+            curl -fsS -H "$AUTH" "$URL/api/cron/reconcilier"
+          fi
+      - name: Rapports
+        if: github.event.schedule == '30 0 * * *'
+        run: |
+          G=jour
+          [ "$(date -u +%u)" = "1" ] && G=tous
+          curl -fsS -H "$AUTH" "$URL/api/cron/rapports?granularite=$G"
