@@ -12,9 +12,12 @@ import {
 } from "lucide-react";
 import LiquidTabBar, { type LiquidTab } from "@/components/ui/liquid-tab-bar";
 
+/** Rubriques du CDC 4.1 — l'onglet « Univers » couvre le hub et ses pages. */
+const UNIVERS_SLUGS = ["/enfants", "/hommes", "/femmes", "/accessoires"];
+
 const ITEMS: (LiquidTab & { href: string })[] = [
   { href: "/", label: "Accueil", icon: <House /> },
-  { href: "/femmes", label: "Univers", icon: <LayoutGrid /> },
+  { href: "/univers", label: "Univers", icon: <LayoutGrid /> },
   { href: "/recherche", label: "Recherche", icon: <Search /> },
   { href: "/panier", label: "Panier", icon: <ShoppingBag /> },
   { href: "/commandes", label: "Commandes", icon: <Package /> },
@@ -27,7 +30,13 @@ export function NavBas({ cartCount }: { cartCount: number }) {
   const index = Math.max(
     0,
     ITEMS.findIndex((it) =>
-      it.href === "/" ? pathname === "/" : pathname.startsWith(it.href),
+      it.href === "/"
+        ? pathname === "/"
+        : it.href === "/univers"
+          ? pathname.startsWith("/univers") ||
+            pathname.startsWith("/categorie") ||
+            UNIVERS_SLUGS.some((s) => pathname.startsWith(s))
+          : pathname.startsWith(it.href),
     ),
   );
 
