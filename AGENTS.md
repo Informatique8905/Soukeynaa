@@ -42,3 +42,6 @@ Spécification de référence : `Cahier_des_charges_ecommerce_v1.2.md` à la rac
 - `npx prisma dev` — Postgres local temporaire (sans installation)
 - `npm run db:migrate` — crée/applique les migrations (requiert DATABASE_URL)
 - `npm run seed` — seed (communes, settings SOUKEYNA, admin) — requiert `.env.local`
+
+### Workflow Git (préférence utilisateur)
+- Après chaque série de modifications terminée et vérifiée : commit + `git push origin master` directement (déclenche le redéploiement), sans attendre confirmation.
