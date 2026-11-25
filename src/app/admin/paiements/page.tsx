@@ -1,13 +1,17 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import {
-  PAYMENT_STATUS_LABELS,
-  PAYMENT_BADGE_VARIANT,
-  type PaymentStatus,
-} from "@/lib/constants";
 import { getPrisma } from "@/lib/db";
 import { fcfa, dateHeureFr } from "@/lib/format";
 import { resoudrePaiement } from "./actions";
+import {
+  CarteListe,
+  EnTetePage,
+  Panneau,
+  StatutPaiement,
+  Vide,
+  bouton,
+  champ,
+  lien,
+} from "@/components/admin/ui";
 
 export default async function PagePaiements() {
   const prisma = getPrisma();
@@ -23,150 +27,143 @@ export default async function PagePaiements() {
     }),
   ]);
 
+  const vide = (
+    <Vide titre="Aucun paiement">
+      Les tentatives de paiement Jèko apparaîtront ici.
+    </Vide>
+  );
+
   return (
-    <div>
-      <h1>Paiements</h1>
+    <div className="flex flex-col gap-6">
+      <EnTetePage
+        titre="Paiements"
+        description={`${paiements.length} paiement${paiements.length > 1 ? "s" : ""} affiché${paiements.length > 1 ? "s" : ""} (100 derniers)`}
+      />
 
       {aVerifier.length > 0 && (
-        <section className="mt-6 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200">
-          <h2 className="flex items-center gap-2 font-bold text-amber-900">
-            <span aria-hidden className="mt-0.5 size-2.5 shrink-0 rounded-full bg-amber-500" />
-            {aVerifier.length} paiement(s) à vérifier (CDC 10.12)
-          </h2>
-          <p className="mt-1 text-xs opacity-70">
-            Vérifiez la transaction sur le portail Jèko, puis résolvez avec un
-            motif — l&apos;action est journalisée (CDC 10.13). Un double paiement
-            reçu doit être remboursé manuellement via Jèko.
-          </p>
-          {aVerifier.map((p) => (
-            <div key={p.id} className="mt-3 rounded-xl bg-white p-3 text-sm ring-1 ring-amber-200/60">
-              <p>
-                <strong>{p.referenceCommande}</strong> — {p.commande.clientNom}{" "}
-                — {fcfa(p.montant)} (attendu : {fcfa(p.commande.total)})
-              </p>
-              <p className="text-xs opacity-60">
-                txn Jèko : {p.transactionJeko ?? "—"} —{" "}
-                {dateHeureFr(p.createdAt)}
-              </p>
-              <form className="mt-2 flex flex-wrap items-center gap-2">
-                <input
-                  name="motif"
-                  required
-                  minLength={10}
-                  placeholder="Motif (min 10 caractères) — ex. montant vérifié sur portail Jèko"
-                  className="min-w-64 flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-xs outline-none transition focus:border-vert focus:ring-4 focus:ring-vert/10"
-                />
-                <button
-                  formAction={resoudrePaiement.bind(null, p.id, "confirme")}
-                  className="rounded-full bg-vert px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-vert-fonce"
-                >
-                  Confirmer (vérifié sur Jèko)
-                </button>
-                <button
-                  formAction={resoudrePaiement.bind(null, p.id, "rejete")}
-                  className="rounded-full bg-red-50 px-4 py-2 text-xs font-bold text-red-700 ring-1 ring-red-200 transition hover:bg-red-100"
-                >
-                  Rejeter
-                </button>
-              </form>
-            </div>
-          ))}
-        </section>
+        <Panneau
+          className="border-amber-200 bg-amber-50/60"
+          titre={`${aVerifier.length} paiement${aVerifier.length > 1 ? "s" : ""} à vérifier`}
+          description="Vérifiez la transaction sur le portail Jèko, puis résolvez avec un motif — l'action est journalisée (CDC 10.12–10.13). Un double paiement reçu doit être remboursé manuellement via Jèko."
+          corps="p-0"
+        >
+          <ul className="divide-y divide-amber-200/60">
+            {aVerifier.map((p) => (
+              <li key={p.id} className="bg-white px-5 py-4">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <Link href={`/admin/commandes/${p.commandeId}`} className={lien}>
+                    {p.referenceCommande}
+                  </Link>
+                  <span className="text-sm">{p.commande.clientNom}</span>
+                  <span className="text-sm tabular-nums">
+                    <strong>{fcfa(p.montant)}</strong>
+                    <span className="text-muted-foreground">
+                      {" "}(attendu : {fcfa(p.commande.total)})
+                    </span>
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  txn Jèko : {p.transactionJeko ?? "—"} · {dateHeureFr(p.createdAt)}
+                </p>
+                <form className="mt-3 flex flex-wrap items-center gap-2">
+                  <input
+                    name="motif"
+                    required
+                    minLength={10}
+                    placeholder="Motif (min. 10 caractères) — ex. montant vérifié sur le portail Jèko"
+                    className={`${champ} min-w-64 flex-1 text-xs`}
+                  />
+                  <button
+                    formAction={resoudrePaiement.bind(null, p.id, "confirme")}
+                    className={bouton("primaire", "sm")}
+                  >
+                    Confirmer (vérifié sur Jèko)
+                  </button>
+                  <button
+                    formAction={resoudrePaiement.bind(null, p.id, "rejete")}
+                    className={bouton("danger", "sm")}
+                  >
+                    Rejeter
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </Panneau>
       )}
 
-      {/* Mobile : cartes tactiles */}
-      <div className="mt-5 space-y-2.5 md:hidden">
+      {/* Mobile : cartes */}
+      <div className="space-y-3 md:hidden">
         {paiements.map((p) => (
-          <div
-            key={p.id}
-            className="rounded-2xl border bg-white p-3.5 shadow-sm"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <Link
-                href={`/admin/commandes/${p.commandeId}`}
-                className="truncate font-semibold text-vert"
-              >
+          <CarteListe key={p.id}>
+            <div className="flex items-start justify-between gap-3">
+              <Link href={`/admin/commandes/${p.commandeId}`} className={`${lien} truncate`}>
                 {p.commande.reference}
               </Link>
-              <Badge
-                variant={PAYMENT_BADGE_VARIANT[p.statut as PaymentStatus]}
-                className="shrink-0"
-              >
-                {PAYMENT_STATUS_LABELS[p.statut as PaymentStatus] ?? p.statut}
-              </Badge>
+              <StatutPaiement statut={p.statut} />
             </div>
-            <p className="mt-0.5 text-sm">{p.commande.clientNom}</p>
-            <div className="mt-2 flex items-center justify-between text-xs text-gris-fonce">
-              <p>
-                {p.moyen ?? "—"} — {dateHeureFr(p.createdAt)}
+            <p className="mt-1 truncate text-sm">{p.commande.clientNom}</p>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                {p.moyen ?? "—"} · {dateHeureFr(p.createdAt)}
               </p>
-              <p className="text-sm font-bold text-noir tabular-nums">
-                {fcfa(p.montant)}
-              </p>
+              <p className="text-sm font-semibold tabular-nums">{fcfa(p.montant)}</p>
             </div>
             {p.transactionJeko && (
-              <p className="mt-1 truncate text-[11px] opacity-50">
+              <p className="mt-1 truncate text-[11px] text-muted-foreground">
                 txn : {p.transactionJeko}
               </p>
             )}
-          </div>
+          </CarteListe>
         ))}
-        {paiements.length === 0 && (
-          <p className="rounded-2xl border bg-white p-4 text-center text-sm opacity-60">
-            Aucun paiement.
-          </p>
-        )}
+        {paiements.length === 0 && <CarteListe className="p-0">{vide}</CarteListe>}
       </div>
 
-      {/* Desktop : table */}
-      <div className="mt-6 hidden overflow-x-auto md:block">
-        <table className="w-full border bg-white text-sm">
-        <thead className="bg-gris text-left">
-          <tr>
-            <th className="p-2">Commande</th>
-            <th className="p-2">Client</th>
-            <th className="p-2">Moyen</th>
-            <th className="p-2">Montant</th>
-            <th className="p-2">Statut</th>
-            <th className="p-2">Date</th>
-            <th className="p-2">Txn Jèko</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paiements.map((p) => (
-            <tr key={p.id} className="border-t">
-              <td className="p-2">
-                <Link
-                  href={`/admin/commandes/${p.commandeId}`}
-                  className="text-vert underline"
-                >
-                  {p.commande.reference}
-                </Link>
-              </td>
-              <td className="p-2">{p.commande.clientNom}</td>
-              <td className="p-2">{p.moyen ?? "—"}</td>
-              <td className="p-2">{fcfa(p.montant)}</td>
-              <td className="p-2">
-                <Badge variant={PAYMENT_BADGE_VARIANT[p.statut as PaymentStatus]}>
-                  {PAYMENT_STATUS_LABELS[p.statut as PaymentStatus] ?? p.statut}
-                </Badge>
-              </td>
-              <td className="p-2 text-xs">{dateHeureFr(p.createdAt)}</td>
-              <td className="max-w-40 truncate p-2 text-xs opacity-60">
-                {p.transactionJeko ?? "—"}
-              </td>
-            </tr>
-          ))}
-          {paiements.length === 0 && (
-            <tr>
-              <td colSpan={7} className="p-4 text-center opacity-60">
-                Aucun paiement.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-      </div>
+      {/* Desktop : tableau */}
+      <Panneau corps="p-0" className="hidden md:block">
+        {paiements.length === 0 ? (
+          vide
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Commande</th>
+                  <th>Client</th>
+                  <th>Moyen</th>
+                  <th className="num">Montant</th>
+                  <th>Statut</th>
+                  <th>Date</th>
+                  <th>Txn Jèko</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paiements.map((p) => (
+                  <tr key={p.id}>
+                    <td>
+                      <Link href={`/admin/commandes/${p.commandeId}`} className={lien}>
+                        {p.commande.reference}
+                      </Link>
+                    </td>
+                    <td className="font-medium">{p.commande.clientNom}</td>
+                    <td className="text-muted-foreground">{p.moyen ?? "—"}</td>
+                    <td className="num font-semibold">{fcfa(p.montant)}</td>
+                    <td>
+                      <StatutPaiement statut={p.statut} />
+                    </td>
+                    <td className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+                      {dateHeureFr(p.createdAt)}
+                    </td>
+                    <td className="max-w-44 truncate font-mono text-xs text-muted-foreground">
+                      {p.transactionJeko ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panneau>
     </div>
   );
 }

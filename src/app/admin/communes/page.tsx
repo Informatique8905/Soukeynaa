@@ -1,5 +1,13 @@
 import { getPrisma } from "@/lib/db";
 import { modifierCommune, creerCommune } from "./actions";
+import {
+  CaseLibellee,
+  Champ,
+  EnTetePage,
+  Panneau,
+  bouton,
+  champ,
+} from "@/components/admin/ui";
 
 export default async function PageCommunes() {
   const prisma = getPrisma();
@@ -9,86 +17,82 @@ export default async function PageCommunes() {
   });
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-vert">
-        Communes & tarifs de livraison
-      </h1>
-      <p className="mt-2 text-sm opacity-70">
-        Le tarif appliqué à une commande est figé au moment de l&apos;achat (CDC 11.5).
-      </p>
+    <div className="flex flex-col gap-6">
+      <EnTetePage
+        titre="Communes et livraison"
+        description="Le tarif appliqué à une commande est figé au moment de l'achat (CDC 11.5) — modifier un tarif n'affecte pas les commandes passées."
+      />
 
-      <form
-        action={creerCommune}
-        className="mt-6 flex flex-wrap items-end gap-3 rounded border bg-white p-4 text-sm"
+      <Panneau titre="Nouvelle commune">
+        <form
+          action={creerCommune}
+          className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_2fr_8rem_6rem_auto]"
+        >
+          <Champ label="Nom">
+            <input name="nom" required className={champ} />
+          </Champ>
+          <Champ label="Quartiers inclus" aide="Séparés par des virgules">
+            <input name="quartiersInclus" className={champ} />
+          </Champ>
+          <Champ label="Tarif (FCFA)">
+            <input name="tarif" type="number" min={0} required className={champ} />
+          </Champ>
+          <Champ label="Ordre">
+            <input name="ordre" type="number" defaultValue={0} className={champ} />
+          </Champ>
+          <button className={bouton("primaire")}>Ajouter</button>
+        </form>
+      </Panneau>
+
+      <Panneau
+        titre="Communes desservies"
+        description="Tarif, visibilité en boutique et ordre d'affichage"
+        corps="p-0"
       >
-        <label className="flex flex-col">
-          Nouvelle commune
-          <input name="nom" required className="rounded border px-2 py-1" />
-        </label>
-        <label className="flex flex-col">
-          Quartiers inclus
-          <input
-            name="quartiersInclus"
-            className="w-56 rounded border px-2 py-1"
-          />
-        </label>
-        <label className="flex flex-col">
-          Tarif (FCFA)
-          <input
-            name="tarif"
-            type="number"
-            min={0}
-            required
-            className="w-24 rounded border px-2 py-1"
-          />
-        </label>
-        <label className="flex flex-col">
-          Ordre
-          <input
-            name="ordre"
-            type="number"
-            defaultValue={0}
-            className="w-16 rounded border px-2 py-1"
-          />
-        </label>
-        <button className="rounded bg-vert px-4 py-1.5 font-semibold text-white">
-          Ajouter
-        </button>
-      </form>
-
-      <div className="mt-6 space-y-2">
-        {communes.map((c) => (
-          <form
-            key={c.id}
-            action={modifierCommune.bind(null, c.id)}
-            className="flex flex-wrap items-center gap-3 rounded border bg-white p-3 text-sm"
-          >
-            <span className="w-44 font-medium">{c.nom}</span>
-            <span className="w-56 text-xs opacity-60">{c.quartiersInclus}</span>
-            <label className="flex items-center gap-1">
-              Tarif
-              <input
-                name="tarif"
-                type="number"
-                min={0}
-                defaultValue={c.tarif}
-                className="w-24 rounded border px-2 py-1"
-              />
-              FCFA
-            </label>
-            <label className="flex items-center gap-2">
-              <input name="active" type="checkbox" defaultChecked={c.active} />
-              Active
-            </label>
-            <span className="text-xs opacity-50">
-              {c._count.commandes} commande(s)
-            </span>
-            <button className="ml-auto rounded bg-vert px-3 py-1 text-white">
-              Enregistrer
-            </button>
-          </form>
-        ))}
-      </div>
+        {communes.length === 0 ? (
+          <p className="px-6 py-10 text-center text-sm text-muted-foreground">
+            Aucune commune — ajoutez la première ci-dessus.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {communes.map((c) => (
+              <li key={c.id}>
+                <form
+                  action={modifierCommune.bind(null, c.id)}
+                  className="flex flex-wrap items-center gap-x-5 gap-y-3 px-5 py-4"
+                >
+                  <div className="min-w-0 flex-1 basis-52">
+                    <p className="truncate font-semibold">{c.nom}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {c.quartiersInclus || "—"} · {c._count.commandes} commande
+                      {c._count.commandes > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Tarif
+                    </span>
+                    <input
+                      name="tarif"
+                      type="number"
+                      min={0}
+                      defaultValue={c.tarif}
+                      className={`${champ} w-28`}
+                    />
+                    <span className="text-xs text-muted-foreground">FCFA</span>
+                  </label>
+                  <CaseLibellee name="active" defaultChecked={c.active}>
+                    Visible
+                  </CaseLibellee>
+                  <button className={`${bouton("secondaire", "sm")} ml-auto`}>
+                    Enregistrer
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panneau>
     </div>
   );
 }

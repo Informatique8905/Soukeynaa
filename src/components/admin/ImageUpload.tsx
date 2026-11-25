@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Upload, X } from "lucide-react";
 
 export interface ImageProduit {
   publicId: string;
@@ -65,35 +66,45 @@ export function ImageUpload({
 
   return (
     <div>
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
         {images.map((img, i) => (
-          <div key={img.publicId} className="relative">
+          <div
+            key={img.publicId}
+            className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-muted"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={img.url}
-              alt={img.alt}
-              className="h-24 w-24 rounded border object-cover"
-            />
+            <img src={img.url} alt={img.alt} className="size-full object-cover" />
+            {i === 0 && (
+              <span className="absolute bottom-1.5 left-1.5 rounded bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-foreground shadow-sm">
+                Principale
+              </span>
+            )}
             <button
               type="button"
               onClick={() => onChange(images.filter((_, j) => j !== i))}
-              className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-vert text-xs text-white"
+              aria-label="Retirer la photo"
+              className="absolute right-1.5 top-1.5 grid size-7 cursor-pointer place-items-center rounded-md bg-white/95 text-foreground shadow-sm transition-colors hover:text-destructive"
             >
-              ×
+              <X className="size-4" />
             </button>
           </div>
         ))}
+        <label
+          className={`flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-input bg-[#fafbf9] p-2 text-center text-xs font-medium text-muted-foreground transition-colors hover:border-vert hover:text-vert ${chargement ? "pointer-events-none opacity-60" : ""}`}
+        >
+          <Upload className="size-4" />
+          {chargement ? "Envoi…" : "Ajouter"}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={chargement}
+            onChange={(e) => envoyer(e.target.files)}
+            className="sr-only"
+          />
+        </label>
       </div>
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        disabled={chargement}
-        onChange={(e) => envoyer(e.target.files)}
-        className="mt-3 text-sm"
-      />
-      {chargement && <p className="text-sm opacity-70">Envoi en cours…</p>}
-      {erreur && <p className="text-sm text-red-600">{erreur}</p>}
+      {erreur && <p className="mt-2 text-sm text-destructive">{erreur}</p>}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Slot } from "@radix-ui/react-slot"
 
 import { cn } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 
@@ -77,7 +78,7 @@ function Sidebar({
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-svh w-[15rem] shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex",
+        "sticky top-0 hidden h-svh w-[15rem] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex",
         className,
       )}
       style={{ width: SIDEBAR_WIDTH }}
@@ -102,7 +103,7 @@ function SidebarTrigger({
       onClick={() => setOpenMobile(true)}
       {...props}
     >
-      <span aria-hidden="true">≡</span>
+      <Menu className="size-5" aria-hidden="true" />
     </Button>
   )
 }
@@ -132,7 +133,7 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
 function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn("mt-auto flex flex-col gap-1 border-t border-sidebar-border p-4", className)}
+      className={cn("mt-auto flex flex-col gap-1 border-t border-sidebar-border p-3", className)}
       {...props}
     />
   )
@@ -149,7 +150,7 @@ function SidebarGroupLabel({
   return (
     <div
       className={cn(
-        "px-2 py-1 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/60",
+        "px-3 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/45",
         className,
       )}
       {...props}
@@ -177,7 +178,7 @@ function SidebarMenuButton({
     <Comp
       data-active={isActive}
       className={cn(
-        "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
+        "flex h-9 items-center gap-2.5 rounded-lg px-3 text-sm font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-vert-clair data-[active=true]:font-semibold data-[active=true]:text-vert-fonce [&>svg]:size-4 [&>svg]:shrink-0",
         className,
       )}
       {...props}

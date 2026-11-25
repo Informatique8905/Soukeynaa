@@ -1,13 +1,17 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { getPrisma } from "@/lib/db";
 import { fcfa } from "@/lib/format";
-import { Badge } from "@/components/ui/badge";
 import { changerStatutProduit } from "./actions";
 import {
-  PRODUCT_STATUS_LABELS,
-  PRODUCT_BADGE_VARIANT,
-  type ProductStatus,
-} from "@/lib/constants";
+  CarteListe,
+  EnTetePage,
+  Panneau,
+  StatutProduit,
+  Vide,
+  bouton,
+  lien,
+} from "@/components/admin/ui";
 
 export default async function PageProduits() {
   const prisma = getPrisma();
@@ -20,199 +24,139 @@ export default async function PageProduits() {
   });
 
   const actions = (p: { id: number; statut: string }) => (
-    <>
+    <div className="flex flex-wrap items-center justify-end gap-1.5">
       {p.statut !== "publie" && (
         <form action={changerStatutProduit.bind(null, p.id, "publie")}>
-          <button className="font-semibold text-green-700">Publier</button>
+          <button className={bouton("secondaire", "sm")}>Publier</button>
         </form>
       )}
       {p.statut === "publie" && (
-        <form
-          action={changerStatutProduit.bind(null, p.id, "brouillon")}
-        >
-          <button className="font-semibold text-orange-600">Dépublier</button>
+        <form action={changerStatutProduit.bind(null, p.id, "brouillon")}>
+          <button className={bouton("secondaire", "sm")}>Dépublier</button>
         </form>
       )}
       {p.statut !== "desactive" && (
-        <form
-          action={changerStatutProduit.bind(null, p.id, "desactive")}
-        >
-          <button className="font-semibold text-red-600">Désactiver</button>
+        <form action={changerStatutProduit.bind(null, p.id, "desactive")}>
+          <button className={bouton("danger", "sm")}>Désactiver</button>
         </form>
       )}
-    </>
+    </div>
+  );
+
+  const prix = (p: { prix: number; prixReduit: number | null }) => (
+    <span className="tabular-nums">
+      <span className="font-semibold">{fcfa(p.prixReduit ?? p.prix)}</span>
+      {p.prixReduit && (
+        <span className="ml-1.5 text-xs text-muted-foreground line-through">
+          {fcfa(p.prix)}
+        </span>
+      )}
+    </span>
+  );
+
+  const stockDe = (p: (typeof produits)[number]) =>
+    p.aVariantes ? p.variantes.reduce((s, v) => s + v.stock, 0) : p.stock;
+
+  const vide = (
+    <Vide titre="Aucun produit">
+      Créez votre premier produit pour l&apos;afficher dans la boutique.
+    </Vide>
   );
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-vert">Produits</h1>
-        <Link
-          href="/admin/produits/nouveau"
-          className="rounded-full bg-vert px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-vert-fonce"
-        >
-          + Nouveau produit
-        </Link>
-      </div>
+    <div className="flex flex-col gap-6">
+      <EnTetePage
+        titre="Produits"
+        description={`${produits.length} produit${produits.length > 1 ? "s" : ""} au catalogue`}
+        actions={
+          <Link href="/admin/produits/nouveau" className={bouton("primaire")}>
+            <Plus />
+            Nouveau produit
+          </Link>
+        }
+      />
 
-      {/* Mobile : cartes tactiles */}
-      <div className="mt-5 space-y-2.5 md:hidden">
+      {/* Mobile : cartes */}
+      <div className="space-y-3 md:hidden">
         {produits.map((p) => {
-          const stock = p.aVariantes
-            ? p.variantes.reduce((s, v) => s + v.stock, 0)
-            : p.stock;
+          const stock = stockDe(p);
           return (
-            <div
-              key={p.id}
-              className="rounded-2xl border bg-white p-3.5 shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-2">
+            <CarteListe key={p.id}>
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <Link
-                    href={`/admin/produits/${p.id}`}
-                    className="font-semibold text-vert"
-                  >
+                  <Link href={`/admin/produits/${p.id}`} className={`${lien} block truncate`}>
                     {p.nom}
                   </Link>
-                  <p className="mt-0.5 text-xs text-gris-fonce">
-                    {p.univers} / {p.categorie.nom}
+                  <p className="mt-0.5 text-xs capitalize text-muted-foreground">
+                    {p.univers} · {p.categorie.nom}
                   </p>
                 </div>
-                <Badge
-                  variant={PRODUCT_BADGE_VARIANT[p.statut as ProductStatus]}
-                  className="shrink-0"
-                >
-                  {PRODUCT_STATUS_LABELS[p.statut as ProductStatus]}
-                </Badge>
+                <StatutProduit statut={p.statut} />
               </div>
-              <div className="mt-2 flex items-center justify-between text-sm">
-                <p>
-                  {fcfa(p.prixReduit ?? p.prix)}
-                  {p.prixReduit && (
-                    <span className="ml-1 text-xs line-through opacity-50">
-                      {fcfa(p.prix)}
-                    </span>
-                  )}
-                </p>
-                <p
-                  className={`text-xs ${stock === 0 ? "font-bold text-red-600" : "opacity-70"}`}
-                >
-                  Stock : {stock}
-                </p>
+              <div className="mt-3 flex items-center justify-between text-sm">
+                {prix(p)}
+                <span className={`text-xs ${stock === 0 ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
+                  {stock === 0 ? "Rupture" : `${stock} en stock`}
+                </span>
               </div>
-              <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-black/5 pt-2.5 text-xs">
-                {actions(p)}
-              </div>
-            </div>
+              <div className="mt-3 border-t border-border pt-3">{actions(p)}</div>
+            </CarteListe>
           );
         })}
-        {produits.length === 0 && (
-          <p className="rounded-2xl border bg-white p-4 text-center text-sm opacity-60">
-            Aucun produit — créez le premier.
-          </p>
-        )}
+        {produits.length === 0 && <CarteListe className="p-0">{vide}</CarteListe>}
       </div>
 
-      {/* Desktop : table */}
-      <div className="mt-6 hidden overflow-x-auto md:block">
-        <table className="w-full border bg-white text-sm">
-        <thead className="bg-gris text-left">
-          <tr>
-            <th className="p-2">Produit</th>
-            <th className="p-2">Univers / Catégorie</th>
-            <th className="p-2">Prix</th>
-            <th className="p-2">Stock</th>
-            <th className="p-2">Statut</th>
-            <th className="p-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {produits.map((p) => {
-            const stock = p.aVariantes
-              ? p.variantes.reduce((s, v) => s + v.stock, 0)
-              : p.stock;
-            return (
-              <tr key={p.id} className="border-t">
-                <td className="p-2">
-                  <Link
-                    href={`/admin/produits/${p.id}`}
-                    className="font-medium text-vert underline"
-                  >
-                    {p.nom}
-                  </Link>
-                </td>
-                <td className="p-2">
-                  {p.univers} / {p.categorie.nom}
-                </td>
-                <td className="p-2">
-                  {fcfa(p.prixReduit ?? p.prix)}
-                  {p.prixReduit && (
-                    <span className="ml-1 text-xs line-through opacity-50">
-                      {fcfa(p.prix)}
-                    </span>
-                  )}
-                </td>
-                <td className={`p-2 ${stock === 0 ? "font-bold text-red-600" : ""}`}>
-                  {stock}
-                </td>
-                <td className="p-2">
-                  <Badge variant={PRODUCT_BADGE_VARIANT[p.statut as ProductStatus]}>
-                    {PRODUCT_STATUS_LABELS[p.statut as ProductStatus]}
-                  </Badge>
-                </td>
-                <td className="space-x-2 p-2 text-xs">
-                  {p.statut !== "publie" && (
-                    <form
-                      className="inline"
-                      action={changerStatutProduit.bind(null, p.id, "publie")}
-                    >
-                      <button className="text-green-700 underline">
-                        Publier
-                      </button>
-                    </form>
-                  )}
-                  {p.statut === "publie" && (
-                    <form
-                      className="inline"
-                      action={changerStatutProduit.bind(
-                        null,
-                        p.id,
-                        "brouillon"
-                      )}
-                    >
-                      <button className="text-orange-600 underline">
-                        Dépublier
-                      </button>
-                    </form>
-                  )}
-                  {p.statut !== "desactive" && (
-                    <form
-                      className="inline"
-                      action={changerStatutProduit.bind(
-                        null,
-                        p.id,
-                        "desactive"
-                      )}
-                    >
-                      <button className="text-red-600 underline">
-                        Désactiver
-                      </button>
-                    </form>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-          {produits.length === 0 && (
-            <tr>
-              <td colSpan={6} className="p-4 text-center opacity-60">
-                Aucun produit — créez le premier.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-      </div>
+      {/* Desktop : tableau */}
+      <Panneau corps="p-0" className="hidden md:block">
+        {produits.length === 0 ? (
+          vide
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>Univers / Catégorie</th>
+                  <th className="num">Prix</th>
+                  <th className="num">Stock</th>
+                  <th>Statut</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {produits.map((p) => {
+                  const stock = stockDe(p);
+                  return (
+                    <tr key={p.id}>
+                      <td>
+                        <Link href={`/admin/produits/${p.id}`} className={lien}>
+                          {p.nom}
+                        </Link>
+                        {p.aVariantes && (
+                          <span className="block text-xs text-muted-foreground">
+                            {p.variantes.length} variante{p.variantes.length > 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </td>
+                      <td className="text-muted-foreground">
+                        <span className="capitalize">{p.univers}</span> · {p.categorie.nom}
+                      </td>
+                      <td className="num">{prix(p)}</td>
+                      <td className={`num ${stock === 0 ? "font-semibold text-destructive" : ""}`}>
+                        {stock === 0 ? "Rupture" : stock}
+                      </td>
+                      <td>
+                        <StatutProduit statut={p.statut} />
+                      </td>
+                      <td>{actions(p)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panneau>
     </div>
   );
 }

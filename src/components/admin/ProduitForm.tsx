@@ -1,8 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
 import { ImageUpload, type ImageProduit } from "./ImageUpload";
 import { UNIVERSES, PRODUCT_STATUSES } from "@/lib/constants";
+import {
+  Alerte,
+  CaseLibellee,
+  Champ,
+  Panneau,
+  bouton,
+  champ,
+  zoneTexte,
+} from "./ui";
 
 interface Categorie {
   id: number;
@@ -65,6 +75,10 @@ export function ProduitForm({
     setVariantes([...variantes, { taille: "", couleur: "", sku: "", stock: 0 }]);
   }
 
+  function majVariante(i: number, patch: Partial<Variante>) {
+    setVariantes(variantes.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  }
+
   async function soumettre(formData: FormData) {
     setErreur("");
     formData.set("images", JSON.stringify(images));
@@ -77,222 +91,203 @@ export function ProduitForm({
   }
 
   return (
-    <form action={soumettre} className="mt-6 max-w-3xl space-y-4 text-sm">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          Nom du produit *
-          <input
-            name="nom"
-            required
-            defaultValue={initial?.nom}
-            className="rounded border px-2 py-1.5"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          Statut
-          <select
-            name="statut"
-            defaultValue={initial?.statut ?? "brouillon"}
-            className="rounded border px-2 py-1.5"
-          >
-            {PRODUCT_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUT_LABELS[s]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          Univers *
-          <select
-            name="univers"
-            value={univers}
-            onChange={(e) => setUnivers(e.target.value)}
-            className="rounded border px-2 py-1.5"
-          >
-            {UNIVERSES.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          Catégorie *
-          <select
-            name="categorie"
-            required
-            defaultValue={initial?.categorieId}
-            className="rounded border px-2 py-1.5"
-          >
-            <option value="">— choisir —</option>
-            {catsUnivers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.parentId ? "↳ " : ""}
-                {c.nom}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          Prix (FCFA) *
-          <input
-            name="prix"
-            type="number"
-            min={0}
-            required
-            defaultValue={initial?.prix}
-            className="rounded border px-2 py-1.5"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          Prix réduit (FCFA, optionnel)
-          <input
-            name="prixReduit"
-            type="number"
-            min={0}
-            defaultValue={initial?.prixReduit ?? ""}
-            className="rounded border px-2 py-1.5"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          Poids (g, optionnel)
-          <input
-            name="poids"
-            type="number"
-            min={0}
-            defaultValue={initial?.poids ?? ""}
-            className="rounded border px-2 py-1.5"
-          />
-        </label>
-      </div>
-
-      <label className="flex flex-col gap-1">
-        Description
-        <textarea
-          name="description"
-          rows={4}
-          defaultValue={initial?.description}
-          className="rounded border px-2 py-1.5"
-        />
-      </label>
-
-      <div>
-        <p className="mb-2 font-medium">Photos</p>
-        <ImageUpload images={images} onChange={setImages} />
-      </div>
-
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          name="aVariantes"
-          checked={aVariantes}
-          onChange={(e) => setAVariantes(e.target.checked)}
-        />
-        Ce produit a des variantes (taille / couleur)
-      </label>
-
-      {!aVariantes ? (
-        <label className="flex flex-col gap-1">
-          Stock
-          <input
-            name="stock"
-            type="number"
-            min={0}
-            defaultValue={initial?.stock ?? 0}
-            className="w-32 rounded border px-2 py-1.5"
-          />
-        </label>
-      ) : (
-        <div className="rounded border bg-white p-4">
-          <div className="flex items-center justify-between">
-            <p className="font-medium">Variantes</p>
-            <button
-              type="button"
-              onClick={ajouterVariante}
-              className="rounded bg-noir px-3 py-1 text-sm font-semibold"
-            >
-              + Variante
-            </button>
+    <form action={soumettre} className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+        <Panneau titre="Informations" description="Nom et description visibles en boutique">
+          <div className="grid gap-4">
+            <Champ label="Nom du produit *">
+              <input name="nom" required defaultValue={initial?.nom} className={champ} />
+            </Champ>
+            <Champ label="Description">
+              <textarea
+                name="description"
+                rows={5}
+                defaultValue={initial?.description}
+                className={zoneTexte}
+              />
+            </Champ>
           </div>
-          {variantes.map((v, i) => (
-            <div key={i} className="mt-3 flex flex-wrap items-end gap-2">
+        </Panneau>
+
+        <Panneau titre="Photos" description="La première photo sert de visuel principal">
+          <ImageUpload images={images} onChange={setImages} />
+        </Panneau>
+
+        <Panneau
+          titre="Stock et variantes"
+          description="Gérez un stock unique ou un stock par taille / couleur"
+        >
+          <CaseLibellee
+            name="aVariantes"
+            checked={aVariantes}
+            onChange={(e) => setAVariantes(e.target.checked)}
+          >
+            Ce produit a des variantes (taille / couleur)
+          </CaseLibellee>
+
+          {!aVariantes ? (
+            <Champ label="Quantité en stock" className="mt-4 max-w-40">
               <input
-                placeholder="Taille"
-                value={v.taille ?? ""}
-                onChange={(e) =>
-                  setVariantes(
-                    variantes.map((x, j) =>
-                      j === i ? { ...x, taille: e.target.value } : x
-                    )
-                  )
-                }
-                className="w-24 rounded border px-2 py-1"
+                name="stock"
+                type="number"
+                min={0}
+                defaultValue={initial?.stock ?? 0}
+                className={champ}
               />
-              <input
-                placeholder="Couleur"
-                value={v.couleur ?? ""}
-                onChange={(e) =>
-                  setVariantes(
-                    variantes.map((x, j) =>
-                      j === i ? { ...x, couleur: e.target.value } : x
-                    )
-                  )
-                }
-                className="w-28 rounded border px-2 py-1"
-              />
-              <input
-                placeholder="SKU"
-                value={v.sku ?? ""}
-                onChange={(e) =>
-                  setVariantes(
-                    variantes.map((x, j) =>
-                      j === i ? { ...x, sku: e.target.value } : x
-                    )
-                  )
-                }
-                className="w-28 rounded border px-2 py-1"
-              />
-              <label className="flex items-center gap-1">
-                Stock
-                <input
-                  type="number"
-                  min={0}
-                  value={v.stock}
-                  onChange={(e) =>
-                    setVariantes(
-                      variantes.map((x, j) =>
-                        j === i
-                          ? { ...x, stock: Number(e.target.value) }
-                          : x
-                      )
-                    )
-                  }
-                  className="w-20 rounded border px-2 py-1"
-                />
-              </label>
+            </Champ>
+          ) : (
+            <div className="mt-4">
+              {variantes.length > 0 && (
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <div className="hidden grid-cols-[1fr_1fr_1fr_6rem_2.5rem] gap-2 border-b border-border bg-[#fafbf9] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+                    <span>Taille</span>
+                    <span>Couleur</span>
+                    <span>SKU</span>
+                    <span>Stock</span>
+                    <span />
+                  </div>
+                  <ul className="divide-y divide-border">
+                    {variantes.map((v, i) => (
+                      <li
+                        key={i}
+                        className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-[1fr_1fr_1fr_6rem_2.5rem] sm:items-center"
+                      >
+                        <input
+                          aria-label="Taille"
+                          placeholder="Taille"
+                          value={v.taille ?? ""}
+                          onChange={(e) => majVariante(i, { taille: e.target.value })}
+                          className={champ}
+                        />
+                        <input
+                          aria-label="Couleur"
+                          placeholder="Couleur"
+                          value={v.couleur ?? ""}
+                          onChange={(e) => majVariante(i, { couleur: e.target.value })}
+                          className={champ}
+                        />
+                        <input
+                          aria-label="SKU"
+                          placeholder="SKU"
+                          value={v.sku ?? ""}
+                          onChange={(e) => majVariante(i, { sku: e.target.value })}
+                          className={champ}
+                        />
+                        <input
+                          aria-label="Stock"
+                          type="number"
+                          min={0}
+                          value={v.stock}
+                          onChange={(e) => majVariante(i, { stock: Number(e.target.value) })}
+                          className={champ}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setVariantes(variantes.filter((_, j) => j !== i))}
+                          className={bouton("fantome", "md", "col-span-2 px-0 hover:text-destructive sm:col-span-1")}
+                          aria-label="Retirer la variante"
+                          title="Retirer la variante"
+                        >
+                          <Trash2 />
+                          <span className="sm:sr-only">Retirer</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {variantes.length === 0 && (
+                <p className="rounded-lg border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground">
+                  Ajoutez au moins une variante.
+                </p>
+              )}
               <button
                 type="button"
-                onClick={() => setVariantes(variantes.filter((_, j) => j !== i))}
-                className="text-vert underline"
+                onClick={ajouterVariante}
+                className={bouton("secondaire", "sm", "mt-3")}
               >
-                Retirer
+                <Plus />
+                Ajouter une variante
               </button>
             </div>
-          ))}
-          {variantes.length === 0 && (
-            <p className="mt-3 text-xs opacity-60">
-              Ajoutez au moins une variante.
-            </p>
           )}
+        </Panneau>
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-6">
+        <Panneau titre="Publication">
+          <Champ label="Statut">
+            <select
+              name="statut"
+              defaultValue={initial?.statut ?? "brouillon"}
+              className={champ}
+            >
+              {PRODUCT_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {STATUT_LABELS[s]}
+                </option>
+              ))}
+            </select>
+          </Champ>
+        </Panneau>
+
+        <Panneau titre="Organisation">
+          <div className="grid gap-4">
+            <Champ label="Univers *">
+              <select
+                name="univers"
+                value={univers}
+                onChange={(e) => setUnivers(e.target.value)}
+                className={`${champ} capitalize`}
+              >
+                {UNIVERSES.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </Champ>
+            <Champ label="Catégorie *">
+              <select
+                name="categorie"
+                required
+                defaultValue={initial?.categorieId}
+                className={champ}
+              >
+                <option value="">Choisir une catégorie</option>
+                {catsUnivers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.parentId ? "\u00a0\u00a0\u00a0\u00a0" : ""}
+                    {c.nom}
+                  </option>
+                ))}
+              </select>
+            </Champ>
+          </div>
+        </Panneau>
+
+        <Panneau titre="Prix et expédition">
+          <div className="grid gap-4">
+            <Champ label="Prix (FCFA) *">
+              <input name="prix" type="number" min={0} required defaultValue={initial?.prix} className={champ} />
+            </Champ>
+            <Champ label="Prix réduit (FCFA)" aide="Optionnel — affiché barré à côté du prix">
+              <input name="prixReduit" type="number" min={0} defaultValue={initial?.prixReduit ?? ""} className={champ} />
+            </Champ>
+            <Champ label="Poids (g)" aide="Optionnel">
+              <input name="poids" type="number" min={0} defaultValue={initial?.poids ?? ""} className={champ} />
+            </Champ>
+          </div>
+        </Panneau>
+
+        {erreur && <Alerte ton="danger">{erreur}</Alerte>}
+
+        <div className="sticky bottom-4 z-10 flex gap-2 lg:static">
+          <button className={bouton("primaire", "md", "flex-1 shadow-md lg:shadow-sm")}>
+            {initial?.id ? "Enregistrer les modifications" : "Créer le produit"}
+          </button>
         </div>
-      )}
-
-      {erreur && <p className="text-red-600">{erreur}</p>}
-
-      <button className="rounded bg-vert px-6 py-2 font-semibold text-white">
-        {initial?.id ? "Enregistrer" : "Créer le produit"}
-      </button>
+      </div>
     </form>
   );
 }

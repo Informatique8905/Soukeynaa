@@ -1,6 +1,17 @@
 import { getPrisma } from "@/lib/db";
 import { UNIVERSES } from "@/lib/constants";
 import { creerCategorie, basculerCategorie } from "./actions";
+import {
+  CarteListe,
+  CaseLibellee,
+  Champ,
+  EnTetePage,
+  Panneau,
+  Pastille,
+  Vide,
+  bouton,
+  champ,
+} from "@/components/admin/ui";
 
 export default async function PageCategories() {
   const prisma = getPrisma();
@@ -10,152 +21,125 @@ export default async function PageCategories() {
   });
   const racines = categories.filter((c) => !c.parentId);
 
+  const etat = (active: boolean) =>
+    active ? <Pastille ton="vert">Active</Pastille> : <Pastille ton="gris">Inactive</Pastille>;
+
+  const bascule = (c: (typeof categories)[number]) => (
+    <form action={basculerCategorie.bind(null, c.id)}>
+      <button className={bouton(c.active ? "secondaire" : "primaire", "sm")}>
+        {c.active ? "Désactiver" : "Activer"}
+      </button>
+    </form>
+  );
+
+  const vide = (
+    <Vide titre="Aucune catégorie">Créez la première à l&apos;aide du formulaire ci-dessus.</Vide>
+  );
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-vert">Catégories</h1>
+    <div className="flex flex-col gap-6">
+      <EnTetePage
+        titre="Catégories"
+        description="Organisez le catalogue par univers, catégories et sous-catégories."
+      />
 
-      <form
-        action={creerCategorie}
-        className="mt-6 flex flex-wrap items-end gap-3 rounded border bg-white p-4 text-sm"
-      >
-        <label className="flex flex-col">
-          Nom
-          <input name="nom" required className="rounded border px-2 py-1" />
-        </label>
-        <label className="flex flex-col">
-          Univers
-          <select name="univers" required className="rounded border px-2 py-1">
-            {UNIVERSES.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col">
-          Parent (optionnel)
-          <select name="parent" className="rounded border px-2 py-1">
-            <option value="">— catégorie racine —</option>
-            {racines.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.univers} / {c.nom}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col">
-          Ordre
-          <input
-            name="ordre"
-            type="number"
-            defaultValue={0}
-            className="w-20 rounded border px-2 py-1"
-          />
-        </label>
-        <label className="flex items-center gap-2">
-          <input name="active" type="checkbox" defaultChecked /> Active
-        </label>
-        <button className="rounded bg-vert px-4 py-1.5 font-semibold text-white">
-          Ajouter
-        </button>
-      </form>
+      <Panneau titre="Nouvelle catégorie">
+        <form
+          action={creerCategorie}
+          className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1.4fr_6rem_auto_auto]"
+        >
+          <Champ label="Nom">
+            <input name="nom" required className={champ} />
+          </Champ>
+          <Champ label="Univers">
+            <select name="univers" required className={`${champ} capitalize`}>
+              {UNIVERSES.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </Champ>
+          <Champ label="Parent">
+            <select name="parent" className={champ}>
+              <option value="">Aucun (catégorie racine)</option>
+              {racines.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.univers} / {c.nom}
+                </option>
+              ))}
+            </select>
+          </Champ>
+          <Champ label="Ordre">
+            <input name="ordre" type="number" defaultValue={0} className={champ} />
+          </Champ>
+          <CaseLibellee name="active" defaultChecked className="h-10">
+            Active
+          </CaseLibellee>
+          <button className={bouton("primaire")}>Ajouter</button>
+        </form>
+      </Panneau>
 
-      {/* Mobile : cartes tactiles */}
-      <div className="mt-5 space-y-2.5 md:hidden">
+      {/* Mobile : cartes */}
+      <div className="space-y-3 md:hidden">
         {categories.map((c) => (
-          <div
-            key={c.id}
-            className="flex items-center gap-3 rounded-2xl border bg-white p-3.5 shadow-sm"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">
-                {c.parentId ? "↳ " : ""}
-                {c.nom}
-              </p>
-              <p className="mt-0.5 text-xs text-gris-fonce">
-                {c.univers}
-                {c.parent && ` — parent : ${c.parent.nom}`} —{" "}
-                {c._count.produits} produit(s)
-              </p>
+          <CarteListe key={c.id} className={c.parentId ? "ml-4" : undefined}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-semibold">{c.nom}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  <span className="capitalize">{c.univers}</span>
+                  {c.parent && ` · dans ${c.parent.nom}`} · {c._count.produits} produit(s)
+                </p>
+              </div>
+              {etat(c.active)}
             </div>
-            {c.active ? (
-              <span
-                className="shrink-0 font-bold text-vert"
-                aria-label="Active"
-              >
-                ✓
-              </span>
-            ) : (
-              <span
-                className="shrink-0 font-bold text-red-600"
-                aria-label="Inactive"
-              >
-                ×
-              </span>
-            )}
-            <form action={basculerCategorie.bind(null, c.id)}>
-              <button className="shrink-0 rounded-full bg-gris px-3 py-1.5 text-xs font-semibold text-gris-fonce">
-                {c.active ? "Désactiver" : "Activer"}
-              </button>
-            </form>
-          </div>
+            <div className="mt-3 flex justify-end border-t border-border pt-3">{bascule(c)}</div>
+          </CarteListe>
         ))}
-        {categories.length === 0 && (
-          <p className="rounded-2xl border bg-white p-4 text-center text-sm opacity-60">
-            Aucune catégorie — créez la première ci-dessus.
-          </p>
-        )}
+        {categories.length === 0 && <CarteListe className="p-0">{vide}</CarteListe>}
       </div>
 
-      {/* Desktop : table */}
-      <div className="mt-6 hidden overflow-x-auto md:block">
-        <table className="w-full border bg-white text-sm">
-        <thead className="bg-gris text-left">
-          <tr>
-            <th className="p-2">Nom</th>
-            <th className="p-2">Univers</th>
-            <th className="p-2">Parent</th>
-            <th className="p-2">Produits</th>
-            <th className="p-2">Active</th>
-            <th className="p-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {categories.map((c) => (
-            <tr key={c.id} className="border-t">
-              <td className="p-2 font-medium">
-                {c.parentId ? "↳ " : ""}
-                {c.nom}
-              </td>
-              <td className="p-2">{c.univers}</td>
-              <td className="p-2">{c.parent?.nom ?? "—"}</td>
-              <td className="p-2">{c._count.produits}</td>
-              <td className="p-2">
-                {c.active ? (
-                  <span className="font-bold text-vert" aria-label="Active">✓</span>
-                ) : (
-                  <span className="font-bold text-red-600" aria-label="Inactive">×</span>
-                )}
-              </td>
-              <td className="p-2">
-                <form action={basculerCategorie.bind(null, c.id)}>
-                  <button className="text-vert underline">
-                    {c.active ? "Désactiver" : "Activer"}
-                  </button>
-                </form>
-              </td>
-            </tr>
-          ))}
-          {categories.length === 0 && (
-            <tr>
-              <td colSpan={6} className="p-4 text-center opacity-60">
-                Aucune catégorie — créez la première ci-dessus.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-      </div>
+      {/* Desktop : tableau */}
+      <Panneau corps="p-0" className="hidden md:block">
+        {categories.length === 0 ? (
+          vide
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Univers</th>
+                  <th>Parent</th>
+                  <th className="num">Produits</th>
+                  <th>État</th>
+                  <th className="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map((c) => (
+                  <tr key={c.id}>
+                    <td className="font-medium">
+                      <span className={c.parentId ? "flex items-center gap-2 pl-5" : undefined}>
+                        {c.parentId && <span aria-hidden className="h-px w-3 bg-border" />}
+                        {c.nom}
+                      </span>
+                    </td>
+                    <td className="capitalize text-muted-foreground">{c.univers}</td>
+                    <td className="text-muted-foreground">{c.parent?.nom ?? "—"}</td>
+                    <td className="num">{c._count.produits}</td>
+                    <td>{etat(c.active)}</td>
+                    <td>
+                      <div className="flex justify-end">{bascule(c)}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panneau>
     </div>
   );
 }

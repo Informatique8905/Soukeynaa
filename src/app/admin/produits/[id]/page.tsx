@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPrisma } from "@/lib/db";
 import { ProduitForm, type ProduitInitial } from "@/components/admin/ProduitForm";
 import { modifierProduit } from "../actions";
+import { EnTetePage, StatutProduit, lien } from "@/components/admin/ui";
 
 interface ImageJson {
   publicId: string;
@@ -54,10 +56,21 @@ export default async function ModifierProduit({
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-vert">
-        Modifier : {produit.nom}
-      </h1>
+    <div className="flex flex-col gap-6">
+      <EnTetePage
+        surTitre={
+          <Link href="/admin/produits" className={lien}>
+            Produits
+          </Link>
+        }
+        titre={
+          <span className="flex flex-wrap items-center gap-3">
+            {produit.nom}
+            <StatutProduit statut={produit.statut} />
+          </span>
+        }
+        description="Modifiez les informations, le stock et les photos du produit."
+      />
       <ProduitForm
         categories={categories}
         initial={initial}

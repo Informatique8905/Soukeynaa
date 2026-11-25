@@ -1,17 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight, Plus } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
@@ -19,12 +11,17 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
-import {
-  ORDER_STATUS_LABELS,
-  ORDER_BADGE_VARIANT,
-  type OrderStatus,
-} from "@/lib/constants";
+import type { OrderStatus } from "@/lib/constants";
 import { fcfa } from "@/lib/format";
+import {
+  EnTetePage,
+  Indicateur,
+  Panneau,
+  StatutCommande,
+  Vide,
+  bouton,
+  lien,
+} from "@/components/admin/ui";
 
 export type DonneesDashboard = {
   stats: {
@@ -54,21 +51,18 @@ export type DonneesDashboard = {
 };
 
 const chartConfig = {
-  commandes: { label: "Commandes", color: "#a9d5bb" },
+  commandes: { label: "Commandes", color: "#c9e3d4" },
   payees: { label: "Payées", color: "#1e7b4f" },
 } satisfies ChartConfig;
 
-function initiales(nom: string) {
-  return nom
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
+function LienAction({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className={`${lien} inline-flex items-center gap-1`}>
+      {children}
+      <ArrowRight className="size-3.5" />
+    </Link>
+  );
 }
-
-const carteBlanche =
-  "rounded-3xl border border-black/5 bg-white shadow-sm transition-shadow hover:shadow-md";
 
 export function DashboardAdmin({
   donnees,
@@ -80,6 +74,7 @@ export function DashboardAdmin({
   const { stats, ventes, enCours, activite } = donnees;
   const prenom = utilisateur.split(" ")[0];
   const aujourdhui = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -92,351 +87,204 @@ export function DashboardAdmin({
       : null;
 
   return (
-    <div className="flex flex-1 flex-col gap-5">
-      {/* ── En-tête : salutation + période + action ── */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">
-            Bonjour, {prenom}
-          </h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Voici l&apos;activité de la boutique.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-full border border-black/8 bg-white px-4 py-2 text-xs font-medium text-muted-foreground">
-            {aujourdhui}
-          </span>
-          <Link
-            href="/admin/produits/nouveau"
-            className="rounded-full bg-vert px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-vert-fonce"
-          >
-            + Nouveau produit
+    <div className="flex flex-col gap-6">
+      <EnTetePage
+        surTitre={<span className="capitalize">{aujourdhui}</span>}
+        titre={`Bonjour, ${prenom}`}
+        description="Vue d'ensemble de l'activité de la boutique."
+        actions={
+          <Link href="/admin/produits/nouveau" className={bouton("primaire")}>
+            <Plus />
+            Nouveau produit
           </Link>
-        </div>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <Indicateur
+          label="Chiffre d'affaires du jour"
+          valeur={fcfa(stats.caJour)}
+          note="Paiements confirmés depuis minuit"
+        />
+        <Indicateur
+          label="Commandes du jour"
+          valeur={stats.commandesJour}
+          note={
+            tendance === null
+              ? "Depuis minuit"
+              : `${tendance >= 0 ? "+" : ""}${tendance} % cette semaine vs précédente`
+          }
+        />
+        <Indicateur
+          label="À préparer / expédier"
+          valeur={stats.aPreparer}
+          note="Payées ou en préparation"
+          action={<LienAction href="/admin/commandes?statut=payee">Traiter</LienAction>}
+        />
+        <Indicateur
+          label="Paiements à vérifier"
+          valeur={stats.paiementsAVerifier}
+          ton={stats.paiementsAVerifier > 0 ? "alerte" : "neutre"}
+          note="Anomalies Jèko (CDC 10.12)"
+          action={<LienAction href="/admin/paiements">Vérifier</LienAction>}
+        />
+        <Indicateur
+          label="Produits en rupture"
+          valeur={stats.ruptures}
+          ton={stats.ruptures > 0 ? "danger" : "neutre"}
+          note="Produits publiés sans stock"
+          action={<LienAction href="/admin/produits">Gérer le stock</LienAction>}
+        />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-        {/* ── Colonne gauche : carte héro CA + mini-stats ── */}
-        <div className="flex min-w-0 flex-col gap-5 xl:col-span-3">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-vert via-[#17683f] to-vert-fonce p-5 text-white shadow-lg">
-            <p className="text-xs font-medium text-white/70">CA du jour</p>
-            <p className="mt-1 text-[11px] uppercase tracking-wider text-white/50">
-              Paiements confirmés
-            </p>
-            <p className="mt-6 text-3xl font-extrabold tabular-nums tracking-tight">
-              {fcfa(stats.caJour)}
-            </p>
-            <div className="mt-7 flex items-end justify-between text-[11px] font-medium tracking-wider text-white/60">
-              <span>SOUKEYNA</span>
-              <span>JÈKO</span>
-            </div>
-          </div>
-
-          <div className={carteBlanche + " p-4"}>
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground">
-                Commandes du jour
-              </p>
-              {tendance !== null && (
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                    tendance >= 0
-                      ? "bg-secondary text-secondary-foreground"
-                      : "bg-destructive/10 text-destructive"
-                  }`}
-                >
-                  {tendance >= 0 ? "▲" : "▼"}
-                  {tendance >= 0 ? "+" : ""}
-                  {tendance}%
-                </span>
-              )}
-            </div>
-            <p className="mt-2 text-2xl font-bold tabular-nums">
-              {stats.commandesJour}
-            </p>
-            <p className="text-xs text-muted-foreground">Depuis minuit</p>
-          </div>
-
-          <div className={carteBlanche + " p-4"}>
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground">
-                Produits en rupture
-              </p>
-              <span
-                aria-hidden
-                className={`size-2.5 rounded-full ${stats.ruptures > 0 ? "bg-destructive" : "bg-muted-foreground/40"}`}
-              />
-            </div>
-            <p
-              className={`mt-2 text-2xl font-bold tabular-nums ${stats.ruptures > 0 ? "text-destructive" : ""}`}
-            >
-              {stats.ruptures}
-            </p>
-            <Link
-              href="/admin/produits"
-              className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-vert hover:underline"
-            >
-              Gérer le stock →
-            </Link>
-          </div>
-        </div>
-
-        {/* ── Centre : activité des ventes (barres) ── */}
-        <Card className={carteBlanche + " min-w-0 xl:col-span-5"}>
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle>Activité des ventes</CardTitle>
-              <CardDescription>
-                Commandes créées vs payées — 8 dernières semaines
-              </CardDescription>
-            </div>
-            <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold text-secondary-foreground">
-              8 semaines
-            </span>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-64 w-full">
-              <BarChart
-                data={ventes}
-                margin={{ left: 4, right: 4, top: 8 }}
-                barGap={6}
-                accessibilityLayer
-              >
-                <defs>
-                  <pattern
-                    id="hatchCmd"
-                    width="7"
-                    height="7"
-                    patternTransform="rotate(45)"
-                    patternUnits="userSpaceOnUse"
-                  >
-                    <rect width="7" height="7" fill="#e2f0e7" />
-                    <line
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="7"
-                      stroke="#9ccfae"
-                      strokeWidth="2.5"
-                    />
-                  </pattern>
-                </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="semaine"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  fontSize={11}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  width={28}
-                  allowDecimals={false}
-                  fontSize={11}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar
-                  dataKey="commandes"
-                  fill="url(#hatchCmd)"
-                  radius={[8, 8, 8, 8]}
-                  maxBarSize={26}
-                />
-                <Bar
-                  dataKey="payees"
-                  fill="var(--color-payees)"
-                  radius={[8, 8, 8, 8]}
-                  maxBarSize={26}
-                />
-              </BarChart>
-            </ChartContainer>
-            <div className="mt-1 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <Panneau
+          className="xl:col-span-2"
+          titre="Activité des ventes"
+          description="Commandes créées et payées — 8 dernières semaines"
+          actions={
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block size-2.5 rounded-sm bg-[#9ccfae]" />
-                Commandes
+                <span className="size-2.5 rounded-sm bg-[#c9e3d4]" />
+                Créées
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block size-2.5 rounded-sm bg-vert" />
+                <span className="size-2.5 rounded-sm bg-vert" />
                 Payées
               </span>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* ── Colonne droite : actions rapides ── */}
-        <div className="flex min-w-0 flex-col gap-5 xl:col-span-4">
-          <div className={carteBlanche + " flex-1 p-5"}>
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground">
-                À préparer / expédier
-              </p>
-              <span aria-hidden className="size-2.5 rounded-full bg-vert" />
-            </div>
-            <p className="mt-3 text-3xl font-extrabold tabular-nums">
-              {stats.aPreparer}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Commandes payées ou en préparation
-            </p>
-            <Link
-              href="/admin/commandes"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-vert px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-vert-fonce"
+          }
+        >
+          <ChartContainer config={chartConfig} className="h-64 w-full">
+            <BarChart
+              data={ventes}
+              margin={{ left: 0, right: 0, top: 8 }}
+              barGap={4}
+              accessibilityLayer
             >
-              Traiter →
-            </Link>
-          </div>
-
-          <div
-            className={`flex-1 rounded-3xl border p-5 shadow-sm transition-shadow hover:shadow-md ${
-              stats.paiementsAVerifier > 0
-                ? "border-destructive/30 bg-destructive/[0.03]"
-                : "border-black/5 bg-white"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground">
-                Paiements à vérifier
-              </p>
-              <span
-                aria-hidden
-                className={`size-2.5 rounded-full ${stats.paiementsAVerifier > 0 ? "bg-destructive" : "bg-vert"}`}
+              <CartesianGrid vertical={false} stroke="#eceee9" />
+              <XAxis
+                dataKey="semaine"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                fontSize={11}
               />
-            </div>
-            <p
-              className={`mt-3 text-3xl font-extrabold tabular-nums ${stats.paiementsAVerifier > 0 ? "text-destructive" : ""}`}
-            >
-              {stats.paiementsAVerifier}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Anomalies Jèko (CDC 10.12)
-            </p>
-            <Link
-              href="/admin/paiements"
-              className={`mt-4 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold shadow-sm transition ${
-                stats.paiementsAVerifier > 0
-                  ? "bg-destructive text-white hover:bg-destructive/90"
-                  : "bg-vert text-white hover:bg-vert-fonce"
-              }`}
-            >
-              Vérifier →
-            </Link>
-          </div>
-        </div>
-      </div>
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                width={28}
+                allowDecimals={false}
+                fontSize={11}
+              />
+              <ChartTooltip cursor={{ fill: "#f3f5f1" }} content={<ChartTooltipContent />} />
+              <Bar dataKey="commandes" fill="var(--color-commandes)" radius={[4, 4, 0, 0]} maxBarSize={22} />
+              <Bar dataKey="payees" fill="var(--color-payees)" radius={[4, 4, 0, 0]} maxBarSize={22} />
+            </BarChart>
+          </ChartContainer>
+        </Panneau>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-        {/* ── Historique des commandes (style table du design) ── */}
-        <Card className={carteBlanche + " min-w-0 xl:col-span-8"}>
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle>Commandes en cours</CardTitle>
-              <CardDescription>
-                Avancement des commandes payées jusqu&apos;à la livraison
-              </CardDescription>
-            </div>
-            <Link
-              href="/admin/commandes"
-              className="text-xs font-semibold text-vert hover:underline"
-            >
-              Tout voir
-            </Link>
-          </CardHeader>
-          <CardContent className="flex flex-col">
-            {enCours.map((commande) => (
-              <Link
-                key={commande.id}
-                href={`/admin/commandes/${commande.id}`}
-                className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-muted/50"
-              >
-                <Avatar className="size-9 shrink-0">
-                  <AvatarFallback className="bg-secondary text-xs font-bold text-secondary-foreground">
-                    {initiales(commande.clientNom)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">
-                    {commande.reference}
+        <Panneau
+          titre="Activité récente"
+          description="Dernières opérations journalisées (CDC 14.7)"
+          corps="p-0"
+        >
+          {activite.length === 0 ? (
+            <Vide titre="Aucune opération">
+              Les actions des administrateurs apparaîtront ici.
+            </Vide>
+          ) : (
+            <ol className="divide-y divide-border">
+              {activite.map((e) => (
+                <li key={e.id} className="px-5 py-3">
+                  <p className="text-sm leading-snug">
+                    <span className="font-medium">{e.auteur}</span>{" "}
+                    <span className="text-muted-foreground">{e.action}</span>
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {commande.clientNom} — {commande.commune}
+                  <p className="mt-0.5 flex flex-wrap gap-x-2 text-xs text-muted-foreground">
+                    <span className="truncate">{e.entite}</span>
+                    <span aria-hidden>·</span>
+                    <span className="tabular-nums">{e.date}</span>
                   </p>
-                </div>
-                <div className="hidden w-28 sm:block">
-                  <Progress
-                    value={commande.progression}
-                    aria-label={`Progression ${commande.reference}`}
-                  />
-                  <p className="mt-1 text-[10px] text-muted-foreground tabular-nums">
-                    {commande.progression}%
-                  </p>
-                </div>
-                <Badge
-                  variant={ORDER_BADGE_VARIANT[commande.statut]}
-                  className="hidden shrink-0 sm:inline-flex"
-                >
-                  {ORDER_STATUS_LABELS[commande.statut]}
-                </Badge>
-                <span className="w-24 shrink-0 text-right text-sm font-bold tabular-nums">
-                  {fcfa(commande.total)}
-                </span>
-              </Link>
-            ))}
-            {enCours.length === 0 && (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                Aucune commande en cours de traitement.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* ── Journal d'activité ── */}
-        <Card className={carteBlanche + " min-w-0 xl:col-span-4"}>
-          <CardHeader>
-            <CardTitle>Activité récente</CardTitle>
-            <CardDescription>
-              Dernières opérations journalisées (CDC 14.7)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ol className="flex flex-col">
-              {activite.map((entree) => (
-                <li
-                  key={entree.id}
-                  className="-mx-2 flex items-start gap-3 rounded-xl p-2 transition-colors hover:bg-muted/50"
-                >
-                  <Avatar className="size-8 shrink-0">
-                    <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
-                      {initiales(entree.auteur)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-snug">
-                      <span className="font-medium">{entree.auteur}</span>{" "}
-                      <span className="text-muted-foreground">
-                        {entree.action} — {entiteRaccourcie(entree.entite)}
-                      </span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {entree.date}
-                    </p>
-                  </div>
                 </li>
               ))}
-              {activite.length === 0 && (
-                <li className="py-6 text-center text-sm text-muted-foreground">
-                  Aucune opération journalisée pour le moment.
-                </li>
-              )}
             </ol>
-          </CardContent>
-        </Card>
+          )}
+        </Panneau>
       </div>
+
+      <Panneau
+        titre="Commandes en cours"
+        description="Avancement des commandes payées jusqu'à la livraison"
+        actions={<LienAction href="/admin/commandes">Tout voir</LienAction>}
+        corps="p-0"
+      >
+        {enCours.length === 0 ? (
+          <Vide titre="Aucune commande en cours">
+            Les commandes payées à traiter s&apos;afficheront ici.
+          </Vide>
+        ) : (
+          <>
+            <ul className="divide-y divide-border md:hidden">
+              {enCours.map((c) => (
+                <li key={c.id}>
+                  <Link href={`/admin/commandes/${c.id}`} className="block px-5 py-3.5 hover:bg-[#fafbf9]">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate text-sm font-semibold">{c.reference}</p>
+                      <p className="shrink-0 text-sm font-semibold tabular-nums">{fcfa(c.total)}</p>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <p className="truncate text-xs text-muted-foreground">
+                        {c.clientNom} · {c.commune}
+                      </p>
+                      <StatutCommande statut={c.statut} />
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Référence</th>
+                    <th>Client</th>
+                    <th>Commune</th>
+                    <th>Avancement</th>
+                    <th>Statut</th>
+                    <th className="num">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {enCours.map((c) => (
+                    <tr key={c.id}>
+                      <td>
+                        <Link href={`/admin/commandes/${c.id}`} className={lien}>
+                          {c.reference}
+                        </Link>
+                      </td>
+                      <td className="font-medium">{c.clientNom}</td>
+                      <td className="text-muted-foreground">{c.commune}</td>
+                      <td>
+                        <div className="flex w-36 items-center gap-2">
+                          <Progress value={c.progression} className="h-1.5" aria-label={`Avancement ${c.reference}`} />
+                          <span className="w-8 text-right text-xs text-muted-foreground tabular-nums">
+                            {c.progression}%
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <StatutCommande statut={c.statut} />
+                      </td>
+                      <td className="num font-semibold">{fcfa(c.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Panneau>
     </div>
   );
-}
-
-function entiteRaccourcie(entite: string) {
-  return entite.length > 30 ? entite.slice(0, 30) + "…" : entite;
 }

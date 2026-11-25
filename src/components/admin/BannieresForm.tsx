@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowDown, ArrowUp, ImagePlus, X } from "lucide-react";
 import type { Banniere } from "@/lib/settings";
+import { bouton, champ } from "./ui";
 
 // Gestion des bannières d'accueil (CDC 7.1) — upload signé Cloudinary,
 // titre et lien optionnels. La liste est sérialisée dans le champ caché
@@ -64,59 +66,97 @@ export function BannieresForm({ initiales }: { initiales: Banniere[] }) {
     );
   }
 
+  function deplacer(i: number, delta: number) {
+    const j = i + delta;
+    if (j < 0 || j >= bannieres.length) return;
+    const copie = [...bannieres];
+    [copie[i], copie[j]] = [copie[j], copie[i]];
+    setBannieres(copie.map((b, k) => ({ ...b, ordre: k })));
+  }
+
+  const plein = bannieres.length >= 10;
+
   return (
     <div>
-      <input
-        type="hidden"
-        name="bannieres"
-        value={JSON.stringify(bannieres)}
-      />
-      <div className="space-y-3">
+      <input type="hidden" name="bannieres" value={JSON.stringify(bannieres)} />
+      <ul className="space-y-3">
         {bannieres.map((b, i) => (
-          <div key={b.publicId ?? i} className="flex items-start gap-3">
+          <li
+            key={b.publicId ?? i}
+            className="flex items-start gap-3 rounded-lg border border-border p-3"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={b.url}
               alt={b.titre ?? `Bannière ${i + 1}`}
-              className="h-16 w-28 shrink-0 rounded-lg border border-black/10 object-cover"
+              className="h-14 w-24 shrink-0 rounded-md border border-border object-cover"
             />
-            <div className="grid flex-1 gap-1.5">
+            <div className="grid min-w-0 flex-1 gap-2">
               <input
                 value={b.titre ?? ""}
                 onChange={(e) => maj(i, "titre", e.target.value)}
                 placeholder="Titre (optionnel)"
-                className="rounded border px-2 py-1 text-xs"
+                className={`${champ} h-8 text-xs`}
               />
               <input
                 value={b.lien ?? ""}
                 onChange={(e) => maj(i, "lien", e.target.value)}
                 placeholder="Lien au clic — ex. /femmes (optionnel)"
-                className="rounded border px-2 py-1 text-xs"
+                className={`${champ} h-8 text-xs`}
               />
             </div>
-            <button
-              type="button"
-              onClick={() => setBannieres(bannieres.filter((_, j) => j !== i))}
-              className="mt-1 h-6 w-6 shrink-0 rounded-full bg-red-50 text-xs font-bold text-red-600 ring-1 ring-red-200"
-              aria-label="Retirer la bannière"
-            >
-              ×
-            </button>
-          </div>
+            <div className="flex shrink-0 flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => deplacer(i, -1)}
+                disabled={i === 0}
+                aria-label="Monter"
+                className={bouton("fantome", "sm", "size-8 px-0")}
+              >
+                <ArrowUp />
+              </button>
+              <button
+                type="button"
+                onClick={() => deplacer(i, 1)}
+                disabled={i === bannieres.length - 1}
+                aria-label="Descendre"
+                className={bouton("fantome", "sm", "size-8 px-0")}
+              >
+                <ArrowDown />
+              </button>
+              <button
+                type="button"
+                onClick={() => setBannieres(bannieres.filter((_, j) => j !== i))}
+                aria-label="Retirer la bannière"
+                className={bouton("danger", "sm", "size-8 px-0")}
+              >
+                <X />
+              </button>
+            </div>
+          </li>
         ))}
-      </div>
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        disabled={chargement || bannieres.length >= 10}
-        onChange={(e) => envoyer(e.target.files)}
-        className="mt-3 text-sm"
-      />
-      {chargement && <p className="text-sm opacity-70">Envoi en cours…</p>}
-      {erreur && <p className="text-sm text-red-600">{erreur}</p>}
-      {bannieres.length === 0 && (
-        <p className="mt-2 text-xs opacity-50">
+      </ul>
+      <label
+        className={`mt-3 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-input px-4 text-sm font-medium text-muted-foreground transition-colors hover:border-vert hover:text-vert ${chargement || plein ? "pointer-events-none opacity-50" : ""}`}
+      >
+        <ImagePlus className="size-4" />
+        {chargement
+          ? "Envoi en cours…"
+          : plein
+            ? "Maximum atteint (10)"
+            : "Ajouter des images"}
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          disabled={chargement || plein}
+          onChange={(e) => envoyer(e.target.files)}
+          className="sr-only"
+        />
+      </label>
+      {erreur && <p className="mt-2 text-sm text-destructive">{erreur}</p>}
+      {bannieres.length === 0 && !erreur && (
+        <p className="mt-2 text-xs text-muted-foreground">
           Aucune bannière — la bannière promo automatique s&apos;affiche à la
           place.
         </p>

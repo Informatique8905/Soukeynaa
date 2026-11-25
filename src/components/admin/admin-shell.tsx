@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { usePathname } from "next/navigation";
+import { ExternalLink } from "lucide-react";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import {
+  AdminSidebar,
+  NAV_ADMIN,
+  estActif,
+} from "@/components/admin/admin-sidebar";
 
 export function AdminShell({
   utilisateur,
@@ -22,37 +25,65 @@ export function AdminShell({
   alertesPaiements: number;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const section = NAV_ADMIN.find((s) =>
+    s.liens.some((l) => estActif(pathname, l.href)),
+  );
+  const page = section?.liens.find((l) => estActif(pathname, l.href));
+
   return (
-    <SidebarProvider>
-      <AdminSidebar utilisateur={utilisateur} />
+    <SidebarProvider className="bg-[#f6f7f5]">
+      <AdminSidebar
+        utilisateur={utilisateur}
+        initiales={initiales}
+        alertesPaiements={alertesPaiements}
+      />
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur-md sm:px-6">
-          <SidebarTrigger aria-label="Ouvrir la navigation" />
-          <h1 className="truncate text-lg font-semibold">
-            Bonjour, {utilisateur.split(" ")[0]}
-          </h1>
-          <div className="ml-auto flex items-center gap-1">
-            <Button variant="ghost" asChild className="relative rounded-full px-3 text-xs">
-              <Link href="/admin/paiements" className="press">
-                <CreditCard className="size-4" />
-                Paiements
-                {alertesPaiements > 0 && (
-                  <span className="ml-1 flex size-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                    {alertesPaiements > 9 ? "9+" : alertesPaiements}
-                  </span>
-                )}
+        <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-white/90 px-4 backdrop-blur-md print:hidden sm:px-6 lg:px-8">
+          <SidebarTrigger aria-label="Ouvrir la navigation" className="-ml-2" />
+          <nav
+            aria-label="Fil d'Ariane"
+            className="flex min-w-0 items-center gap-2 text-sm"
+          >
+            <span className="hidden text-muted-foreground sm:inline">
+              {section?.groupe ?? "Administration"}
+            </span>
+            <span aria-hidden className="hidden text-border sm:inline">
+              /
+            </span>
+            <Link
+              href={page?.href ?? "/admin"}
+              className="truncate font-semibold text-foreground"
+            >
+              {page?.label ?? "Tableau de bord"}
+            </Link>
+          </nav>
+          <div className="ml-auto flex items-center gap-2">
+            {alertesPaiements > 0 && (
+              <Link
+                href="/admin/paiements"
+                className="inline-flex h-8 items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-100"
+              >
+                <span aria-hidden className="size-1.5 rounded-full bg-amber-500" />
+                <span className="sm:hidden">{alertesPaiements}</span>
+                <span className="hidden sm:inline">
+                  {alertesPaiements} paiement{alertesPaiements > 1 ? "s" : ""} à
+                  vérifier
+                </span>
               </Link>
-            </Button>
-            <Avatar className="ml-1 size-8">
-              <AvatarFallback className="bg-primary text-xs text-primary-foreground">
-                {initiales}
-              </AvatarFallback>
-            </Avatar>
+            )}
+            <Link
+              href="/"
+              className="hidden h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:inline-flex"
+            >
+              Boutique
+              <ExternalLink className="size-3.5" />
+            </Link>
           </div>
         </header>
-        <main className="admin-zone flex-1 p-4 motion-safe:animate-entree sm:p-6 lg:p-8">
-          {children}
-        </main>
+        <div className="admin-zone flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
