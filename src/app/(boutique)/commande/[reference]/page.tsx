@@ -3,8 +3,6 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getPrisma } from "@/lib/db";
 import { auth } from "@/auth";
-import { fcfa } from "@/lib/format";
-import { cloud } from "@/lib/image";
 import { BoutonPayer, RafraichirAuto } from "@/components/boutique/BoutonPayer";
 import { BonCommande } from "@/components/boutique/BonCommande";
 import { TrajetLivraison } from "@/components/motion/TrajetLivraison";
@@ -13,10 +11,6 @@ const ETAPES_EN_LIGNE = ["en_attente_paiement", "payee", "en_preparation", "expe
 const LABELS_EN_LIGNE = ["Commandée", "Payée", "Préparation", "En route", "Livrée"];
 const ETAPES_LIVRAISON = ["en_preparation", "expediee", "livree"] as const;
 const LABELS_LIVRAISON = ["Commandée", "Préparation", "En route", "Livrée & payée"];
-
-interface ImageJson {
-  url?: string;
-}
 
 export default async function CommandePage({
   params,
@@ -30,7 +24,7 @@ export default async function CommandePage({
   const commande = await prisma.order.findUnique({
     where: { reference },
     include: {
-      lignes: { include: { produit: { select: { images: true } } } },
+      lignes: true,
       paiements: { select: { statut: true } },
     },
   });
@@ -110,8 +104,7 @@ export default async function CommandePage({
         </span>
       </div>
 
-      <div className="mt-5 md:grid md:grid-cols-5 md:gap-6">
-        <div className="flex flex-col gap-4 md:col-span-3">
+      <div className="mt-5 flex max-w-2xl flex-col gap-4">
           {/* Suivi */}
           {!annulee && (
             <section data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 print:hidden">
@@ -146,73 +139,27 @@ export default async function CommandePage({
           </section>
 
           {bonVisible && <BonCommande c={commande} />}
-        </div>
 
-        {/* Récapitulatif + action */}
-        <aside className="mt-4 md:col-span-2 md:mt-0 print:hidden">
-          <div data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 md:sticky md:top-24">
-            <h2 className="font-extrabold text-noir">Récapitulatif</h2>
-            <ul className="mt-3 space-y-3">
-              {commande.lignes.map((l) => {
-                const img = (l.produit.images as ImageJson[])?.[0]?.url;
-                return (
-                  <li key={l.id} className="flex items-center gap-3">
-                    <div className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-gris">
-                      <span className="absolute right-0 top-0 z-10 grid size-5 place-items-center rounded-bl-lg bg-noir text-[10px] font-bold text-white">
-                        {l.quantite}
-                      </span>
-                      {img && (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={cloud(img, 120) ?? img} alt={l.nom} loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                      )}
-                    </div>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-noir">{l.nom}</span>
-                      {l.varianteLabel && <span className="text-xs text-gris-fonce">{l.varianteLabel}</span>}
-                    </span>
-                    <span className="shrink-0 text-sm font-bold tabular-nums text-noir">{fcfa(l.total)}</span>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <div className="mt-4 space-y-1.5 border-t border-black/5 pt-3 text-sm">
-              <div className="flex justify-between text-gris-fonce">
-                <span>Sous-total</span>
-                <span className="tabular-nums">{fcfa(commande.sousTotal)}</span>
-              </div>
-              <div className="flex justify-between text-gris-fonce">
-                <span>Livraison à {commande.communeNom}</span>
-                <span className="tabular-nums">{fcfa(commande.fraisLivraison)}</span>
-              </div>
-              <div className="flex justify-between pt-1.5 text-base font-extrabold text-noir">
-                <span>{aLaLivraison && commande.statutPaiement !== "confirme" ? "À payer au livreur" : "Total"}</span>
-                <span className="tabular-nums text-vert">{fcfa(commande.total)}</span>
-              </div>
-            </div>
-
-            {payable && (
-              <div className="mt-5">
-                <BoutonPayer
-                  commandeId={commande.id}
-                  montant={commande.total}
-                  moyenInitial={moyen}
-                />
-                <p className="mt-2 text-center text-xs text-gris-fonce">
-                  Panier réservé jusqu&apos;à {expire}
-                </p>
-              </div>
-            )}
-          </div>
+          {payable && (
+            <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 print:hidden">
+              <BoutonPayer
+                commandeId={commande.id}
+                montant={commande.total}
+                moyenInitial={moyen}
+              />
+              <p className="mt-2 text-center text-xs text-gris-fonce">
+                Panier réservé jusqu&apos;à {expire}
+              </p>
+            </section>
+          )}
 
           <Link
             href="/"
-            className="press mt-4 flex items-center justify-center rounded-full py-2 text-sm font-semibold text-vert hover:bg-vert-clair"
+            className="press flex items-center justify-center rounded-full py-2 text-sm font-semibold text-vert hover:bg-vert-clair print:hidden"
           >
             Continuer mes achats →
           </Link>
-        </aside>
-      </div>
+        </div>
     </main>
   );
 }

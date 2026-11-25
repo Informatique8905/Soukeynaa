@@ -40,8 +40,8 @@ export function DelaiLivraisonForm({
               ? {
                   ok: true,
                   texte: r.notifie
-                    ? "Enregistré — le client a été notifié par email."
-                    : "Enregistré — ce délai avait déjà été notifié ou l'email n'a pas pu partir.",
+                    ? "Enregistré. Le client a été notifié par email."
+                    : "Enregistré, ce délai avait déjà été notifié ou l'email n'a pas pu partir.",
                 }
               : {
                   ok: false,

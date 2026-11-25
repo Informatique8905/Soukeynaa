@@ -171,18 +171,21 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
     /* cookie illisible — la page affichera la vue masquée */
   }
 
-  // À la livraison : bon de commande + alerte admin immédiats (non bloquant)
+  // Bon de commande + message de prise en charge : envoyé dès la création,
+  // avant toute confirmation admin (non bloquant)
+  envoyerBonCommande(commandeCree.id).catch(() => {});
+
+  // À la livraison : alerte admin immédiate (non bloquant)
   if (aLaLivraison) {
     const c = await prisma.order.findUnique({
       where: { reference },
       select: { id: true, total: true, communeNom: true, clientNom: true },
     });
     if (c) {
-      envoyerBonCommande(c.id).catch(() => {});
       alerterAdmin(
         "alerte_admin_commande",
         `Nouvelle commande à la livraison ${reference}`,
-        `<p>${c.clientNom} — ${c.communeNom} — ${fcfa(c.total)} à encaisser à la livraison.</p>`,
+        `<p>${c.clientNom}, ${c.communeNom}, ${fcfa(c.total)} à encaisser à la livraison.</p>`,
         c.id
       ).catch(() => {});
     }

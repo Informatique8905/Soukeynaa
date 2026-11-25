@@ -124,7 +124,7 @@ export function BonCommande({ c }: { c: BonCommandeData }) {
           <span className="tabular-nums">{fcfa(c.sousTotal)}</span>
         </div>
         <div className="flex justify-between text-gris-fonce">
-          <span>Livraison — {c.communeNom}</span>
+          <span>Livraison à {c.communeNom}</span>
           <span className="tabular-nums">{fcfa(c.fraisLivraison)}</span>
         </div>
         <div className="flex justify-between pt-1.5 text-base font-extrabold text-noir">
@@ -155,7 +155,7 @@ export function BonCommande({ c }: { c: BonCommandeData }) {
       </div>
 
       <p className="px-5 pb-4 pt-3 text-center text-[11px] text-gris-fonce sm:px-7">
-        Merci de votre confiance — SOUKEYNA, Abidjan. Pour tout retour ou
+        Merci de votre confiance. SOUKEYNA, Abidjan. Pour tout retour ou
         échange, contactez-nous par téléphone ou WhatsApp.
       </p>
     </section>

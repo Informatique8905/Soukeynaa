@@ -145,17 +145,21 @@ html.js-motion [data-reveal] {
     transform: scale(0.92);
   }
 }
+/* Sur téléphone les révélations au scroll font « bouger » la page :
+   désactivées — tout est visible immédiatement. */
 @supports (animation-timeline: view()) {
-  [data-reveal] {
-    animation: rv-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-    animation-timeline: view();
-    animation-range: entry 0% entry 60%;
-  }
-  [data-reveal="left"] {
-    animation-name: rv-in-left;
-  }
-  [data-reveal="scale"] {
-    animation-name: rv-in-scale;
+  @media (min-width: 768px) {
+    [data-reveal] {
+      animation: rv-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+    [data-reveal="left"] {
+      animation-name: rv-in-left;
+    }
+    [data-reveal="scale"] {
+      animation-name: rv-in-scale;
+    }
   }
 }
 

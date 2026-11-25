@@ -67,7 +67,44 @@ async function notifier(
   return resultat.ok;
 }
 
-// Bon de commande — envoyé UNE SEULE FOIS après paiement confirmé (CDC 12.2)
+interface BonHtml {
+  reference: string;
+  clientNom: string;
+  clientTelephone: string;
+  communeNom: string;
+  adresseLivraison: string;
+  fraisLivraison: number;
+  total: number;
+  delaiLivraison: string | null;
+  lignes: {
+    nom: string;
+    varianteLabel: string | null;
+    quantite: number;
+    total: number;
+  }[];
+}
+
+// Corps « bon de commande » partagé : tableau des articles, totaux, livraison
+// — réutilisé par le bon initial, le bon mis à jour et l'email de délai.
+function blocBon(c: BonHtml): string {
+  const lignesHtml = c.lignes
+    .map(
+      (l) =>
+        `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee">${l.quantite} × ${l.nom}${l.varianteLabel ? ` <small>(${l.varianteLabel})</small>` : ""}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${fcfa(l.total)}</td></tr>`
+    )
+    .join("");
+  return `
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        ${lignesHtml}
+        <tr><td style="padding:6px 12px">Livraison à ${c.communeNom}</td><td style="text-align:right;padding:6px 12px">${fcfa(c.fraisLivraison)}</td></tr>
+        <tr><td style="padding:10px 12px;font-weight:bold">Total</td><td style="text-align:right;padding:10px 12px;font-weight:bold;color:#6b1226">${fcfa(c.total)}</td></tr>
+      </table>
+      <h3>Livraison</h3>
+      <p>${c.adresseLivraison}, ${c.communeNom}<br/>Tél : ${c.clientTelephone}</p>`;
+}
+
+// Bon de commande — envoyé UNE SEULE FOIS à la création de la commande,
+// avec un message de prise en charge, avant toute confirmation admin.
 export async function envoyerBonCommande(commandeId: number) {
   const prisma = getPrisma();
   const c = await prisma.order.findUnique({
@@ -76,30 +113,22 @@ export async function envoyerBonCommande(commandeId: number) {
   });
   if (!c || c.bonEnvoyeLe) return;
 
-  const lignesHtml = c.lignes
-    .map(
-      (l) =>
-        `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee">${l.quantite} × ${l.nom}${l.varianteLabel ? ` <small>(${l.varianteLabel})</small>` : ""}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${fcfa(l.total)}</td></tr>`
-    )
-    .join("");
+  const enAttentePaiement =
+    c.modePaiement !== "livraison" && c.statutPaiement !== "confirme";
+  const suite = c.modePaiement === "livraison"
+    ? `Vous réglerez <strong>${fcfa(c.total)}</strong> au livreur à la réception.`
+    : enAttentePaiement
+      ? "Finalisez le paiement pour lancer la préparation."
+      : "Votre paiement est confirmé.";
 
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:auto">
       <h1 style="color:#6b1226;letter-spacing:2px">SOUKEYNA</h1>
       <h2>Bon de commande ${c.reference}</h2>
-      <p>Bonjour ${c.clientNom},<br/>${
-        c.modePaiement === "livraison"
-          ? `votre commande est confirmée. Vous réglerez <strong>${fcfa(c.total)}</strong> au livreur à la réception.`
-          : "votre paiement est confirmé."
-      } Voici votre bon de commande.</p>
-      <table style="width:100%;border-collapse:collapse;font-size:14px">
-        ${lignesHtml}
-        <tr><td style="padding:6px 12px">Livraison — ${c.communeNom}</td><td style="text-align:right;padding:6px 12px">${fcfa(c.fraisLivraison)}</td></tr>
-        <tr><td style="padding:10px 12px;font-weight:bold">Total</td><td style="text-align:right;padding:10px 12px;font-weight:bold;color:#6b1226">${fcfa(c.total)}</td></tr>
-      </table>
-      <h3>Livraison</h3>
-      <p>${c.adresseLivraison}, ${c.communeNom}<br/>Tél : ${c.clientTelephone}</p>
-      <p><a href="${process.env.AUTH_URL ?? ""}/commande/${c.reference}" style="display:inline-block;background:#1e7b4f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Voir mon bon de commande en ligne</a></p>
+      <p>Bonjour ${c.clientNom},</p>
+      <p><strong>Nous traitons votre commande.</strong> ${suite} Voici votre bon de commande.</p>
+      ${blocBon(c)}
+      <p><a href="${process.env.AUTH_URL ?? ""}/commande/${c.reference}" style="display:inline-block;background:#1e7b4f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">${enAttentePaiement ? "Finaliser mon paiement" : "Voir mon bon de commande en ligne"}</a></p>
       <p style="font-size:12px;color:#888">Passée le ${dateFr(c.createdAt)}. Pour tout retour ou échange, contactez-nous par téléphone ou WhatsApp.</p>
     </div>`;
 
@@ -107,7 +136,7 @@ export async function envoyerBonCommande(commandeId: number) {
     `bon_commande:${c.reference}`,
     "bon_commande",
     c.clientEmail,
-    `Votre bon de commande ${c.reference} — SOUKEYNA`,
+    `Votre bon de commande ${c.reference}`,
     html,
     c.id
   );
@@ -117,6 +146,36 @@ export async function envoyerBonCommande(commandeId: number) {
       data: { bonEnvoyeLe: new Date() },
     });
   }
+}
+
+// Bon de commande mis à jour — envoyé quand l'admin valide la commande
+// (passage en préparation). Même référence ; le délai annoncé est inclus
+// s'il a été renseigné. Dédoublonné par (statut, délai) : un nouvel état
+// renvoie le bon, un double appel non.
+export async function envoyerBonCommandeMaj(commandeId: number): Promise<boolean> {
+  const prisma = getPrisma();
+  const c = await prisma.order.findUnique({
+    where: { id: commandeId },
+    include: { lignes: true },
+  });
+  if (!c || !c.clientEmail) return false;
+  const lien = `${process.env.AUTH_URL ?? ""}/commande/${c.reference}`;
+  return !!(await notifier(
+    `bonmaj:${c.reference}:${c.statut}:${(c.delaiLivraison ?? "").trim().toLowerCase()}`,
+    "bon_commande",
+    c.clientEmail,
+    `Commande ${c.reference} validée`,
+    `<div style="font-family:sans-serif;max-width:560px;margin:auto">
+      <h1 style="color:#6b1226;letter-spacing:2px">SOUKEYNA</h1>
+      <h2>Bon de commande ${c.reference}</h2>
+      <p>Bonjour ${c.clientNom},<br/>votre commande est validée et passe en préparation. Voici votre bon de commande mis à jour.</p>
+      ${c.delaiLivraison ? `<p style="background:#e3f0e9;color:#15613d;padding:10px 14px;border-radius:8px;font-weight:bold">${c.delaiLivraison}</p>` : ""}
+      ${blocBon(c)}
+      <p><a href="${lien}" style="display:inline-block;background:#1e7b4f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Voir mon bon de commande</a></p>
+      <p style="font-size:12px;color:#888">Une question ? Répondez à cet email ou contactez-nous par téléphone/WhatsApp.</p>
+    </div>`,
+    c.id
+  ));
 }
 
 // Notification de changement de statut (CDC 12.3)
@@ -136,10 +195,11 @@ export async function notifierStatutCommande(commandeId: number) {
     `statut:${c.reference}:${c.statut}`,
     info.type,
     c.clientEmail,
-    `Commande ${c.reference} ${info.libelle} — SOUKEYNA`,
+    `Commande ${c.reference} ${info.libelle}`,
     `<div style="font-family:sans-serif;max-width:560px;margin:auto">
       <h1 style="color:#6b1226;letter-spacing:2px">SOUKEYNA</h1>
       <p>Bonjour ${c.clientNom},<br/>votre commande <strong>${c.reference}</strong> est <strong>${info.libelle}</strong>.</p>
+      <p><a href="${process.env.AUTH_URL ?? ""}/commande/${c.reference}" style="display:inline-block;background:#1e7b4f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Suivre ma commande / voir le bon</a></p>
       <p>Merci de votre confiance.</p>
     </div>`,
     c.id
@@ -170,19 +230,23 @@ export async function alerterAdmin(
 // correction déclenche un nouvel envoi, un double appel non.
 export async function envoyerDelaiLivraison(commandeId: number): Promise<boolean> {
   const prisma = getPrisma();
-  const c = await prisma.order.findUnique({ where: { id: commandeId } });
+  const c = await prisma.order.findUnique({
+    where: { id: commandeId },
+    include: { lignes: true },
+  });
   if (!c?.delaiLivraison || !c.clientEmail) return false;
   const lien = `${process.env.AUTH_URL ?? ""}/commande/${c.reference}`;
   return !!(await notifier(
     `delai:${c.reference}:${c.delaiLivraison.trim().toLowerCase()}`,
     "delai_livraison",
     c.clientEmail,
-    `Livraison prévue : ${c.delaiLivraison} — commande ${c.reference}`,
+    `Livraison prévue : ${c.delaiLivraison} · commande ${c.reference}`,
     `<div style="font-family:sans-serif;max-width:560px;margin:auto">
       <h1 style="color:#6b1226;letter-spacing:2px">SOUKEYNA</h1>
-      <p>Bonjour ${c.clientNom},<br/>bonne nouvelle : votre commande <strong>${c.reference}</strong> arrive bientôt.</p>
-      <p style="font-size:16px">Délai annoncé : <strong>${c.delaiLivraison}</strong></p>
-      <p>Commune : ${c.communeNom} — ${c.adresseLivraison}<br/>Tél : ${c.clientTelephone}</p>
+      <h2>Bon de commande ${c.reference}</h2>
+      <p>Bonjour ${c.clientNom},<br/>bonne nouvelle : votre commande <strong>${c.reference}</strong> arrive bientôt. Voici votre bon de commande mis à jour.</p>
+      <p style="background:#e3f0e9;color:#15613d;padding:10px 14px;border-radius:8px;font-weight:bold">${c.delaiLivraison}</p>
+      ${blocBon(c)}
       <p><a href="${lien}" style="display:inline-block;background:#1e7b4f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Voir mon bon de commande</a></p>
       <p style="font-size:12px;color:#888">Une question ? Répondez à cet email ou contactez-nous par téléphone/WhatsApp.</p>
     </div>`,
@@ -216,11 +280,11 @@ export async function envoyerRapport(
     .join("");
   return envoyerResend(
     destinataire,
-    `Rapport ${label} — ${dateFr(periode.debut)} → ${dateFr(periode.fin)} — SOUKEYNA`,
+    `Rapport ${label} du ${dateFr(periode.debut)} au ${dateFr(periode.fin)}`,
     `<div style="font-family:sans-serif;max-width:560px;margin:auto">
       <h1 style="color:#6b1226;letter-spacing:2px">SOUKEYNA</h1>
       <h2>Rapport des ventes ${label}</h2>
-      <p>Période : ${dateFr(periode.debut)} → ${dateFr(periode.fin)}</p>
+      <p>Période : du ${dateFr(periode.debut)} au ${dateFr(periode.fin)}</p>
       <table style="font-size:14px">
         <tr><td style="padding:4px 12px 4px 0">Commandes payées</td><td><strong>${v.commandes}</strong></td></tr>
         <tr><td style="padding:4px 12px 4px 0">Chiffre d'affaires</td><td><strong>${fcfa(v.chiffreAffaires)}</strong></td></tr>

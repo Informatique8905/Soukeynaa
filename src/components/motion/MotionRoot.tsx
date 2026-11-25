@@ -20,6 +20,8 @@ const FROM: Record<string, gsap.TweenVars> = {
 export function MotionRoot() {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Téléphone : pas de révélation au scroll (page stable)
+    if (!window.matchMedia("(min-width: 768px)").matches) return;
     // Révélation native par le navigateur (scroll-driven animations) :
     // le CSS anime déjà les [data-reveal], rien à faire côté JS.
     if (CSS.supports("animation-timeline: view()")) return;
