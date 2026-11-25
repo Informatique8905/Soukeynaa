@@ -7,7 +7,7 @@ import {
 } from "@/lib/paiement";
 import { libererStock } from "@/lib/stock";
 import { envoyerBonCommande, alerterAdmin } from "@/lib/email";
-import type { StatutPaiement } from "@/generated/prisma/enums";
+import type { StatutPaiement, MoyenPaiement } from "@/generated/prisma/enums";
 
 // Mapping des statuts Jèko → statuts internes.
 // Noms exacts À CONFIRMER avec la doc Jèko (CDC 10.4).
@@ -41,6 +41,8 @@ export async function POST(req: Request) {
     id?: string;
     status?: string;
     amount?: number;
+    payment_method?: string;
+    method?: string;
   };
   try {
     event = JSON.parse(corpsBrut);
@@ -49,6 +51,19 @@ export async function POST(req: Request) {
   }
 
   const transactionJeko = event.transaction_id ?? event.id;
+  // Moyen de paiement renvoyé par Jèko → enum interne (CDC 10.2)
+  const MOYENS: Record<string, MoyenPaiement> = {
+    wave: "wave",
+    orange_money: "orange_money",
+    orange: "orange_money",
+    mtn_momo: "mtn_momo",
+    mtn: "mtn_momo",
+    moov_money: "moov_money",
+    moov: "moov_money",
+    carte: "carte",
+    card: "carte",
+  };
+  const moyen = MOYENS[event.payment_method ?? event.method ?? ""];
   const statutCible = STATUT_JEKO[event.status ?? ""];
   if (!statutCible) {
     return NextResponse.json({ ok: true }); // événement non géré : 200 (pas de retry)
@@ -85,8 +100,10 @@ export async function POST(req: Request) {
       ? ("a_verifier" as const) // montant divergent → revue admin (CDC 10.8)
       : statutCible;
 
-  // 4. Transition contrôlée + effets de bord, en une transaction
-  await prisma.$transaction(async (tx) => {
+  // 4. Transition contrôlée + effets de bord, en une transaction.
+  // La mise à jour est conditionnelle (statut inchangé) : deux webhooks
+  // concurrents pour le même paiement n'appliquent les effets qu'une fois.
+  const appliquee = await prisma.$transaction(async (tx) => {
     await journaliser(tx, paiement.id, "webhook_recu", "", event);
     if (statutFinal === "a_verifier") {
       await journaliser(
@@ -96,15 +113,26 @@ export async function POST(req: Request) {
         `Montant divergent : reçu ${event.amount}, attendu ${paiement.montant}`
       );
     }
-    await tx.payment.update({
-      where: { id: paiement.id },
+    const r = await tx.payment.updateMany({
+      where: { id: paiement.id, statut: paiement.statut },
       data: {
         statut: statutFinal,
         ...(transactionJeko && !paiement.transactionJeko
           ? { transactionJeko }
           : {}),
+        ...(moyen && !paiement.moyen ? { moyen } : {}),
       },
     });
+    if (r.count === 0) {
+      // Un webhook concurrent a déjà fait la transition
+      await journaliser(
+        tx,
+        paiement.id,
+        "transition",
+        `Ignoré : transition ${paiement.statut} → ${statutFinal} déjà appliquée`
+      );
+      return false;
+    }
 
     if (statutFinal === "confirme") {
       await tx.order.update({
@@ -120,7 +148,10 @@ export async function POST(req: Request) {
       });
     }
     await journaliser(tx, paiement.id, "transition", `→ ${statutFinal}`);
+    return true;
   });
+
+  if (!appliquee) return NextResponse.json({ ok: true });
 
   // Effets post-transaction (emails dédupliqués, non bloquants)
   if (statutFinal === "confirme") {

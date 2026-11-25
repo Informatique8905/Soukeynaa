@@ -2,6 +2,7 @@ import Link from "next/link";
 import { HeroPromo } from "@/components/boutique/HeroPromo";
 import { getPrisma } from "@/lib/db";
 import { prixAvecPromos, promotionsActives, type PromoActive } from "@/lib/pricing";
+import { bannieresDe } from "@/lib/settings";
 import { cloud } from "@/lib/image";
 import { auth } from "@/auth";
 import { ProductCard, type CarteProduit } from "@/components/boutique/ProductCard";
@@ -56,7 +57,7 @@ function versCartes(
 
 export default async function Accueil() {
   const prisma = getPrisma();
-  const [session, categories, nouveautes, promos, actives] =
+  const [session, categories, nouveautes, promos, actives, settings] =
     await Promise.all([
     auth(),
     prisma.category.findMany({
@@ -84,6 +85,7 @@ export default async function Accueil() {
       include: { categorie: { select: { nom: true } } },
     }),
     promotionsActives(),
+    prisma.settings.findUnique({ where: { cle: "boutique" } }),
   ]);
 
   const prenom = session?.user?.name?.split(" ")[0] ?? null;
@@ -109,6 +111,9 @@ export default async function Accueil() {
   );
   const visuelPromo = cartesPromos.find((p) => p.image)?.image ?? null;
 
+  // Bannières administrables (CDC 7.1)
+  const bannieres = bannieresDe(settings ?? { bannieres: [] });
+
   return (
     <main className="mx-auto max-w-7xl px-4 pb-10">
       {/* Salutation */}
@@ -132,6 +137,45 @@ export default async function Accueil() {
           Rechercher
         </span>
       </Link>
+
+      {/* Bannières administrables (CDC 7.1) */}
+      {bannieres.length > 0 && (
+        <section
+          aria-label="Bannières"
+          className="no-scrollbar mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1"
+        >
+          {bannieres.map((b, i) => {
+            const img = (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={cloud(b.url, 1200) ?? b.url}
+                alt={b.titre ?? `Bannière ${i + 1}`}
+                loading={i === 0 ? "eager" : "lazy"}
+                decoding="async"
+                className="h-full w-full object-cover"
+              />
+            );
+            return b.lien ? (
+              <Link
+                key={i}
+                href={b.lien}
+                data-reveal
+                className="lift press relative h-36 w-full min-w-0 shrink-0 snap-start overflow-hidden rounded-3xl shadow-sm sm:h-44"
+              >
+                {img}
+              </Link>
+            ) : (
+              <div
+                key={i}
+                data-reveal
+                className="relative h-36 w-full min-w-0 shrink-0 snap-start overflow-hidden rounded-3xl shadow-sm sm:h-44"
+              >
+                {img}
+              </div>
+            );
+          })}
+        </section>
+      )}
 
       {/* Bannière promo animée (SVG) */}
       {cartesPromos.length > 0 && (

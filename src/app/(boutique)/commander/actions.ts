@@ -42,9 +42,9 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
     return { erreur: "Commune de livraison indisponible" };
   }
 
-  let reference: string;
+  let commandeCree: { reference: string; id: number };
   try {
-    reference = await prisma.$transaction(async (tx) => {
+    commandeCree = await prisma.$transaction(async (tx) => {
       // 1. Prix recalculés serveur + stock réservé par décrément conditionnel
       let sousTotal = 0;
       const lignes: {
@@ -112,7 +112,7 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
       const ref = `SOU-${annee}-${String(compteur.valeur).padStart(6, "0")}`;
 
       // 3. Commande : client + commune + tarif figés (CDC 9.5, 11.5)
-      await tx.order.create({
+      const cree = await tx.order.create({
         data: {
           reference: ref,
           clientUserId: userId,
@@ -139,7 +139,7 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
 
       // 4. Panier vidé dans la même transaction
       await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
-      return ref;
+      return { reference: ref, id: cree.id };
     });
   } catch (e) {
     return {
@@ -147,9 +147,29 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
     };
   }
 
+  const reference = commandeCree.reference;
+
   // Cookie panier invité : on le garde (panier recréé au prochain ajout)
   const store = await cookies();
   store.delete("soukeyna_cart");
+  // Trace locale des commandes passées depuis ce navigateur : seuls les
+  // visiteurs ayant réellement commandé (cookie, compte ou admin) voient les
+  // coordonnées complètes sur /commande/[ref] — la référence est
+  // séquentielle et sinon énumérable (CDC 14.5).
+  try {
+    const ids = JSON.parse(store.get("soukeyna_orders")?.value ?? "[]");
+    if (Array.isArray(ids)) {
+      ids.push(commandeCree.id);
+      store.set("soukeyna_orders", JSON.stringify(ids.slice(-20)), {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 90 * 24 * 3600,
+      });
+    }
+  } catch {
+    /* cookie illisible — la page affichera la vue masquée */
+  }
 
   // À la livraison : bon de commande + alerte admin immédiats (non bloquant)
   if (aLaLivraison) {

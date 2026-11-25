@@ -32,10 +32,12 @@ export async function GET(req: Request) {
       });
       if (r.count === 0) return;
       await restituerStockCommande(tx, c.id);
+      // Seules les tentatives "en_attente" expirent : un paiement
+      // "a_verifier" reste résoluble par l'admin (resoudrePaiement)
       await tx.payment.updateMany({
         where: {
           commandeId: c.id,
-          statut: { in: ["en_attente", "a_verifier"] },
+          statut: "en_attente",
         },
         data: { statut: "expire" },
       });

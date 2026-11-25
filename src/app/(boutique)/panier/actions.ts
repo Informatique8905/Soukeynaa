@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getPrisma } from "@/lib/db";
 import { getOrCreateCart, getCart } from "@/lib/cart";
+import { Prisma } from "@/generated/prisma/client";
 
 // Ajout au panier — vérifie produit publié + stock réel avant d'insérer
 export async function ajouterAuPanier(produitId: number, varianteId: number | null, quantite: number) {
@@ -36,9 +37,30 @@ export async function ajouterAuPanier(produitId: number, varianteId: number | nu
       data: { quantite: nouvelle },
     });
   } else {
-    await prisma.cartItem.create({
-      data: { cartId: cart.id, produitId, varianteId, quantite },
-    });
+    try {
+      await prisma.cartItem.create({
+        data: { cartId: cart.id, produitId, varianteId, quantite },
+      });
+    } catch (e) {
+      // Index unique sur COALESCE(varianteId,0) : ajout concurrent → la
+      // ligne existe désormais, on incrémente au lieu de dupliquer
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        const ex = await prisma.cartItem.findFirst({
+          where: { cartId: cart.id, produitId, varianteId },
+        });
+        if (ex) {
+          await prisma.cartItem.update({
+            where: { id: ex.id },
+            data: { quantite: Math.min(ex.quantite + quantite, stock) },
+          });
+        }
+      } else {
+        throw e;
+      }
+    }
   }
   revalidatePath("/panier");
 }

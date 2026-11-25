@@ -54,7 +54,12 @@ export default async function DetailCommande({
     where: { id: Number(id) },
     include: {
       lignes: true,
-      paiements: { orderBy: { createdAt: "desc" } },
+      paiements: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          evenements: { orderBy: { at: "desc" }, take: 12 },
+        },
+      },
     },
   });
   if (!commande) notFound();
@@ -224,6 +229,24 @@ export default async function DetailCommande({
             <span className="block text-gris-fonce">
               txn Jèko : {p.transactionJeko ?? "—"}
             </span>
+            {p.evenements.length > 0 && (
+              <details className="mt-1">
+                <summary className="cursor-pointer text-gris-fonce">
+                  Journal ({p.evenements.length} événement(s), CDC 10.14)
+                </summary>
+                <ul className="mt-1 space-y-0.5 border-l-2 border-black/5 pl-2">
+                  {p.evenements.map((e) => (
+                    <li key={e.id}>
+                      <span className="opacity-60">
+                        {dateHeureFr(e.at)}
+                      </span>{" "}
+                      <strong>{e.type}</strong>
+                      {e.message && ` — ${e.message}`}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </div>
         ))}
       </section>

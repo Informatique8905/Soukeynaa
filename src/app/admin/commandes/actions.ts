@@ -5,7 +5,7 @@ import { getPrisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 import { logAudit } from "@/lib/audit";
 import { restituerStockCommande } from "@/lib/stock";
-import { notifierStatutCommande } from "@/lib/email";
+import { notifierStatutCommande, envoyerDelaiLivraison } from "@/lib/email";
 import type { StatutCommande } from "@/generated/prisma/enums";
 
 // Transitions autorisées (CDC 11.8) — une commande payee ne revient jamais en arrière
@@ -43,14 +43,15 @@ export async function changerStatutCommande(
       throw new Error(`Transition ${commande.statut} → ${nouveau} interdite`);
     }
     // Transition conditionnelle (CDC 10.10) ; à la livraison, « livrée »
-    // vaut encaissement, « annulée » clôt le paiement non perçu
+    // vaut encaissement. Toute annulation d'une commande non encaissée
+    // (livraison ou en ligne impayée) clôt le statutPaiement.
     const r = await tx.order.updateMany({
       where: { id, statut: commande.statut },
       data: {
         statut: nouveau,
         ...(livraison && nouveau === "livree"
           ? { statutPaiement: "confirme", encaisseLe: new Date() }
-          : livraison && nouveau === "annulee"
+          : nouveau === "annulee" && commande.statutPaiement !== "confirme"
             ? { statutPaiement: "annule" }
             : {}),
       },
@@ -94,7 +95,8 @@ export async function definirDelaiLivraison(id: number, formData: FormData) {
     avant: { delaiLivraison: avant.delaiLivraison },
     apres: { delaiLivraison: delai },
   });
-  // L'email au client est déclenché par le module notifications (CDC 12.3)
+  // Email du délai au client (CDC 12.3) — dédupliqué par la valeur saisie
+  envoyerDelaiLivraison(id).catch(() => {});
   revalidatePath(`/admin/commandes/${id}`);
 }
 

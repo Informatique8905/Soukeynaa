@@ -34,6 +34,13 @@ export const PAYMENT_STATUSES = [
 ] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
+/** Libellés français des statuts produit — section 5.6 */
+export const PRODUCT_STATUS_LABELS: Record<ProductStatus, string> = {
+  publie: "Publié",
+  brouillon: "Brouillon",
+  desactive: "Désactivé",
+};
+
 /** Libellés français des statuts de commande — section 11.8 */
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   en_attente_paiement: "En attente de paiement",
@@ -64,6 +71,13 @@ export const ORDER_BADGE_VARIANT: Record<OrderStatus, BadgeVariant> = {
   expediee: "outline",
   livree: "default",
   annulee: "destructive",
+};
+
+/** Variantes de Badge par statut produit */
+export const PRODUCT_BADGE_VARIANT: Record<ProductStatus, BadgeVariant> = {
+  publie: "default",
+  brouillon: "secondary",
+  desactive: "outline",
 };
 
 /** Variantes de Badge par statut de paiement */

@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/liberer-reservations",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/reconcilier",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/rapports?granularite=jour",
+      "schedule": "30 0 * * *"
+    },
+    {
+      "path": "/api/cron/rapports?granularite=tous",
+      "schedule": "30 0 * * 1"
+    }
+  ]
+}

@@ -133,21 +133,76 @@ export async function modifierProduit(id: number, formData: FormData) {
         statut: data.statut,
       },
     });
+    // Variantes déjà commandées : order_lines.varianteId est en Restrict,
+    // suppression impossible — on les conserve (historique) et on fusionne.
+    const ids = avant.variantes.map((v) => v.id);
+    const referencees = new Set(
+      (
+        await tx.orderLine.findMany({
+          where: { varianteId: { in: ids } },
+          select: { varianteId: true },
+          distinct: ["varianteId"],
+        })
+      ).map((l) => l.varianteId as number)
+    );
+
     if (data.aVariantes) {
-      // Remplace les variantes : suppression + recréation
-      await tx.productVariant.deleteMany({ where: { produitId: id } });
-      await tx.productVariant.createMany({
-        data: variantes.map((v) => ({
-          produitId: id,
-          taille: v.taille || null,
-          couleur: v.couleur || null,
-          sku: v.sku || null,
-          stock: v.stock,
-          prixReduit: v.prixReduit ?? null,
-        })),
+      const cle = (t?: string | null, c?: string | null) =>
+        `${t ?? ""}|${c ?? ""}`;
+      const parCle = new Map(
+        avant.variantes.map((v) => [cle(v.taille, v.couleur), v])
+      );
+      const conservees = new Set<number>();
+      const aCreer: VarianteInput[] = [];
+      for (const v of variantes) {
+        const ex = parCle.get(cle(v.taille, v.couleur));
+        if (ex && referencees.has(ex.id)) {
+          // Même combinaison conservée : mise à jour en place (id stable)
+          conservees.add(ex.id);
+          await tx.productVariant.update({
+            where: { id: ex.id },
+            data: {
+              sku: v.sku || null,
+              stock: v.stock,
+              prixReduit: v.prixReduit ?? null,
+            },
+          });
+        } else {
+          aCreer.push(v);
+        }
+      }
+      // Suppression limitée aux variantes jamais commandées
+      await tx.productVariant.deleteMany({
+        where: { produitId: id, id: { notIn: [...referencees] } },
       });
+      // Référencées mais retirées du formulaire : neutralisées (stock 0,
+      // SKU libéré) — elles restent en base pour l'historique des lignes
+      await tx.productVariant.updateMany({
+        where: { id: { in: [...referencees].filter((i) => !conservees.has(i)) } },
+        data: { stock: 0, sku: null },
+      });
+      if (aCreer.length) {
+        await tx.productVariant.createMany({
+          data: aCreer.map((v) => ({
+            produitId: id,
+            taille: v.taille || null,
+            couleur: v.couleur || null,
+            sku: v.sku || null,
+            stock: v.stock,
+            prixReduit: v.prixReduit ?? null,
+          })),
+        });
+      }
     } else {
-      await tx.productVariant.deleteMany({ where: { produitId: id } });
+      // Passage en produit simple : suppression si possible, sinon
+      // neutralisation des variantes référencées par des commandes
+      await tx.productVariant.deleteMany({
+        where: { produitId: id, id: { notIn: [...referencees] } },
+      });
+      await tx.productVariant.updateMany({
+        where: { id: { in: [...referencees] } },
+        data: { stock: 0, sku: null },
+      });
     }
   });
 

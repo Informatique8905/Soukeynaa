@@ -22,7 +22,7 @@ export const LIQUID_DEFAULT_CFG = {
 };
 export type LiquidCfg = typeof LIQUID_DEFAULT_CFG;
 
-export type LiquidTab = { label: string; href?: string; badge?: number };
+export type LiquidTab = { label: string; href?: string; badge?: number; icon?: ReactNode };
 
 /* ============================ CORE (fonctions pures) ============================ */
 type Layout = { W: number; H: number; barTop: number; slotW: number; xs: number[] };
@@ -174,13 +174,13 @@ const CSS =
   ".ltb-label.on{color:var(--ltb-act,#141414);font-weight:600}" +
   ".ltb-badge{position:absolute;left:50%;top:8px;margin-left:8px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:#141414;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;pointer-events:none}";
 
-function TabMarque({ label }: { label: string }) {
+function TabMarque({ tab }: { tab: LiquidTab }) {
   return (
     <span
       aria-hidden="true"
-      className="grid size-6 place-items-center text-[13px] font-bold leading-none"
+      className="grid size-6 place-items-center text-[13px] font-bold leading-none [&>svg]:size-[18px]"
     >
-      {label.charAt(0)}
+      {tab.icon ?? tab.label.charAt(0)}
     </span>
   );
 }
@@ -343,12 +343,12 @@ export function LiquidTabBar({
       )}
       {L && items.map((it, i) => (
         <div key={`b${i}`} ref={(el) => { barRefs.current[i] = el }} className="ltb-ico" style={{ color: iconColor }}>
-          <TabMarque label={it.label} />
+          <TabMarque tab={it} />
         </div>
       ))}
       {L && items.map((it, i) => (
         <div key={`a${i}`} ref={(el) => { bubRefs.current[i] = el }} className="ltb-ico" style={{ color: activeIconColor, opacity: 0 }}>
-          <TabMarque label={it.label} />
+          <TabMarque tab={it} />
         </div>
       ))}
       <div className="ltb-slots" style={{ height: cfg.barH + bottomInset }}>
@@ -363,7 +363,7 @@ export function LiquidTabBar({
                 <button type="button" className="ltb-hit" aria-label={it.label}
                   aria-current={active ? "page" : undefined} onClick={press} />
               )}
-              {!L && <span className="ltb-fico"><TabMarque label={it.label} /></span>}
+              {!L && <span className="ltb-fico"><TabMarque tab={it} /></span>}
               <span className={"ltb-label" + (active ? " on" : "")}>{it.label}</span>
               {typeof it.badge === "number" && it.badge > 0 && (
                 <span className="ltb-badge">{it.badge > 9 ? "9+" : it.badge}</span>

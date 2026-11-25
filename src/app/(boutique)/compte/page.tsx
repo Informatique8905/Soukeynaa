@@ -3,23 +3,13 @@ import { auth, signOut } from "@/auth";
 import { getPrisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { fcfa, dateFr } from "@/lib/format";
-import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/constants";
+import { ORDER_STATUS_LABELS, ORDER_BADGE_VARIANT } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { EtatVide } from "@/components/motion/EtatVide";
+import { CompteForms } from "@/components/boutique/CompteForms";
+import type { AdresseEnregistree } from "./actions";
 
 export const metadata = { title: "Mon compte" };
-
-const STATUT_VARIANT: Record<
-  OrderStatus,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  en_attente_paiement: "outline",
-  payee: "default",
-  en_preparation: "secondary",
-  expediee: "outline",
-  livree: "default",
-  annulee: "destructive",
-};
 
 export default async function PageCompte() {
   const session = await auth();
@@ -38,6 +28,18 @@ export default async function PageCompte() {
       createdAt: true,
     },
   });
+
+  const [user, communes] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: Number(session.user.id) },
+      select: { nom: true, telephone: true, adresses: true },
+    }),
+    prisma.commune.findMany({
+      where: { active: true },
+      orderBy: { ordre: "asc" },
+      select: { id: true, nom: true },
+    }),
+  ]);
 
   const nom = session.user.name ?? session.user.email ?? "Client";
   const initiales = nom
@@ -77,6 +79,14 @@ export default async function PageCompte() {
         </form>
       </div>
 
+      {/* Profil / adresses / mot de passe (CDC 8.5) */}
+      <CompteForms
+        nom={user?.nom ?? nom}
+        telephone={user?.telephone ?? ""}
+        adresses={(user?.adresses as AdresseEnregistree[] | null) ?? []}
+        communes={communes}
+      />
+
       {/* Commandes */}
       <h2 data-reveal="left" className="mt-8 flex items-center gap-2 text-lg font-extrabold text-noir">
 Mes commandes
@@ -101,7 +111,7 @@ Mes commandes
                     <span className="truncate text-sm font-bold text-noir">
                       {c.reference}
                     </span>
-                    <Badge variant={STATUT_VARIANT[c.statut]}>
+                    <Badge variant={ORDER_BADGE_VARIANT[c.statut]}>
                       {ORDER_STATUS_LABELS[c.statut]}
                     </Badge>
                   </div>

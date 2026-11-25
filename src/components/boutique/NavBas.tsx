@@ -2,15 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  House,
+  LayoutGrid,
+  Search,
+  ShoppingBag,
+  Package,
+  User,
+} from "lucide-react";
 import LiquidTabBar, { type LiquidTab } from "@/components/ui/liquid-tab-bar";
 
 const ITEMS: (LiquidTab & { href: string })[] = [
-  { href: "/", label: "Accueil" },
-  { href: "/femmes", label: "Univers" },
-  { href: "/recherche", label: "Recherche" },
-  { href: "/panier", label: "Panier" },
-  { href: "/commandes", label: "Commandes" },
-  { href: "/compte", label: "Compte" },
+  { href: "/", label: "Accueil", icon: <House /> },
+  { href: "/femmes", label: "Univers", icon: <LayoutGrid /> },
+  { href: "/recherche", label: "Recherche", icon: <Search /> },
+  { href: "/panier", label: "Panier", icon: <ShoppingBag /> },
+  { href: "/commandes", label: "Commandes", icon: <Package /> },
+  { href: "/compte", label: "Compte", icon: <User /> },
 ];
 
 /** Barre de navigation mobile fixe en bas — bulle « liquide » animée. */
@@ -31,6 +39,7 @@ export function NavBas({ cartCount }: { cartCount: number }) {
       <LiquidTabBar
         items={ITEMS.map((it) => ({
           label: it.label,
+          icon: it.icon,
           badge: it.href === "/panier" ? cartCount : undefined,
         }))}
         index={index}

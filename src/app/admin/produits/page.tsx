@@ -3,21 +3,11 @@ import { getPrisma } from "@/lib/db";
 import { fcfa } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { changerStatutProduit } from "./actions";
-
-const STATUTS: Record<string, string> = {
-  publie: "Publié",
-  brouillon: "Brouillon",
-  desactive: "Désactivé",
-};
-
-const STATUT_VARIANT: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  publie: "default",
-  brouillon: "secondary",
-  desactive: "outline",
-};
+import {
+  PRODUCT_STATUS_LABELS,
+  PRODUCT_BADGE_VARIANT,
+  type ProductStatus,
+} from "@/lib/constants";
 
 export default async function PageProduits() {
   const prisma = getPrisma();
@@ -82,8 +72,8 @@ export default async function PageProduits() {
                   {stock}
                 </td>
                 <td className="p-2">
-                  <Badge variant={STATUT_VARIANT[p.statut] ?? "outline"}>
-                    {STATUTS[p.statut] ?? p.statut}
+                  <Badge variant={PRODUCT_BADGE_VARIANT[p.statut as ProductStatus]}>
+                    {PRODUCT_STATUS_LABELS[p.statut as ProductStatus]}
                   </Badge>
                 </td>
                 <td className="space-x-2 p-2 text-xs">

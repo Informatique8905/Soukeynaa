@@ -2,8 +2,17 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getPrisma } from "@/lib/db";
 import { inscriptionSchema } from "@/lib/validation";
+import { autorise, ipClient } from "@/lib/ratelimit";
 
 export async function POST(req: Request) {
+  // Limitation : 5 inscriptions / heure / IP (CDC 14.4)
+  if (!autorise(`inscription:${ipClient(req)}`, 5, 3600_000)) {
+    return NextResponse.json(
+      { erreur: "Trop de tentatives — réessayez plus tard" },
+      { status: 429 }
+    );
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = inscriptionSchema.safeParse(body);
   if (!parsed.success) {

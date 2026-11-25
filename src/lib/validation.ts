@@ -129,3 +129,44 @@ export const connexionSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   motDePasse: z.string().min(1),
 });
+
+// ===== Paramètres boutique (admin, décision D11)
+export const banniereSchema = z.object({
+  url: z.string().trim().min(1).max(1000),
+  publicId: z.string().trim().max(300).optional(),
+  titre: z.string().trim().max(120).optional(),
+  lien: z.string().trim().max(500).optional(),
+  ordre: z.number().int().min(0).default(0),
+});
+
+export const parametresSchema = z.object({
+  nomBoutique: z.string().trim().min(2).max(80),
+  telephone: z.string().trim().max(30).default(""),
+  whatsapp: z.string().trim().max(30).default(""),
+  emailContact: z
+    .union([z.literal(""), z.string().trim().toLowerCase().email()])
+    .default(""),
+  seuilStockFaible: z.number().int().min(0).max(1000).default(5),
+  rapportEmailActif: z.boolean().default(false),
+  rapportEmailDestinataire: z
+    .union([z.literal(""), z.string().trim().toLowerCase().email()])
+    .default(""),
+  bannieres: z.array(banniereSchema).max(10).default([]),
+});
+export type ParametresInput = z.infer<typeof parametresSchema>;
+
+// ===== Compte client (CDC 8.5)
+export const profilSchema = z.object({
+  nom: z.string().trim().min(2).max(120),
+  telephone: z.union([telephoneCI, z.literal("")]).default(""),
+});
+
+export const adresseSchema = z.object({
+  communeId: id,
+  detail: z.string().trim().min(5).max(500),
+});
+
+export const changementMotDePasseSchema = z.object({
+  actuel: z.string().min(1),
+  nouveau: z.string().min(8).max(100),
+});

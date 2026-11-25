@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getPrisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 import { logAudit } from "@/lib/audit";
+import { envoyerBonCommande } from "@/lib/email";
 
 // Résolution manuelle d'un paiement `a_verifier` après contrôle sur le
 // portail Jèko (CDC 10.13) : motif obligatoire + journalisation.
@@ -19,7 +20,7 @@ export async function resoudrePaiement(
     throw new Error("Motif obligatoire (10 caractères minimum) — CDC 10.13");
   }
 
-  await prisma.$transaction(async (tx) => {
+  const paiement = await prisma.$transaction(async (tx) => {
     const paiement = await tx.payment.findUniqueOrThrow({ where: { id } });
     if (paiement.statut !== "a_verifier") {
       throw new Error("Seuls les paiements « à vérifier » sont résolubles ici");
@@ -59,6 +60,11 @@ export async function resoudrePaiement(
 
     return paiement;
   });
+
+  // Bon de commande au client quand la confirmation est manuelle (CDC 12.2)
+  if (resolution === "confirme") {
+    envoyerBonCommande(paiement.commandeId).catch(() => {});
+  }
 
   await logAudit({
     action: `paiement.${resolution === "confirme" ? "valide_manuellement" : "rejete_manuellement"}`,

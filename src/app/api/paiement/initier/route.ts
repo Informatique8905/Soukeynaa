@@ -5,11 +5,21 @@ import {
   initierPaiementJeko,
   journaliser,
 } from "@/lib/paiement";
+import { autorise, ipClient } from "@/lib/ratelimit";
+import { Prisma } from "@/generated/prisma/client";
 
 // Initiation d'une tentative de paiement (CDC 10.2)
 // Anti-double-paiement : verrou au niveau commande — une seule tentative
 // active (en_attente / a_verifier) par commande.
 export async function POST(req: Request) {
+  // Limitation : 10 initiations / 10 min / IP (CDC 14.4)
+  if (!autorise(`paiement:${ipClient(req)}`, 10, 600_000)) {
+    return NextResponse.json(
+      { erreur: "Trop de tentatives — réessayez plus tard" },
+      { status: 429 }
+    );
+  }
+
   const prisma = getPrisma();
   let commandeId: number;
   try {
@@ -55,14 +65,30 @@ export async function POST(req: Request) {
   }
 
   // Nouvelle tentative — cleIdempotence unique (CDC 10.10)
-  const paiement = await prisma.payment.create({
-    data: {
-      commandeId: commande.id,
-      referenceCommande: commande.reference,
-      cleIdempotence: randomUUID(),
-      montant: commande.total,
-    },
-  });
+  // Index unique partiel payments(commandeId WHERE statut actif) : deux
+  // initiations concurrentes ne passent pas toutes les deux (P2002 → 409).
+  let paiement;
+  try {
+    paiement = await prisma.payment.create({
+      data: {
+        commandeId: commande.id,
+        referenceCommande: commande.reference,
+        cleIdempotence: randomUUID(),
+        montant: commande.total,
+      },
+    });
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { erreur: "Un paiement est déjà en cours pour cette commande" },
+        { status: 409 }
+      );
+    }
+    throw e;
+  }
   await journaliser(prisma, paiement.id, "initiation", "Tentative créée");
 
   const reponse = await initierPaiementJeko({

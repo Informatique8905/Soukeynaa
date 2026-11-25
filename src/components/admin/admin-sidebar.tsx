@@ -25,6 +25,7 @@ const NAV = [
   { href: "/admin/commandes", label: "Commandes", court: "Cmdes" },
   { href: "/admin/paiements", label: "Paiements", court: "Paies" },
   { href: "/admin/rapports", label: "Rapports", court: "Rapports" },
+  { href: "/admin/parametres", label: "Paramètres", court: "Param." },
 ];
 
 export function AdminSidebar({ utilisateur }: { utilisateur: string }) {

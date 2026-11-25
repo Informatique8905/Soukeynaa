@@ -4,23 +4,11 @@ import { auth } from "@/auth";
 import { getPrisma } from "@/lib/db";
 import { fcfa, dateFr } from "@/lib/format";
 import { cloud } from "@/lib/image";
-import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/constants";
+import { ORDER_STATUS_LABELS, ORDER_BADGE_VARIANT } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { RechercheCommande } from "@/components/boutique/RechercheCommande";
 
 export const metadata = { title: "Mes commandes" };
-
-const STATUT_VARIANT: Record<
-  OrderStatus,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  en_attente_paiement: "outline",
-  payee: "default",
-  en_preparation: "secondary",
-  expediee: "outline",
-  livree: "default",
-  annulee: "destructive",
-};
 
 export default async function CommandesPage() {
   const session = await auth();
@@ -87,7 +75,7 @@ export default async function CommandesPage() {
                       <span className="truncate text-sm font-bold text-noir">
                         {c.reference}
                       </span>
-                      <Badge variant={STATUT_VARIANT[c.statut]}>
+                      <Badge variant={ORDER_BADGE_VARIANT[c.statut]}>
                         {ORDER_STATUS_LABELS[c.statut]}
                       </Badge>
                     </div>

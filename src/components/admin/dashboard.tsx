@@ -19,7 +19,11 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
-import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/constants";
+import {
+  ORDER_STATUS_LABELS,
+  ORDER_BADGE_VARIANT,
+  type OrderStatus,
+} from "@/lib/constants";
 import { fcfa } from "@/lib/format";
 
 export type DonneesDashboard = {
@@ -53,18 +57,6 @@ const chartConfig = {
   commandes: { label: "Commandes", color: "#a9d5bb" },
   payees: { label: "Payées", color: "#1e7b4f" },
 } satisfies ChartConfig;
-
-const STATUT_VARIANT: Record<
-  OrderStatus,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  en_attente_paiement: "outline",
-  payee: "default",
-  en_preparation: "secondary",
-  expediee: "outline",
-  livree: "default",
-  annulee: "destructive",
-};
 
 function initiales(nom: string) {
   return nom
@@ -381,7 +373,7 @@ export function DashboardAdmin({
                   </p>
                 </div>
                 <Badge
-                  variant={STATUT_VARIANT[commande.statut]}
+                  variant={ORDER_BADGE_VARIANT[commande.statut]}
                   className="hidden shrink-0 sm:inline-flex"
                 >
                   {ORDER_STATUS_LABELS[commande.statut]}

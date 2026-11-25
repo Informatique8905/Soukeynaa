@@ -163,3 +163,69 @@ export async function alerterAdmin(
     commandeId
   );
 }
+
+// Email du délai prévisionnel de livraison (CDC 11.7, 12.3) — envoyé quand
+// l'admin renseigne le délai. La clé contient la valeur du délai : une
+// correction déclenche un nouvel envoi, un double appel non.
+export async function envoyerDelaiLivraison(commandeId: number) {
+  const prisma = getPrisma();
+  const c = await prisma.order.findUnique({ where: { id: commandeId } });
+  if (!c?.delaiLivraison) return;
+  await notifier(
+    `delai:${c.reference}:${c.delaiLivraison.trim().toLowerCase()}`,
+    "delai_livraison",
+    c.clientEmail,
+    `Livraison prévue : ${c.delaiLivraison} — commande ${c.reference}`,
+    `<div style="font-family:sans-serif;max-width:560px;margin:auto">
+      <h1 style="color:#6b1226;letter-spacing:2px">SOUKEYNA</h1>
+      <p>Bonjour ${c.clientNom},<br/>bonne nouvelle : votre commande <strong>${c.reference}</strong> arrive bientôt.</p>
+      <p style="font-size:16px">Délai annoncé : <strong>${c.delaiLivraison}</strong></p>
+      <p>Commune : ${c.communeNom} — ${c.adresseLivraison}<br/>Tél : ${c.clientTelephone}</p>
+      <p style="font-size:12px;color:#888">Une question ? Répondez à cet email ou contactez-nous par téléphone/WhatsApp.</p>
+    </div>`,
+    c.id
+  );
+}
+
+// Récapitulatif de rapport automatique (CDC 13.8) — envoyé à l'admin si
+// `rapportEmailActif`. Dédoublonné en amont par notifications.cleDedup.
+export async function envoyerRapport(
+  destinataire: string,
+  granularite: string,
+  periode: { debut: Date; fin: Date },
+  v: {
+    commandes: number;
+    chiffreAffaires: number;
+    panierMoyen: number;
+    fraisLivraison: number;
+    topProduits: { nom: string; quantite: number }[];
+  }
+): Promise<{ ok: boolean; erreur?: string }> {
+  const label =
+    granularite === "jour"
+      ? "du jour"
+      : granularite === "semaine"
+        ? "de la semaine"
+        : "du mois";
+  const top = v.topProduits
+    .slice(0, 5)
+    .map((p) => `<li>${p.quantite} × ${p.nom}</li>`)
+    .join("");
+  return envoyerResend(
+    destinataire,
+    `Rapport ${label} — ${dateFr(periode.debut)} → ${dateFr(periode.fin)} — SOUKEYNA`,
+    `<div style="font-family:sans-serif;max-width:560px;margin:auto">
+      <h1 style="color:#6b1226;letter-spacing:2px">SOUKEYNA</h1>
+      <h2>Rapport des ventes ${label}</h2>
+      <p>Période : ${dateFr(periode.debut)} → ${dateFr(periode.fin)}</p>
+      <table style="font-size:14px">
+        <tr><td style="padding:4px 12px 4px 0">Commandes payées</td><td><strong>${v.commandes}</strong></td></tr>
+        <tr><td style="padding:4px 12px 4px 0">Chiffre d'affaires</td><td><strong>${fcfa(v.chiffreAffaires)}</strong></td></tr>
+        <tr><td style="padding:4px 12px 4px 0">Panier moyen</td><td><strong>${fcfa(v.panierMoyen)}</strong></td></tr>
+        <tr><td style="padding:4px 12px 4px 0">Frais de livraison</td><td><strong>${fcfa(v.fraisLivraison)}</strong></td></tr>
+      </table>
+      ${top ? `<h3>Top ventes</h3><ul>${top}</ul>` : ""}
+      <p style="font-size:12px;color:#888">Rapport complet disponible dans l'administration → Rapports.</p>
+    </div>`
+  );
+}
