@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
+import { ChevronDown } from "lucide-react";
 import { creerCommande } from "@/app/(boutique)/commander/actions";
 import { fcfa } from "@/lib/format";
 import { Compteur } from "@/components/motion/Compteur";
@@ -17,7 +18,7 @@ type Mode = "en_ligne" | "livraison";
 const MOYENS_EN_LIGNE = [
   { v: "wave", label: "Wave", logo: "/paiements/wave.png", couleur: "#1dc4f2" },
   { v: "orange", label: "Orange Money", logo: "/paiements/orange.png", couleur: "#ff7900" },
-  { v: "mtn", label: "MTN MoMo", logo: null, couleur: "#ffcb05" },
+  { v: "mtn", label: "MTN MoMo", logo: "/paiements/mtn.png", couleur: "#ffcb05" },
   { v: "moov", label: "Moov Money", logo: null, couleur: "#005eb8" },
   { v: "djamo", label: "Djamo", logo: null, couleur: "#6e3aff" },
 ] as const;
@@ -73,7 +74,6 @@ export function CheckoutForm({
   defauts: { nom: string; email: string; telephone: string };
 }) {
   const [communeId, setCommuneId] = useState<number | null>(null);
-  const [filtre, setFiltre] = useState("");
   const [mode, setMode] = useState<Mode>("en_ligne");
   const [moyen, setMoyen] = useState<Moyen>("wave");
   const [infos, setInfos] = useState({
@@ -93,15 +93,6 @@ export function CheckoutForm({
   const livraisonOk = !!commune && infos.adresse.trim().length >= 5;
   const progression =
     (Number(coordonneesOk) + Number(livraisonOk) + Number(coordonneesOk && livraisonOk)) / 3;
-
-  const communesFiltrees = useMemo(() => {
-    const q = filtre.trim().toLowerCase();
-    return q
-      ? communes.filter((c) =>
-          `${c.nom} ${c.quartiersInclus}`.toLowerCase().includes(q)
-        )
-      : communes;
-  }, [communes, filtre]);
 
   const maj =
     (k: keyof typeof infos) =>
@@ -159,53 +150,35 @@ export function CheckoutForm({
       {/* 2 — Livraison */}
       <section data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
         <TitreEtape n={2} titre="Où livrer ?" fait={livraisonOk} />
-        {communes.length > 6 && (
-          <label className="relative mb-3 block">
-            <input
-              value={filtre}
-              onChange={(e) => setFiltre(e.target.value)}
-              placeholder="Chercher ma commune ou mon quartier…"
-              className="w-full rounded-full border border-black/10 bg-blanc-casse px-4 py-2.5 text-sm outline-none transition focus:border-vert focus:bg-white focus:ring-4 focus:ring-vert/10"
-            />
-          </label>
+        <label className="relative block">
+          <select
+            required
+            value={communeId ?? ""}
+            onChange={(e) =>
+              setCommuneId(e.target.value ? Number(e.target.value) : null)
+            }
+            className="w-full appearance-none rounded-2xl border border-black/10 bg-blanc-casse px-4 pb-2.5 pt-6 text-sm text-noir outline-none transition focus:border-vert focus:bg-white focus:ring-4 focus:ring-vert/10"
+          >
+            <option value="" disabled>
+              Choisir votre commune…
+            </option>
+            {communes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nom} — {fcfa(c.tarif)}
+              </option>
+            ))}
+          </select>
+          <span className={etiquette}>Commune de livraison</span>
+          <ChevronDown
+            aria-hidden
+            className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-gris-fonce"
+          />
+        </label>
+        {commune?.quartiersInclus && commune.quartiersInclus !== commune.nom && (
+          <p className="page-in mt-2 text-xs text-gris-fonce">
+            Quartiers couverts : {commune.quartiersInclus}
+          </p>
         )}
-        <div role="radiogroup" aria-label="Commune de livraison" className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto overscroll-contain pr-0.5 no-scrollbar sm:grid-cols-3">
-          {communesFiltrees.map((c) => {
-            const actif = c.id === communeId;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                role="radio"
-                aria-checked={actif}
-                onClick={() => setCommuneId(c.id)}
-                className={`press relative rounded-2xl border p-3 text-left transition-all duration-200 ${
-                  actif
-                    ? "border-vert bg-vert text-white shadow-md shadow-vert/25"
-                    : "border-black/8 bg-blanc-casse hover:border-vert/50 hover:bg-white"
-                }`}
-              >
-                <span className="block truncate text-sm font-bold">{c.nom}</span>
-                {c.quartiersInclus && c.quartiersInclus !== c.nom && (
-                  <span className={`block truncate text-[11px] ${actif ? "text-white/75" : "text-gris-fonce"}`}>
-                    {c.quartiersInclus}
-                  </span>
-                )}
-                <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${actif ? "bg-white/20" : "bg-white text-vert ring-1 ring-black/5"}`}>
-                  {fcfa(c.tarif)}
-                </span>
-                {actif && (
-                  <span className="pop absolute right-2.5 top-2.5 font-bold">✓</span>
-                )}
-              </button>
-            );
-          })}
-          {communesFiltrees.length === 0 && (
-            <p className="col-span-full py-4 text-center text-sm text-gris-fonce">
-              Aucune commune ne correspond.
-            </p>
-          )}
-        </div>
         <label className="relative mt-3 block">
           <textarea
             name="adresse"

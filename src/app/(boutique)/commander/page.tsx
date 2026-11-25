@@ -50,7 +50,7 @@ export default async function CommanderPage() {
         livraison — à vous de choisir.
       </p>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-5 md:items-start">
+      <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-5 md:items-start">
         <div className="md:col-span-3">
           <CheckoutForm
             communes={communes.map((c) => ({
