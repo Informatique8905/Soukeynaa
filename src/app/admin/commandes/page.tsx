@@ -6,6 +6,7 @@ import {
   EnTetePage,
   ModeLivraison,
   Panneau,
+  Pastille,
   StatutCommande,
   StatutPaiement,
   Vide,
@@ -22,6 +23,11 @@ const FILTRES = [
   "annulee",
 ] as const;
 
+// Commandes qui attendent une action de l'admin — démarquées d'un point
+// ambre dans la liste et comptées dans la pastille « à traiter ».
+const A_TRAITER = ["en_attente_paiement", "payee", "en_preparation"] as const;
+const aTraiter = (statut: string) => (A_TRAITER as readonly string[]).includes(statut);
+
 export default async function PageCommandes({
   searchParams,
 }: {
@@ -29,11 +35,14 @@ export default async function PageCommandes({
 }) {
   const { statut } = await searchParams;
   const prisma = getPrisma();
-  const commandes = await prisma.order.findMany({
-    where: statut ? { statut: statut as never } : undefined,
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+  const [commandes, nbATraiter] = await Promise.all([
+    prisma.order.findMany({
+      where: statut ? { statut: statut as never } : undefined,
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
+    prisma.order.count({ where: { statut: { in: [...A_TRAITER] } } }),
+  ]);
 
   const vide = (
     <Vide titre="Aucune commande">
@@ -48,7 +57,12 @@ export default async function PageCommandes({
         description={`${commandes.length} commande${commandes.length > 1 ? "s" : ""} affichée${commandes.length > 1 ? "s" : ""} (100 dernières)`}
       />
 
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {nbATraiter > 0 && (
+          <Pastille ton="ambre" className="h-9 px-3.5 text-xs font-semibold">
+            {nbATraiter} à traiter
+          </Pastille>
+        )}
         {FILTRES.map((s) => {
           const actif = statut === s || (!statut && !s);
           return (
@@ -74,7 +88,15 @@ export default async function PageCommandes({
           <Link key={c.id} href={`/admin/commandes/${c.id}`} className="block">
             <CarteListe className="transition-colors active:bg-muted/40">
               <div className="flex items-start justify-between gap-3">
-                <p className="truncate font-semibold text-vert">{c.reference}</p>
+                <p className="flex min-w-0 items-center gap-1.5 truncate font-semibold text-vert">
+                  {aTraiter(c.statut) && (
+                    <span
+                      aria-label="À traiter"
+                      className="size-2 shrink-0 rounded-full bg-amber-500"
+                    />
+                  )}
+                  <span className="truncate">{c.reference}</span>
+                </p>
                 <p className="shrink-0 font-semibold tabular-nums">
                   {fcfa(c.total)}
                 </p>
@@ -119,6 +141,12 @@ export default async function PageCommandes({
                 {commandes.map((c) => (
                   <tr key={c.id}>
                     <td>
+                      {aTraiter(c.statut) && (
+                        <span
+                          aria-label="À traiter"
+                          className="mr-1.5 inline-block size-2 rounded-full bg-amber-500 align-middle"
+                        />
+                      )}
                       <Link href={`/admin/commandes/${c.id}`} className={lien}>
                         {c.reference}
                       </Link>

@@ -5,7 +5,11 @@ import { getPrisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 import { logAudit } from "@/lib/audit";
 import { restituerStockCommande } from "@/lib/stock";
-import { notifierStatutCommande, envoyerDelaiLivraison } from "@/lib/email";
+import {
+  notifierStatutCommande,
+  envoyerDelaiLivraison,
+  envoyerBonCommandeMaj,
+} from "@/lib/email";
 import type { StatutCommande } from "@/generated/prisma/enums";
 
 // Transitions autorisées (CDC 11.8) — une commande payee ne revient jamais en arrière
@@ -70,8 +74,14 @@ export async function changerStatutCommande(
     avant: { statut: result.statut },
     apres: { statut: nouveau },
   });
-  // Email au client (dédupliqué, CDC 12.3) — en file, non bloquant
-  notifierStatutCommande(id).catch(() => {});
+  // Email au client (dédupliqué, CDC 12.3). À la validation (passage en
+  // préparation), le client reçoit le bon de commande mis à jour — délai
+  // inclus s'il a été renseigné — plutôt qu'un simple avis de statut.
+  if (nouveau === "en_preparation") {
+    await envoyerBonCommandeMaj(id).catch(() => false);
+  } else {
+    notifierStatutCommande(id).catch(() => {});
+  }
   revalidatePath(`/admin/commandes/${id}`);
   revalidatePath("/admin/commandes");
 }
