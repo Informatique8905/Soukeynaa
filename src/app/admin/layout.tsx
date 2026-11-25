@@ -1,6 +1,8 @@
+import { ViewTransition } from "react";
 import { requireAdmin } from "@/lib/admin";
 import { getPrisma } from "@/lib/db";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { NavProgress } from "@/components/motion/NavProgress";
 
 export default async function AdminLayout({
   children,
@@ -28,7 +30,8 @@ export default async function AdminLayout({
       initiales={initiales || "A"}
       alertesPaiements={alertesPaiements}
     >
-      {children}
+      <NavProgress />
+      <ViewTransition>{children}</ViewTransition>
     </AdminShell>
   );
 }

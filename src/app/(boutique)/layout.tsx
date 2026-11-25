@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ViewTransition } from "react";
 import { ChevronDown } from "lucide-react";
 import { auth } from "@/auth";
 import { getPrisma } from "@/lib/db";
@@ -6,6 +7,7 @@ import { getCart } from "@/lib/cart";
 import { NavBas } from "@/components/boutique/NavBas";
 import { Splash } from "@/components/boutique/Splash";
 import { MotionRoot } from "@/components/motion/MotionRoot";
+import { NavProgress } from "@/components/motion/NavProgress";
 
 export default async function BoutiqueLayout({
   children,
@@ -27,6 +29,7 @@ export default async function BoutiqueLayout({
     <div className="flex min-h-screen flex-col bg-blanc-casse">
       <Splash />
       <MotionRoot />
+      <NavProgress />
       {/* En-tête façon app : se compacte et prend une ombre au scroll */}
       <header className="hdr-scroll sticky top-0 z-40 border-b border-black/5 bg-white/95 backdrop-blur-md print:hidden">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
@@ -86,7 +89,7 @@ export default async function BoutiqueLayout({
         </div>
       </header>
 
-      <div className="flex-1 pb-[100px] md:pb-0">{children}</div>
+      <div className="flex-1 pb-[100px] md:pb-0"><ViewTransition>{children}</ViewTransition></div>
 
       <div className="print:hidden"><NavBas cartCount={panierCount} /></div>
 

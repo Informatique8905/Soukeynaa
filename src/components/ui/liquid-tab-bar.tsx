@@ -35,7 +35,7 @@ type Frame = {
   bubble: { x: number; y: number; scale: number; icon: number; iconAlpha: number }; done: boolean;
 };
 
-const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
+const clamp01 = (x: number) => (!(x > 0) ? 0 : x > 1 ? 1 : x);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const easeInCubic = (t: number) => t * t * t;
 const easeInOutCubic = (t: number) =>
