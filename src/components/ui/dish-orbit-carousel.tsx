@@ -271,7 +271,7 @@ const CSS =
   ".dsh-head{position:relative;left:auto;top:auto;width:100%;height:112px;margin-top:6px;flex:none}" +
   ".dsh-hd{text-align:center;transform:scale(.74);transform-origin:50% 0}" +
   ".dsh-acts{position:relative;left:auto;top:auto;margin-top:2px;flex:none}" +
-  ".dsh-card{position:relative;left:auto;top:auto;width:100%;max-width:420px;margin-top:10px;padding:12px 14px 14px;flex:none}" +
+  ".dsh-card{position:relative;left:auto;top:auto;width:100%;max-width:420px;margin-top:10px;padding:12px 14px 14px;flex:none;order:1}" +
   ".dsh-tabs{margin-bottom:8px}" +
   ".dsh-rate{height:48px;margin-bottom:6px}" +
   ".dsh-kit{margin:2px 0 8px}" +
