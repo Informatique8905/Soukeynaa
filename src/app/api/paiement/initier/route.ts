@@ -7,6 +7,16 @@ import {
 } from "@/lib/paiement";
 import { autorise, ipClient } from "@/lib/ratelimit";
 import { Prisma } from "@/generated/prisma/client";
+import type { MoyenPaiement } from "@/generated/prisma/enums";
+
+// Moyens activés sur le compte Jèko (l'API exige paymentMethod)
+const MOYENS_JEKO: Record<string, MoyenPaiement> = {
+  wave: "wave",
+  orange: "orange_money",
+  mtn: "mtn_momo",
+  moov: "moov_money",
+  djamo: "carte",
+};
 
 // Initiation d'une tentative de paiement (CDC 10.2)
 // Anti-double-paiement : verrou au niveau commande — une seule tentative
@@ -22,14 +32,24 @@ export async function POST(req: Request) {
 
   const prisma = getPrisma();
   let commandeId: number;
+  let moyen: MoyenPaiement | undefined;
+  let moyenJeko = "";
   try {
     const body = await req.json();
     commandeId = Number(body?.commandeId);
+    moyenJeko = String(body?.moyen ?? "");
+    moyen = MOYENS_JEKO[moyenJeko];
   } catch {
     return NextResponse.json({ erreur: "Requête invalide" }, { status: 400 });
   }
   if (!commandeId) {
     return NextResponse.json({ erreur: "commandeId requis" }, { status: 400 });
+  }
+  if (!moyen) {
+    return NextResponse.json(
+      { erreur: "Choisissez un moyen de paiement" },
+      { status: 400 }
+    );
   }
 
   const commande = await prisma.order.findUnique({
@@ -75,6 +95,7 @@ export async function POST(req: Request) {
         referenceCommande: commande.reference,
         cleIdempotence: randomUUID(),
         montant: commande.total,
+        moyen,
       },
     });
   } catch (e) {
@@ -95,6 +116,7 @@ export async function POST(req: Request) {
     paiement,
     email: commande.clientEmail,
     telephone: commande.clientTelephone,
+    moyen: moyenJeko,
   });
 
   if (!reponse.ok) {

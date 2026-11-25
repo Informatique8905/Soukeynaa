@@ -14,7 +14,7 @@ interface Commune {
 
 type Mode = "en_ligne" | "livraison";
 
-const MOYENS_EN_LIGNE = ["Wave", "Orange Money", "MTN MoMo", "Moov Money", "Carte"];
+const MOYENS_EN_LIGNE = ["Wave", "Orange Money", "MTN MoMo", "Moov Money", "Djamo"];
 
 const champ =
   "peer w-full rounded-2xl border border-black/10 bg-blanc-casse px-4 pb-2.5 pt-6 text-sm text-noir outline-none transition placeholder:text-transparent focus:border-vert focus:bg-white focus:ring-4 focus:ring-vert/10";
@@ -274,7 +274,8 @@ export function CheckoutForm({
               </div>
               <p className="mt-2">
                 Stock réservé 30 min le temps du paiement — vous choisirez votre
-                moyen sur la page sécurisée Jèko.
+                moyen juste après la commande, avant la redirection sécurisée
+                Jèko.
               </p>
             </>
           ) : (

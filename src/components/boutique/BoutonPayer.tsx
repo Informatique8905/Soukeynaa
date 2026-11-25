@@ -4,6 +4,15 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { fcfa } from "@/lib/format";
 
+// Moyens activés sur le compte Jèko — l'API exige l'opérateur à l'initiation
+const MOYENS = [
+  { v: "wave", label: "Wave" },
+  { v: "orange", label: "Orange Money" },
+  { v: "mtn", label: "MTN MoMo" },
+  { v: "moov", label: "Moov Money" },
+  { v: "djamo", label: "Djamo" },
+];
+
 export function BoutonPayer({
   commandeId,
   montant,
@@ -12,6 +21,7 @@ export function BoutonPayer({
   montant?: number;
 }) {
   const [erreur, setErreur] = useState("");
+  const [moyen, setMoyen] = useState("wave");
   const [pending, start] = useTransition();
 
   function payer() {
@@ -21,7 +31,7 @@ export function BoutonPayer({
         const res = await fetch("/api/paiement/initier", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ commandeId }),
+          body: JSON.stringify({ commandeId, moyen }),
         });
         const data = await res.json();
         if (data.url) {
@@ -37,6 +47,28 @@ export function BoutonPayer({
 
   return (
     <div>
+      <div
+        role="radiogroup"
+        aria-label="Moyen de paiement"
+        className="mb-3 grid grid-cols-3 gap-1.5"
+      >
+        {MOYENS.map((m) => (
+          <button
+            key={m.v}
+            type="button"
+            role="radio"
+            aria-checked={moyen === m.v}
+            onClick={() => setMoyen(m.v)}
+            className={`press rounded-xl border px-2 py-2 text-[11px] font-bold transition ${
+              moyen === m.v
+                ? "border-vert bg-vert text-white shadow-md shadow-vert/25"
+                : "border-black/10 bg-blanc-casse text-noir hover:border-vert/50"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
       <button
         type="button"
         onClick={payer}
@@ -53,13 +85,6 @@ export function BoutonPayer({
           </>
         )}
       </button>
-      <div className="mt-2.5 flex flex-wrap justify-center gap-1.5 text-[10px] font-semibold text-gris-fonce">
-        {["Wave", "Orange Money", "MTN", "Moov", "Carte"].map((m) => (
-          <span key={m} className="rounded-full bg-blanc-casse px-2 py-0.5 ring-1 ring-black/5">
-            {m}
-          </span>
-        ))}
-      </div>
       {erreur && (
         <p role="alert" className="page-in mt-2 rounded-xl bg-red-50 p-2.5 text-center text-sm text-red-700">
           {erreur}

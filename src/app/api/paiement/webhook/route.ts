@@ -4,45 +4,58 @@ import {
   signatureValide,
   transitionAutorisee,
   journaliser,
+  appliquerTransition,
 } from "@/lib/paiement";
-import { libererStock } from "@/lib/stock";
 import { envoyerBonCommande, alerterAdmin } from "@/lib/email";
 import type { StatutPaiement, MoyenPaiement } from "@/generated/prisma/enums";
 
-// Mapping des statuts Jèko → statuts internes.
-// Noms exacts À CONFIRMER avec la doc Jèko (CDC 10.4).
+// Mapping statuts Jèko → statuts internes (doc : pending | success | error)
 const STATUT_JEKO: Record<string, StatutPaiement> = {
   success: "confirme",
-  succeeded: "confirme",
-  completed: "confirme",
-  failed: "echoue",
-  cancelled: "annule",
-  canceled: "annule",
-  expired: "expire",
+  error: "echoue",
   pending: "en_attente",
 };
 
+// Moyen de paiement renvoyé par Jèko → enum interne (CDC 10.2)
+const MOYENS: Record<string, MoyenPaiement> = {
+  wave: "wave",
+  orange: "orange_money",
+  orange_money: "orange_money",
+  mtn: "mtn_momo",
+  mtn_momo: "mtn_momo",
+  moov: "moov_money",
+  moov_money: "moov_money",
+  djamo: "carte",
+  carte: "carte",
+  card: "carte",
+};
+
 // Webhook Jèko (CDC 10.3) — seule source de vérité du statut de paiement.
-// Jamais le retour navigateur : il ne fait que rediriger vers /commande/[ref].
+// En-têtes : Jeko-Signature (HMAC-SHA256 hex du corps brut), Jeko-Event.
+// Note : les paiements ÉCHOUÉS n'envoient pas de webhook — traités par le
+// cron de réconciliation qui interroge l'API (GET payment_requests/{id}).
 export async function POST(req: Request) {
   const prisma = getPrisma();
   const corpsBrut = await req.text();
-  const signature =
-    req.headers.get("x-jeko-signature") ?? req.headers.get("x-signature");
 
   // 1. Signature obligatoire (CDC 10.5) — corps brut, avant tout parsing
+  const signature = req.headers.get("jeko-signature");
   if (!signatureValide(corpsBrut, signature)) {
     return NextResponse.json({ erreur: "Signature invalide" }, { status: 401 });
   }
 
+  // 2. Seul TRANSACTION_COMPLETED nous intéresse (payment_method, montant…)
+  if (req.headers.get("jeko-event") !== "TRANSACTION_COMPLETED") {
+    return NextResponse.json({ ok: true });
+  }
+
   let event: {
-    reference?: string;
-    transaction_id?: string;
     id?: string;
     status?: string;
-    amount?: number;
-    payment_method?: string;
-    method?: string;
+    amount?: { amount?: number; currency?: string };
+    paymentMethod?: string;
+    transactionType?: string;
+    transactionDetails?: { id?: string; reference?: string };
   };
   try {
     event = JSON.parse(corpsBrut);
@@ -50,40 +63,32 @@ export async function POST(req: Request) {
     return NextResponse.json({ erreur: "Corps invalide" }, { status: 400 });
   }
 
-  const transactionJeko = event.transaction_id ?? event.id;
-  // Moyen de paiement renvoyé par Jèko → enum interne (CDC 10.2)
-  const MOYENS: Record<string, MoyenPaiement> = {
-    wave: "wave",
-    orange_money: "orange_money",
-    orange: "orange_money",
-    mtn_momo: "mtn_momo",
-    mtn: "mtn_momo",
-    moov_money: "moov_money",
-    moov: "moov_money",
-    carte: "carte",
-    card: "carte",
-  };
-  const moyen = MOYENS[event.payment_method ?? event.method ?? ""];
-  const statutCible = STATUT_JEKO[event.status ?? ""];
-  if (!statutCible) {
-    return NextResponse.json({ ok: true }); // événement non géré : 200 (pas de retry)
+  if (event.transactionType && event.transactionType !== "payment") {
+    return NextResponse.json({ ok: true }); // transferts : non gérés ici
   }
 
-  // 2. Retrouver la tentative par transactionJeko (unique) ou référence commande
+  const transactionJeko = event.transactionDetails?.id;
+  const statutCible = STATUT_JEKO[event.status ?? ""];
+  if (!statutCible) {
+    return NextResponse.json({ ok: true });
+  }
+  const moyen = MOYENS[event.paymentMethod ?? ""];
+
+  // 3. Retrouver la tentative : par id payment_request (stocké à
+  // l'initiation) ou par notre référence unique (= cleIdempotence)
   const paiement = transactionJeko
     ? await prisma.payment.findUnique({ where: { transactionJeko } })
-    : await prisma.payment.findFirst({
-        where: { referenceCommande: event.reference ?? "" },
-        orderBy: { createdAt: "desc" },
-      });
+    : event.transactionDetails?.reference
+      ? await prisma.payment.findUnique({
+          where: { cleIdempotence: event.transactionDetails.reference },
+        })
+      : null;
   if (!paiement) {
-    // Transaction inconnue : journaliser dans un paiement fantôme n'a pas
-    // de sens — on loggue côté serveur et on renvoie 200 pour stopper le retry
     console.error("[webhook] transaction inconnue", { transactionJeko, event });
     return NextResponse.json({ ok: true });
   }
 
-  // 3. Idempotence (CDC 10.10) : statut terminal → ignoré silencieusement
+  // 4. Idempotence (CDC 10.10) : statut terminal → ignoré silencieusement
   if (!transitionAutorisee(paiement.statut, statutCible)) {
     await journaliser(
       prisma,
@@ -95,14 +100,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  // Montant reçu en CENTIMES → comparé au montant attendu × 100 (CDC 10.8)
   const statutFinal =
-    typeof event.amount === "number" && event.amount !== paiement.montant
-      ? ("a_verifier" as const) // montant divergent → revue admin (CDC 10.8)
+    typeof event.amount?.amount === "number" &&
+    event.amount.amount !== paiement.montant * 100
+      ? ("a_verifier" as const)
       : statutCible;
 
-  // 4. Transition contrôlée + effets de bord, en une transaction.
-  // La mise à jour est conditionnelle (statut inchangé) : deux webhooks
-  // concurrents pour le même paiement n'appliquent les effets qu'une fois.
+  // 5. Transition contrôlée + effets de bord, en une transaction
   const appliquee = await prisma.$transaction(async (tx) => {
     await journaliser(tx, paiement.id, "webhook_recu", "", event);
     if (statutFinal === "a_verifier") {
@@ -110,45 +115,13 @@ export async function POST(req: Request) {
         tx,
         paiement.id,
         "anomalie",
-        `Montant divergent : reçu ${event.amount}, attendu ${paiement.montant}`
+        `Montant divergent : reçu ${event.amount?.amount} centimes, attendu ${paiement.montant * 100}`
       );
     }
-    const r = await tx.payment.updateMany({
-      where: { id: paiement.id, statut: paiement.statut },
-      data: {
-        statut: statutFinal,
-        ...(transactionJeko && !paiement.transactionJeko
-          ? { transactionJeko }
-          : {}),
-        ...(moyen && !paiement.moyen ? { moyen } : {}),
-      },
+    return appliquerTransition(tx, paiement, statutFinal, {
+      transactionJeko,
+      moyen,
     });
-    if (r.count === 0) {
-      // Un webhook concurrent a déjà fait la transition
-      await journaliser(
-        tx,
-        paiement.id,
-        "transition",
-        `Ignoré : transition ${paiement.statut} → ${statutFinal} déjà appliquée`
-      );
-      return false;
-    }
-
-    if (statutFinal === "confirme") {
-      await tx.order.update({
-        where: { id: paiement.commandeId },
-        data: { statutPaiement: "confirme", statut: "payee" },
-      });
-    } else if (["echoue", "annule", "expire"].includes(statutFinal)) {
-      // Libération immédiate du stock réservé (CDC 5.8)
-      await libererStock(tx, paiement.commandeId);
-      await tx.order.update({
-        where: { id: paiement.commandeId },
-        data: { statutPaiement: statutFinal },
-      });
-    }
-    await journaliser(tx, paiement.id, "transition", `→ ${statutFinal}`);
-    return true;
   });
 
   if (!appliquee) return NextResponse.json({ ok: true });
