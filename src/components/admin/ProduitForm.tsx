@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { ImageUpload, type ImageProduit } from "./ImageUpload";
@@ -29,6 +29,12 @@ interface Variante {
   sku?: string;
   stock: number;
   prixReduit?: number | null;
+}
+
+/** Ligne de l'éditeur : `cle` = clé React stable (les champs sont non
+ * contrôlés et relus via FormData à la soumission). */
+interface LigneVariante extends Variante {
+  cle: number;
 }
 
 export interface ProduitInitial {
@@ -61,25 +67,39 @@ export function ProduitForm({
   initial?: ProduitInitial;
   action: (formData: FormData) => Promise<void>;
 }) {
-  const [aVariantes, setAVariantes] = useState(initial?.aVariantes ?? false);
-  const [variantes, setVariantes] = useState<Variante[]>(
-    initial?.variantes ?? []
+  // Les lignes ne portent que la structure (ajout/suppression) ; les valeurs
+  // sont relues via FormData (defaultValue) — un clic avant la fin de
+  // l'hydratation ne peut donc pas être avalé par React.
+  const [variantes, setVariantes] = useState<LigneVariante[]>(() =>
+    (initial?.variantes ?? []).map((v, i) => ({ ...v, cle: i }))
   );
+  const compteurVariante = useRef(initial?.variantes?.length ?? 0);
   const [images, setImages] = useState<ImageProduit[]>(initial?.images ?? []);
   const [erreur, setErreur] = useState("");
 
   function ajouterVariante() {
-    setVariantes([...variantes, { taille: "", couleur: "", sku: "", stock: 0 }]);
-  }
-
-  function majVariante(i: number, patch: Partial<Variante>) {
-    setVariantes(variantes.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+    compteurVariante.current += 1;
+    setVariantes((v) => [
+      ...v,
+      { taille: "", couleur: "", sku: "", stock: 0, cle: compteurVariante.current },
+    ]);
   }
 
   async function soumettre(formData: FormData) {
     setErreur("");
     formData.set("images", JSON.stringify(images));
-    formData.set("variantes", JSON.stringify(variantes));
+    formData.set(
+      "variantes",
+      JSON.stringify(
+        variantes.map((_, i) => ({
+          taille: String(formData.get(`v${i}_taille`) ?? ""),
+          couleur: String(formData.get(`v${i}_couleur`) ?? ""),
+          sku: String(formData.get(`v${i}_sku`) ?? ""),
+          stock: Number(formData.get(`v${i}_stock`)) || 0,
+          prixReduit: Number(formData.get(`v${i}_reduit`)) || null,
+        }))
+      )
+    );
     try {
       await action(formData);
     } catch (e) {
@@ -114,16 +134,24 @@ export function ProduitForm({
           titre="Stock et variantes"
           description="Gérez un stock unique ou un stock par taille / couleur"
         >
-          <CaseLibellee
-            name="aVariantes"
-            checked={aVariantes}
-            onChange={(e) => setAVariantes(e.target.checked)}
-          >
-            Ce produit a des variantes (taille / couleur)
-          </CaseLibellee>
+          <div className="group">
+            <CaseLibellee
+              name="aVariantes"
+              defaultChecked={initial?.aVariantes ?? false}
+              onChange={(e) => {
+                if (e.target.checked && variantes.length === 0)
+                  ajouterVariante();
+              }}
+            >
+              Ce produit a des variantes (taille / couleur)
+            </CaseLibellee>
 
-          {!aVariantes ? (
-            <Champ label="Quantité en stock" className="mt-4 max-w-40">
+            {/* group-has-[:checked] pilote l'affichage en CSS pur : la case
+                fonctionne même avant la fin de l'hydratation de la page */}
+            <Champ
+              label="Quantité en stock"
+              className="mt-4 max-w-40 group-has-[:checked]:hidden"
+            >
               <input
                 name="stock"
                 type="number"
@@ -132,55 +160,69 @@ export function ProduitForm({
                 className={champ}
               />
             </Champ>
-          ) : (
-            <div className="mt-4">
+
+            <div className="mt-4 hidden group-has-[:checked]:block">
               {variantes.length > 0 && (
                 <div className="overflow-hidden rounded-lg border border-border">
-                  <div className="hidden grid-cols-[1fr_1fr_1fr_6rem_2.5rem] gap-2 border-b border-border bg-[#fafbf9] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+                  <div className="hidden grid-cols-[1fr_1fr_1fr_5rem_6rem_2.5rem] gap-2 border-b border-border bg-[#fafbf9] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
                     <span>Taille</span>
                     <span>Couleur</span>
                     <span>SKU</span>
                     <span>Stock</span>
+                    <span>Prix réduit</span>
                     <span />
                   </div>
                   <ul className="divide-y divide-border">
                     {variantes.map((v, i) => (
                       <li
-                        key={i}
-                        className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-[1fr_1fr_1fr_6rem_2.5rem] sm:items-center"
+                        key={v.cle}
+                        className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-[1fr_1fr_1fr_5rem_6rem_2.5rem] sm:items-center"
                       >
                         <input
+                          name={`v${i}_taille`}
                           aria-label="Taille"
                           placeholder="Taille"
-                          value={v.taille ?? ""}
-                          onChange={(e) => majVariante(i, { taille: e.target.value })}
+                          defaultValue={v.taille ?? ""}
                           className={champ}
                         />
                         <input
+                          name={`v${i}_couleur`}
                           aria-label="Couleur"
                           placeholder="Couleur"
-                          value={v.couleur ?? ""}
-                          onChange={(e) => majVariante(i, { couleur: e.target.value })}
+                          defaultValue={v.couleur ?? ""}
                           className={champ}
                         />
                         <input
+                          name={`v${i}_sku`}
                           aria-label="SKU"
                           placeholder="SKU"
-                          value={v.sku ?? ""}
-                          onChange={(e) => majVariante(i, { sku: e.target.value })}
+                          defaultValue={v.sku ?? ""}
                           className={champ}
                         />
                         <input
+                          name={`v${i}_stock`}
                           aria-label="Stock"
                           type="number"
                           min={0}
-                          value={v.stock}
-                          onChange={(e) => majVariante(i, { stock: Number(e.target.value) })}
+                          defaultValue={v.stock}
+                          className={champ}
+                        />
+                        <input
+                          name={`v${i}_reduit`}
+                          aria-label="Prix réduit"
+                          type="number"
+                          min={0}
+                          placeholder="Prix réduit"
+                          defaultValue={v.prixReduit ?? ""}
                           className={champ}
                         />
                         <button
                           type="button"
-                          onClick={() => setVariantes(variantes.filter((_, j) => j !== i))}
+                          onClick={() =>
+                            setVariantes(
+                              variantes.filter((x) => x.cle !== v.cle)
+                            )
+                          }
                           className={bouton("fantome", "md", "col-span-2 px-0 hover:text-destructive sm:col-span-1")}
                           aria-label="Retirer la variante"
                           title="Retirer la variante"
@@ -207,7 +249,7 @@ export function ProduitForm({
                 Ajouter une variante
               </button>
             </div>
-          )}
+          </div>
         </Panneau>
       </div>
 
