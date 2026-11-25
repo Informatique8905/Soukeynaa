@@ -15,11 +15,11 @@ interface Commune {
 type Mode = "en_ligne" | "livraison";
 
 const MOYENS_EN_LIGNE = [
-  { v: "wave", label: "Wave" },
-  { v: "orange", label: "Orange Money" },
-  { v: "mtn", label: "MTN MoMo" },
-  { v: "moov", label: "Moov Money" },
-  { v: "djamo", label: "Djamo" },
+  { v: "wave", label: "Wave", logo: "/paiements/wave.png", couleur: "#1dc4f2" },
+  { v: "orange", label: "Orange Money", logo: "/paiements/orange.png", couleur: "#ff7900" },
+  { v: "mtn", label: "MTN MoMo", logo: null, couleur: "#ffcb05" },
+  { v: "moov", label: "Moov Money", logo: null, couleur: "#005eb8" },
+  { v: "djamo", label: "Djamo", logo: null, couleur: "#6e3aff" },
 ] as const;
 type Moyen = (typeof MOYENS_EN_LIGNE)[number]["v"];
 
@@ -288,12 +288,28 @@ export function CheckoutForm({
                       role="radio"
                       aria-checked={actif}
                       onClick={() => setMoyen(m.v)}
-                      className={`press rounded-full px-3 py-1.5 font-semibold transition ${
+                      className={`press flex items-center gap-1.5 rounded-full py-1.5 pl-1.5 pr-3 font-semibold transition ${
                         actif
                           ? "bg-vert text-white shadow-md shadow-vert/25"
                           : "bg-white text-noir ring-1 ring-black/5 hover:ring-vert/50"
                       }`}
                     >
+                      {m.logo ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={m.logo}
+                          alt=""
+                          className="size-6 rounded-md object-cover"
+                        />
+                      ) : (
+                        <span
+                          aria-hidden
+                          className="grid size-6 place-items-center rounded-md text-[11px] font-extrabold text-white"
+                          style={{ backgroundColor: m.couleur }}
+                        >
+                          {m.label[0]}
+                        </span>
+                      )}
                       {m.label}
                     </button>
                   );

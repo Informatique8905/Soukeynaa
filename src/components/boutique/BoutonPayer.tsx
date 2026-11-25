@@ -6,11 +6,11 @@ import { fcfa } from "@/lib/format";
 
 // Moyens activés sur le compte Jèko — l'API exige l'opérateur à l'initiation
 const MOYENS = [
-  { v: "wave", label: "Wave" },
-  { v: "orange", label: "Orange Money" },
-  { v: "mtn", label: "MTN MoMo" },
-  { v: "moov", label: "Moov Money" },
-  { v: "djamo", label: "Djamo" },
+  { v: "wave", label: "Wave", logo: "/paiements/wave.png", couleur: "#1dc4f2" },
+  { v: "orange", label: "Orange Money", logo: "/paiements/orange.png", couleur: "#ff7900" },
+  { v: "mtn", label: "MTN MoMo", logo: null, couleur: "#ffcb05" },
+  { v: "moov", label: "Moov Money", logo: null, couleur: "#005eb8" },
+  { v: "djamo", label: "Djamo", logo: null, couleur: "#6e3aff" },
 ];
 
 export function BoutonPayer({
@@ -63,12 +63,28 @@ export function BoutonPayer({
             role="radio"
             aria-checked={moyen === m.v}
             onClick={() => setMoyen(m.v)}
-            className={`press rounded-xl border px-2 py-2 text-[11px] font-bold transition ${
+            className={`press flex flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[11px] font-bold transition ${
               moyen === m.v
                 ? "border-vert bg-vert text-white shadow-md shadow-vert/25"
                 : "border-black/10 bg-blanc-casse text-noir hover:border-vert/50"
             }`}
           >
+            {m.logo ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={m.logo}
+                alt=""
+                className="size-7 rounded-lg object-cover"
+              />
+            ) : (
+              <span
+                aria-hidden
+                className="grid size-7 place-items-center rounded-lg text-xs font-extrabold text-white"
+                style={{ backgroundColor: m.couleur }}
+              >
+                {m.label[0]}
+              </span>
+            )}
             {m.label}
           </button>
         ))}
