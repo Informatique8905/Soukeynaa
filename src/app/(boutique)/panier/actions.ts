@@ -6,23 +6,23 @@ import { getOrCreateCart, getCart } from "@/lib/cart";
 import { Prisma } from "@/generated/prisma/client";
 
 // Ajout au panier — vérifie produit publié + stock réel avant d'insérer
-export async function ajouterAuPanier(produitId: number, varianteId: number | null, quantite: number) {
+export async function ajouterAuPanier(produitId: number, varianteId: number | null, quantite: number): Promise<{ erreur?: string }> {
   const prisma = getPrisma();
   const produit = await prisma.product.findUnique({
     where: { id: produitId },
     include: { variantes: true },
   });
   if (!produit || produit.statut !== "publie") {
-    throw new Error("Produit indisponible");
+    return { erreur: "Produit indisponible" };
   }
   if (produit.aVariantes && !varianteId) {
-    throw new Error("Choisissez une taille/couleur");
+    return { erreur: "Choisissez une taille/couleur" };
   }
   const stock = produit.aVariantes
     ? (produit.variantes.find((v) => v.id === varianteId)?.stock ?? 0)
     : produit.stock;
   if (quantite < 1 || quantite > stock) {
-    throw new Error("Quantité indisponible");
+    return { erreur: "Quantité indisponible" };
   }
 
   const cart = await getOrCreateCart();
@@ -63,6 +63,7 @@ export async function ajouterAuPanier(produitId: number, varianteId: number | nu
     }
   }
   revalidatePath("/panier");
+  return {};
 }
 
 export async function modifierQuantite(ligneId: number, quantite: number) {

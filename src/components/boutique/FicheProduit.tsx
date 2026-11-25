@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import DishOrbitCarousel, { type Dish } from "@/components/ui/dish-orbit-carousel";
 import { ajouterAuPanier } from "@/app/(boutique)/panier/actions";
@@ -101,7 +101,6 @@ export function FicheProduit({
   produitId: number;
 }) {
   const router = useRouter();
-  const [, start] = useTransition();
   const [fav, setFav] = useState(false);
 
   // État favori chargé après montage (localStorage indisponible côté serveur)
@@ -265,7 +264,7 @@ export function FicheProduit({
       <DishOrbitCarousel
         dishes={dishes}
         height="calc(100svh - var(--navh))"
-      loop={dishes.length > 1}
+      loop={false}
       onRetour={() => router.back()}
       onPartager={() => {
         const url = window.location.href;
@@ -276,13 +275,12 @@ export function FicheProduit({
         }
       }}
       favori={{ actif: fav, onToggle: toggleFav }}
-      onAddToCart={(dish, index, taille) => {
+      onAddToCart={async (dish, index, taille) => {
         const varianteId =
           cles[`${couleurParSlide[index]}|${taille ?? "Unique"}`] ?? null;
-        start(async () => {
-          await ajouterAuPanier(produitId, varianteId, 1);
-          router.refresh();
-        });
+        const res = await ajouterAuPanier(produitId, varianteId, 1);
+        if (res?.erreur) throw new Error(res.erreur);
+        router.refresh();
       }}
       />
     </div>

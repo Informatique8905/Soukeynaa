@@ -18,7 +18,7 @@ export function LignePanierControles({
   const [pending, start] = useTransition();
   return (
     <div className="flex flex-col items-end gap-1.5">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex items-center rounded-full bg-gris">
           <button
             type="button"
@@ -47,7 +47,7 @@ export function LignePanierControles({
           aria-label="Retirer l'article"
           disabled={pending}
           onClick={() => start(() => retirerLigne(ligneId))}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-red-600 transition hover:bg-red-50 disabled:opacity-40"
+          className="flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-full px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-40"
         >
           Retirer
         </button>

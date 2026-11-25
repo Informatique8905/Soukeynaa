@@ -68,7 +68,7 @@ export type DishOrbitCarouselProps = {
   fontSrc?: string | null  
   onOrder?: (dish: Dish, index: number) => void  
   /** « Ajouter au panier » : reçoit l'article affiché et la taille/pointure choisie. */
-  onAddToCart?: (dish: Dish, index: number, taille: string | null) => void  
+  onAddToCart?: (dish: Dish, index: number, taille: string | null) => void | Promise<void>  
   /** Bouton retour flottant, en haut à gauche. */
   onRetour?: () => void
   /** Bouton partager flottant, en haut à droite. */
@@ -258,14 +258,15 @@ const CSS =
   ".dsh-add:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 14px 26px -10px rgba(30,123,79,.6)}" +  
   ".dsh-add:disabled{opacity:.4;cursor:not-allowed}" +  
   ".dsh-add .dsh-ico{width:14px;height:14px}" +  
+  ".dsh-err{font-size:11px;color:#dc2626;margin:6px 0 0;text-align:center}" +  
   "@container (max-width:639px){" +
   // phone: colonne compacte bornée à la hauteur du stage — scroll interne si ça déborde
-  ".dsh-canvas{position:relative;left:auto;top:auto;width:100%;height:auto;max-height:100%;transform:none;display:flex;flex-direction:column;align-items:center;padding:10px 14px 14px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}" +
+  ".dsh-canvas{position:relative;left:auto;top:auto;width:100%;height:auto;max-height:100%;transform:none;display:flex;flex-direction:column;align-items:center;padding:10px 14px 14px;overflow-y:auto;scrollbar-width:none}" +
   ".dsh-canvas::-webkit-scrollbar{display:none}" +
   ".dsh-arc{width:200%;height:auto;left:-60%;top:-30px}" +
   ".dsh-top{position:relative;left:auto;right:auto;top:auto;width:100%;align-self:stretch;margin-bottom:4px;flex:none}" +
   ".dsh-pager{left:10px;top:128px}" +
-  ".dsh-plates{position:relative;left:auto;top:auto;width:min(46vw,25svh);height:min(46vw,25svh);margin-top:0;flex:none}" +
+  ".dsh-plates{position:relative;left:auto;top:auto;width:min(46vw,25svh);height:min(46vw,25svh);margin-top:0;flex:none;touch-action:none}" +
   ".dsh-orbit>img{width:100%;height:100%}" +
   ".dsh-head{position:relative;left:auto;top:auto;width:100%;height:112px;margin-top:6px;flex:none}" +
   ".dsh-hd{text-align:center;transform:scale(.74);transform-origin:50% 0}" +
@@ -280,7 +281,11 @@ const CSS =
   ".dsh-checks{margin-top:6px}" +
   ".dsh-pick{margin-top:8px;padding-top:8px}" +
   ".dsh-opts{margin-bottom:8px}" +
-  ".dsh-strip{display:none}" +
+  ".dsh-strip{position:relative;left:auto;top:auto;width:100%;max-width:420px;height:86px;margin-top:8px;flex:none}" +
+  ".dsh-win{flex:1 1 auto;width:auto;height:86px}" +
+  ".dsh-th{height:86px;padding-top:0;align-items:center}" +
+  ".dsh-th .dsh-btn{height:80px;gap:3px;padding-top:4px}" +
+  ".dsh-th img{width:44px;height:44px}" +
   "}" +  
   "@media (prefers-reduced-motion:reduce){.dsh-track,.dsh-dot,.dsh-dot i,.dsh-th .dsh-btn,.dsh-th img,.dsh-like{transition:none}}"  
   
@@ -312,6 +317,9 @@ export function DishOrbitCarousel({
   const [index, setIndex] = useState(0)  
   const [tab, setTab] = useState("overview")  
   const [choix, setChoix] = useState({} as Record<number, string>)  
+  const [adding, setAdding] = useState(false)
+  const [ajoute, setAjoute] = useState(-1)
+  const [addErr, setAddErr] = useState("")
   // Taille/pointure retenue par article : choix explicite, sinon la première en stock.
   const choixPour = (i: number, d: Dish): string | null =>
     choix[i] ?? d.tailles?.find((t) => t.stock > 0)?.label ?? null  
@@ -357,6 +365,13 @@ export function DishOrbitCarousel({
     return () => mq.removeEventListener("change", on)  
   }, [])  
   
+  // Confirmation « Ajouté » : s'efface seule après un court délai.
+  useEffect(() => {
+    if (ajoute < 0) return
+    const t = window.setTimeout(() => setAjoute(-1), 2200)
+    return () => window.clearTimeout(t)
+  }, [ajoute])
+
   // The swap. Every dish is in the DOM; GSAP only moves the outgoing and incoming ones.  
   useLayoutEffect(() => {  
     // GSAP contrôle désormais la visibilité : le repli CSS pré-JS se désactive.
@@ -507,7 +522,9 @@ export function DishOrbitCarousel({
     swipe.current = null  
     if (!s) return  
     const dx = e.clientX - s.x  
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(e.clientY - s.y) * 1.4) step(dx < 0 ? 1 : -1)  
+    const dy = e.clientY - s.y
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.4) step(dx < 0 ? 1 : -1)
+    else if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx) * 1.4) step(dy < 0 ? 1 : -1)  
   }  
   
   const start = stripStart(index, n, VISIBLE)  
@@ -664,11 +681,26 @@ export function DishOrbitCarousel({
                 </>  
               ) : null}  
               {onAddToCart ? (  
+                <>
                 <button type="button" className="dsh-btn dsh-add"  
-                  disabled={dish.tailles?.length ? dish.tailles.every((t) => t.stock === 0) : false}  
-                  onClick={() => onAddToCart(dish, index, choixPour(index, dish))}>  
-                  Ajouter au panier  
+                  disabled={adding || (dish.tailles?.length ? dish.tailles.every((t) => t.stock === 0) : false)}  
+                  onClick={async () => {
+                    if (adding) return
+                    setAddErr("")
+                    setAdding(true)
+                    try {
+                      await onAddToCart(dish, index, choixPour(index, dish))
+                      setAjoute(index)
+                    } catch (e) {
+                      setAddErr(e instanceof Error && e.message ? e.message : "Réessayez")
+                    } finally {
+                      setAdding(false)
+                    }
+                  }}>  
+                  {adding ? "Ajout…" : ajoute === index ? "Ajouté ✓" : "Ajouter au panier"}  
                 </button>  
+                {addErr ? <p className="dsh-err">{addErr}</p> : null}
+                </>
               ) : null}  
             </div>  
           ) : null}  

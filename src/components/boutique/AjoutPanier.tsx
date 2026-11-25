@@ -43,10 +43,11 @@ export function AjoutPanier({
     }
     start(async () => {
       try {
-        await ajouterAuPanier(produitId, varianteId, quantite);
-        setOk(true);
-      } catch (e) {
-        setErreur(e instanceof Error ? e.message : "Erreur");
+        const res = await ajouterAuPanier(produitId, varianteId, quantite);
+        if (res?.erreur) setErreur(res.erreur);
+        else setOk(true);
+      } catch {
+        setErreur("Erreur");
       }
     });
   }
