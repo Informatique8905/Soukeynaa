@@ -1,4 +1,5 @@
 import { getPrisma } from "@/lib/db";
+import { jetonCommande } from "@/lib/ownership";
 import { fcfa, dateFr, dateHeureFr } from "./format";
 
 // Envoi d'emails (CDC 12). Déduplication garantie par Notification.cleDedup
@@ -320,6 +321,16 @@ function cadreMail(
 
 // Bon de commande — envoyé UNE SEULE FOIS à la création de la commande,
 // avec un message de prise en charge, avant toute confirmation admin.
+// Lien de suivi envoyé par email : passe par /api/commande/ouvrir qui
+// pose le cookie de propriété signé — le client peut payer/voir le bon
+// depuis n'importe quel appareil (CDC 14.5).
+function lienCommande(c: { id: number; reference: string }): string {
+  const site = process.env.AUTH_URL ?? "";
+  return `${site}/api/commande/ouvrir?ref=${encodeURIComponent(
+    c.reference
+  )}&jeton=${jetonCommande(c.id)}`;
+}
+
 export async function envoyerBonCommande(commandeId: number) {
   const prisma = getPrisma();
   const c = await prisma.order.findUnique({
@@ -337,7 +348,7 @@ export async function envoyerBonCommande(commandeId: number) {
         ? "Finalisez le paiement pour lancer la préparation."
         : "Votre paiement est confirmé.";
 
-  const lien = `${process.env.AUTH_URL ?? ""}/commande/${c.reference}`;
+  const lien = lienCommande(c);
   const html = cadreMail(
     `Bonjour <strong>${esc(c.clientNom)}</strong>,<br/>
      <strong>Nous traitons votre commande.</strong> ${suite}<br/>
@@ -388,7 +399,7 @@ export async function envoyerBonCommandeMaj(commandeId: number): Promise<boolean
     include: { lignes: true },
   });
   if (!c || !c.clientEmail) return false;
-  const lien = `${process.env.AUTH_URL ?? ""}/commande/${c.reference}`;
+  const lien = lienCommande(c);
   const ok = !!(await notifier(
     `bonmaj:${c.reference}:${c.statut}:${(c.delaiLivraison ?? "").trim().toLowerCase()}`,
     "bon_commande",
@@ -440,7 +451,7 @@ export async function notifierStatutCommande(commandeId: number) {
        votre commande <strong>${esc(c.reference)}</strong> est <strong>${info.libelle}</strong>.`,
       "",
       {
-        url: `${process.env.AUTH_URL ?? ""}/commande/${c.reference}`,
+        url: lienCommande(c),
         label: "Suivre ma commande / voir le bon",
       }
     ),
@@ -478,7 +489,7 @@ export async function envoyerDelaiLivraison(commandeId: number): Promise<boolean
     include: { lignes: true },
   });
   if (!c?.delaiLivraison || !c.clientEmail) return false;
-  const lien = `${process.env.AUTH_URL ?? ""}/commande/${c.reference}`;
+  const lien = lienCommande(c);
   const ok = !!(await notifier(
     `delai:${c.reference}:${c.delaiLivraison.trim().toLowerCase()}`,
     "delai_livraison",

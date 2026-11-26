@@ -17,10 +17,12 @@ export function BoutonPayer({
   commandeId,
   montant,
   moyenInitial,
+  reprendre = false,
 }: {
   commandeId: number;
   montant?: number;
   moyenInitial?: string;
+  reprendre?: boolean;
 }) {
   const [erreur, setErreur] = useState("");
   const [moyen, setMoyen] = useState(() =>
@@ -55,6 +57,7 @@ export function BoutonPayer({
 
   return (
     <div>
+      {!reprendre && (
       <div
         role="radiogroup"
         aria-label="Moyen de paiement"
@@ -93,6 +96,7 @@ export function BoutonPayer({
           </button>
         ))}
       </div>
+      )}
       <button
         type="button"
         onClick={payer}
@@ -103,6 +107,8 @@ export function BoutonPayer({
           <>
             <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Redirection sécurisée…
           </>
+        ) : reprendre ? (
+          <>Reprendre le paiement {montant ? `(${fcfa(montant)})` : ""}</>
         ) : (
           <>
             Payer {montant ? fcfa(montant) : "en ligne"}

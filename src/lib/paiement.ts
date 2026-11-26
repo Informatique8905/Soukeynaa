@@ -227,6 +227,17 @@ export async function reconcilierTentative(
   if (paiement.statut !== "en_attente" || !paiement.transactionJeko) {
     return paiement.statut;
   }
+  const prisma = getPrisma();
+  // Throttle : la page de suivi se rafraîchit toutes les 5 s — on borne
+  // l'interrogation de l'API Jèko à une fois par 30 s par tentative.
+  const derniereVerif = await prisma.paymentEvent.findFirst({
+    where: { paymentId: paiement.id, type: "reconciliation" },
+    orderBy: { at: "desc" },
+    select: { at: true },
+  });
+  if (derniereVerif && derniereVerif.at > new Date(Date.now() - 30_000)) {
+    return paiement.statut;
+  }
   const reel = await statutJekoReel(paiement.transactionJeko);
   if (reel !== "success" && reel !== "error") return paiement.statut;
 
@@ -238,7 +249,6 @@ export async function reconcilierTentative(
         ? "a_verifier"
         : "confirme";
 
-  const prisma = getPrisma();
   const appliquee = await prisma.$transaction(async (tx) => {
     await journaliser(
       tx,
@@ -268,6 +278,23 @@ export async function reconcilierTentative(
     ).catch(() => {});
   }
   return cible;
+}
+
+// Lien hébergé Jèko d'une tentative encore payable (~30 min après sa
+// création) : repris de l'événement « lien_jeko » stocké à l'initiation,
+// sinon reconstruit depuis l'id de la demande (pay.jeko.africa/pr/{id}).
+async function urlSessionJeko(paiement: Payment): Promise<string | null> {
+  if (!paiement.transactionJeko) return null;
+  const evt = await getPrisma().paymentEvent.findFirst({
+    where: { paymentId: paiement.id, type: "lien_jeko" },
+    orderBy: { at: "desc" },
+    select: { payload: true },
+  });
+  const url = (evt?.payload as { url?: string } | null)?.url;
+  return (
+    url ??
+    `${process.env.JEKO_PAY_BASE_URL ?? "https://pay.jeko.africa"}/pr/${paiement.transactionJeko}`
+  );
 }
 
 // ===== Tentative de paiement complète (checkout + retentative) =====
@@ -338,10 +365,22 @@ export async function initierTentative(params: {
         code: 409,
       };
     }
+    if (resolu === "en_attente") {
+      // Tentative toujours payable chez Jèko : on renvoie le client vers la
+      // MÊME session plutôt qu'un nouveau paiement — pas de doublon possible.
+      const url = await urlSessionJeko(tentativeActive);
+      if (url) return { ok: true, url };
+      return {
+        ok: false,
+        erreur: "Un paiement est déjà en cours pour cette commande",
+        code: 409,
+      };
+    }
     // Retentative uniquement après échec/annulation/expiration (CDC 10.10)
-    if (resolu !== "en_attente") tentativeActive = undefined;
+    tentativeActive = undefined;
   }
   if (tentativeActive) {
+    // a_verifier ou en_attente sans transactionJeko (initiation interrompue)
     return {
       ok: false,
       erreur: "Un paiement est déjà en cours pour cette commande",
@@ -418,5 +457,9 @@ export async function initierTentative(params: {
       code: 502,
     };
   }
+  // Lien conservé pour la reprise de session (tentative payable ~30 min)
+  await journaliser(prisma, paiement.id, "lien_jeko", "", {
+    url: reponse.url,
+  });
   return { ok: true, url: reponse.url };
 }

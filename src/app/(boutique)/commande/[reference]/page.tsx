@@ -91,10 +91,18 @@ export default async function CommandePage({
     commande.statut === "en_attente_paiement" &&
     commande.reservationExpireLe > new Date();
   // CDC 10.8 : tentative en cours → plus de bouton, on affiche l'état réel
-  const tentativeActive = commande.paiements.some(
-    (p) => p.statut === "en_attente" || p.statut === "a_verifier"
+  const tentativeEnCours = commande.paiements.some(
+    (p) => p.statut === "en_attente"
   );
+  const tentativeAVerifier = commande.paiements.some(
+    (p) => p.statut === "a_verifier"
+  );
+  const tentativeActive = tentativeEnCours || tentativeAVerifier;
   const enVerification = enAttente && tentativeActive;
+  // Tentative encore ouverte chez Jèko (~30 min) : le client peut la
+  // reprendre — même session, aucun doublon possible (CDC 10.10).
+  const reprendre =
+    proprietaire && enAttente && tentativeEnCours && !tentativeAVerifier;
   // Retentative autorisée après échec/abandon/expiration d'une tentative
   // (CDC 10.10) — jamais pour une commande payée ou en vérification.
   const payable =
@@ -185,6 +193,32 @@ export default async function CommandePage({
               />
               <p className="mt-2 text-center text-xs text-gris-fonce">
                 Panier réservé jusqu&apos;à {expire}
+              </p>
+            </section>
+          )}
+
+          {reprendre && (
+            <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 print:hidden">
+              <p className="mb-3 text-center text-sm font-semibold text-noir">
+                Un paiement est déjà en cours pour cette commande.
+              </p>
+              <BoutonPayer
+                commandeId={commande.id}
+                montant={commande.total}
+                reprendre
+              />
+              <p className="mt-2 text-center text-xs text-gris-fonce">
+                Quitté sans payer ? Reprenez la session — la page se met à
+                jour automatiquement.
+              </p>
+            </section>
+          )}
+
+          {proprietaire && enAttente && tentativeAVerifier && (
+            <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 print:hidden">
+              <p className="text-center text-sm font-semibold text-noir">
+                Paiement en cours de vérification — la page se met à jour
+                automatiquement.
               </p>
             </section>
           )}

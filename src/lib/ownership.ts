@@ -40,4 +40,29 @@ export function verifierIdsCommandes(valeur: string | undefined): number[] {
   return ids;
 }
 
+// Jeton de propriété par commande : embarqué dans le lien « Finaliser mon
+// paiement » du mail — prouve la détention de la commande depuis n'importe
+// quel appareil, sans session ni cookie (CDC 14.5). Lien-porteur : comme le
+// mail lui-même, quiconque le détient est traité en propriétaire.
+export function jetonCommande(commandeId: number): string {
+  return createHmac("sha256", cle()!)
+    .update(`order:${commandeId}`)
+    .digest("base64url");
+}
+
+export function verifierJetonCommande(
+  commandeId: number,
+  jeton: string | undefined
+): boolean {
+  if (!jeton || !cle() || !Number.isInteger(commandeId)) return false;
+  try {
+    return timingSafeEqual(
+      Buffer.from(jeton),
+      Buffer.from(jetonCommande(commandeId))
+    );
+  } catch {
+    return false;
+  }
+}
+
 export const COOKIE_COMMANDES = COOKIE;
