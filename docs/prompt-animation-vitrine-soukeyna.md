@@ -43,7 +43,7 @@ Quality bar: it must feel like the real app — smooth 60 fps, shared-element tr
 
 ## 3. WHAT THE DEMO SHOWS
 
-Canonical cycle (~14 s), reconstructed from the shop's real user journey:
+Canonical cycle (~13.5 s), reconstructed from the shop's real user journey. It plays as **one continuous finger journey**: five chained scenes whose gestures overlap by 50–150 ms so momentum is never lost, and the touch indicator glides between touchpoints instead of teleporting. No frame is ever fully static — during holds, the marquee keeps drifting:
 
 ```
 ACCUEIL ──tap carte produit──▶ FICHE PRODUIT ──tap "Ajouter au panier"──▶ (badge panier pops + toast)
@@ -148,32 +148,55 @@ All screens live in one `.dv-screen` (overflow hidden, radius `--r-device`) as *
 - **Thumbnail grid 3 × 2**: each ≈ 100×88, gap 8, radius 10, bg `--photo-bg`, garment placeholder inside.
 - Footer card stays visible beneath.
 
-## 6. STATE MACHINE & STORYBOARD (canonical cycle ≈ 14 s)
+## 6. STATE MACHINE & STORYBOARD (canonical cycle ≈ 13.5 s)
 
 Implement as one `async` timeline: `await step(...)` with Promises from `animation.finished`. Pause when off-screen (`IntersectionObserver`) or `document.hidden`. Times relative to loop start, ±100 ms.
 
-| # | t (s) | Event | What moves |
-|---|-------|-------|-----------|
-| 1 | 0.00–0.80 | **ACCUEIL idle** | Marquee scrolls (the only ambient motion). Universe pill on `Femmes`. |
-| 2 | 0.80 | **TAP** first product card | Touch dot; card presses `scale(.96)` 120 ms. |
-| 3 | 0.95–1.55 | **Card → Hero expand** (shared element) | §7.1 |
-| 4 | 1.45–2.40 | **Fiche content stagger-in** | §7.2 |
-| 5 | 2.40–3.60 | Fiche idle | — |
-| 6 | 3.65 | **TAP** `Ajouter au panier` | Button presses `scale(.94)`; touch dot; at 3.85 the **panier badge pops** + toast `Article ajouté au panier` slides up 300 ms (§7.3). |
-| 7 | 4.20–5.10 | Fiche idle | Toast fades out at 4.6 s. |
-| 8 | 5.20–5.65 | **Swipe-back** (left-edge swipe) | §7.4 |
-| 9 | 5.75–6.30 | **Tap pilule `Femmes`** | Touch dot on the pill; stretch §7.6. |
-| 10 | 6.60–7.50 | **Sheet catégories rises** | §7.5 |
-| 11 | 7.50–8.10 | **Barre "Boubous" + footer rise** | §7.7 |
-| 12 | 8.30 | **SWIPE UP** on the bar | Vertical pill indicator travels up ~120 px in 300 ms. |
-| 13 | 8.40–9.00 | **Panneau expands** | §7.8 |
-| 14 | 9.00–10.60 | Panel hold | — |
-| 15 | 10.60–11.10 | **SWIPE DOWN** → panel collapses | Reverse of §7.8, 500 ms `--ease-inout`; content fades in first 200 ms. |
-| 16 | 11.30 | **TAP back arrow** | Touch dot on the chevron. |
-| 17 | 11.50–12.00 | **Sheet exits right** | `translateX(0→100%)` 450 ms; bar + footer leave with it; ACCUEIL underneath `translateX(-6%) scale(.98)` → `0/1`. Silently reset the badge and pill. |
-| 18 | 12.00–14.00 | ACCUEIL idle → **loop** to step 2 | — |
+The cycle is cut into **five chained scenes**. Inside a scene, steps overlap by 50–150 ms so each gesture flows out of the previous one; between scenes, the finger glides to its next touchpoint (§8.4) while the screen is still settling.
+
+### Scène A — Découverte (accueil → fiche)
+| t (s) | Event | What moves |
+|-------|-------|-----------|
+| 0.00–0.80 | Idle | Marquee drifts; pill on `Femmes`. Dot appears on the first card at 0.74 (anticipation). |
+| 0.80 | **TAP** product card | Card presses `scale(.96)` 120 ms. |
+| 0.90–1.50 | **Card → Hero expand** | §7.1 — starts while the press is still releasing. |
+| 1.40–2.35 | **Stagger-in** | §7.2 — first elements land before the hero finishes. |
+| 2.35–3.55 | Hold | Dot glides down toward the CTA (§8.4). |
+
+### Scène B — Ajout au panier
+| t (s) | Event | What moves |
+|-------|-------|-----------|
+| 3.55 | **TAP** `Ajouter au panier` | Button `scale(.94)`; at 3.75 badge pops + toast slides up (§7.3). |
+| 3.80–5.05 | Hold | Toast leaves at 4.55; dot glides to the screen's left edge. |
+
+### Scène C — Retour & univers
+| t (s) | Event | What moves |
+|-------|-------|-----------|
+| 5.10–5.55 | **Swipe-back** | §7.4 — fiche slides right, ACCUEIL returns. |
+| 5.60–6.20 | **TAP `Femmes` pill** | Dot lands on the pill; stretch §7.6. |
+| 6.15–7.05 | **Sheet rises** | §7.5 — begins during the pill's settle, one continuous impulse. |
+| 6.75–7.35 | Grid stagger | Cards cascade while the sheet is still settling. |
+
+### Scène D — Catégorie « Boubous »
+| t (s) | Event | What moves |
+|-------|-------|-----------|
+| 6.90–7.40 | **Bar + footer rise** | §7.7 — lifted by the sheet's momentum, not after it. |
+| 8.15 | **SWIPE UP** on the bar | Vertical pill travels up ~120 px in 300 ms. |
+| 8.25–8.85 | **Panel expands** | §7.8 — rides the swipe's velocity. |
+| 8.85–10.45 | Hold | Thumbnails finish cascading ~9.3; panel rests. |
+
+### Scène E — Boucle
+| t (s) | Event | What moves |
+|-------|-------|-----------|
+| 10.45–10.95 | **SWIPE DOWN** → collapse | Reverse of §7.8, 500 ms; content fades in first 200 ms. |
+| 11.05–11.15 | **TAP back arrow** | Dot glides to the chevron, taps. |
+| 11.30–11.75 | **Sheet exits right** | `translateX(0→100%)` 450 ms; ACCUEIL returns `translateX(-6%) scale(.98)` → `0/1`. Badge and pill reset silently. |
+| 11.75–13.50 | Idle → **loop** to Scène A | Marquee drifts; dot fades back in over the first card at 13.4. |
+
 
 ## 7. TRANSITION SPECS
+
+Each transition below is written to **chain into the next one** — see §6 for the scene timings and §8 for how the finger travels between gestures.
 
 ### 7.1 Card → Hero expand (shared-element / FLIP)
 1. Measure the tapped card's image rect `A` and the hero rect `B` (`getBoundingClientRect`).
@@ -208,10 +231,11 @@ Full-height black layer `translateY` from "bar position" to "panel top" 600 ms `
 
 ## 8. TOUCH INDICATOR (`#touch`)
 
-Green (`--accent`), above everything, `pointer-events:none`, phone coordinates. Three variants:
+Green (`--accent`), above everything, `pointer-events:none`, phone coordinates. Three shapes, plus one behaviour:
 1. **Tap**: filled circle 28 px at ~90 % opacity inside a 44 px ring (25 %). Enter `scale(.4→1)` 150 ms `--ease-pop`; hold 250 ms; exit `scale(1→1.4)` + fade 250 ms.
 2. **Swipe horizontal**: outlined rounded rect, 2 px `--accent` stroke, ≈ 46×14, radius 7 — travels with the gesture (same duration/easing as the dragged layer).
 3. **Swipe vertical**: same pill rotated 90° (≈ 14×46).
+4. **Glide between gestures** — whenever two touch events are separated by ≥ 300 ms, the tap dot does not teleport: it eases (`translate`, 200–300 ms, `--ease-inout`) to the next touchpoint, like a real finger crossing the screen. During shorter gaps it simply fades out/in.
 
 The indicator moves **in sync** with whatever it drags.
 
@@ -219,6 +243,8 @@ The indicator moves **in sync** with whatever it drags.
 
 - **Layout**: `.dv-device` (390×844 ratio, radius `--r-device`, `--shadow-device`) centered on `--page-bg`; `cqw` for all dimensions.
 - **Engine**: one `timeline()` async function; each step = `Promise.all([...animate(...).finished])`; a `reset()` restores every layer so the loop is seamless.
+- **Rhythm**: chain steps with 50–150 ms overlaps at scene boundaries; the only near-static frames are the scene holds, and even then the marquee keeps drifting.
+- **Anticipation**: the touch dot materializes ~60 ms before its gesture starts; after the last gesture of a scene it glides toward the next touchpoint (§8.4).
 - **Modes**: `data-mode="autoplay"` (scripted cycle + indicator, `aria-hidden`, decorative) | `data-mode="interactive"` (no indicator; real handlers reusing the same animation functions). Default = `DEFAULT_MODE`.
 - **Images**: `PRODUCT_IMAGES = "placeholders"` → inline SVG garments on `--photo-bg` (boubou, robe, sac, chemise) + wax-pattern gradients for featured shots. If Cloudinary URLs are provided, use plain `<img>` with `loading="lazy"`.
 - **Icons**: inline SVG matching the app's lucide set (chevron, heart, bag, search, ▸, star).
@@ -234,7 +260,8 @@ The indicator moves **in sync** with whatever it drags.
 | Which universe to feature | `Femmes` → category `Boubous` (signature ivoirienne, matches CDC §4.4). |
 | Split CTA (heart|bag) from the reference video | Replaced by the real single CTA `Ajouter au panier`; the favori heart lives on the fiche top bar. |
 | Bottom nav in the demo | The real `NavBas` 5 items (Accueil/Recherche/Panier/Commandes/Compte), static icons + active bubble — no need to reproduce the liquid sink animation inside a demo. |
-| Checkout / payment screens | Out of the loop (cycle stays ~14 s); payment methods only appear in the marquee copy. |
+| Checkout / payment screens | Out of the loop (cycle stays ~13.5 s); payment methods only appear in the marquee copy. |
+| Scene boundaries | 50–150 ms overlap; the touch dot glides to the next touchpoint (§8.4). |
 | Prices | Whole FCFA amounts with thin-space thousands (`25 000 FCFA`). |
 
 ## 11. DO NOT
@@ -249,7 +276,8 @@ The indicator moves **in sync** with whatever it drags.
 ## 12. QA CHECKLIST (verify each, fix, then answer)
 
 - [ ] Single component file, `"use client"`, typechecks (`npx tsc --noEmit`), no console errors.
-- [ ] Loop runs ≈ 14 s and restarts **seamlessly** (badge reset, pill back on `Femmes`, no flash).
+- [ ] Loop runs ≈ 13.5 s and restarts **seamlessly** (badge reset, pill back on `Femmes`, no flash).
+- [ ] Scenes chain with visible 50–150 ms overlaps; the finger glides between touchpoints — no teleporting, no frozen frame (marquee drifts during holds).
 - [ ] Card → hero expansion is a true shared-element motion (image never stretched or jumping).
 - [ ] Product name reveals through a left mask; stagger order matches §7.2.
 - [ ] `Ajouter au panier` tap → badge pops with overshoot on header pill + nav icon; toast appears then leaves.
@@ -278,4 +306,5 @@ Ce qui a été changé par rapport au prompt d'origine (`prompt_animation_mobile
 - **Écrans** : mappés sur l'app existante — accueil (salutation, pilule recherche, HeroPromo, marquee avantages, nouveautés), fiche produit (chips verre, CTA unique « Ajouter au panier », favori), navigation par univers (Femmes → Boubous), barre du bas façon `NavBas` 5 onglets.
 - **Contenu** : français, prix FCFA entiers, produits adaptés (Boubou Bazin, Robe Wax, Sac Tissé…), moyens de paiement réels dans le marquee (Wave, Orange Money, MTN, Moov, paiement à la livraison).
 - **Conformité CDC** : pas de codes promo (§6.4), retours par téléphone/WhatsApp (§9.7), univers Enfants/Hommes/Femmes/Accessoires (§4.1), animations « fluides, élégantes et légères » (§7.6), mobile-first (§7.7).
-- **Améliorations** : étape « ajout panier » avec badge + toast (le vrai comportement du site), cycle allongé à ~14 s pour respirer, sections DO NOT/QA renforcées, tableau des décisions par défaut.
+- **Améliorations** : étape « ajout panier » avec badge + toast (le vrai comportement du site), cycle ~13,5 s resserré, sections DO NOT/QA renforcées, tableau des décisions par défaut.
+- **Fluidité (v2)** : storyboard découpé en 5 scènes enchaînées (A→E) avec recouvrements de 50–150 ms — chaque geste naît de la fin du précédent ; le doigt glisse entre les points de contact au lieu de se téléporter (§8.4) ; anticipation ~60 ms avant chaque tap ; le marquee reste en mouvement pendant les temps de pose, aucune image n’est figée.
