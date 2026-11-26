@@ -79,6 +79,7 @@ export function CheckoutForm({
   defauts: { nom: string; email: string; telephone: string };
 }) {
   const [communeId, setCommuneId] = useState<number | null>(null);
+  const [listeOuverte, setListeOuverte] = useState(false);
   const [mode, setMode] = useState<Mode>("en_ligne");
   const [moyen, setMoyen] = useState<Moyen>("wave");
   const [infos, setInfos] = useState({
@@ -107,6 +108,24 @@ export function CheckoutForm({
   function soumettre(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErreur("");
+    if (!coordonneesOk) {
+      setErreur(
+        "Complétez vos coordonnées : nom, téléphone (8 chiffres min.) et email valide.",
+      );
+      document
+        .getElementById("etape-coordonnees")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (!livraisonOk) {
+      setErreur(
+        "Choisissez votre commune de livraison et indiquez un repère pour le livreur.",
+      );
+      document
+        .getElementById("etape-livraison")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     start(async () => {
       const res = await creerCommande({
         client: { nom: infos.nom, telephone: infos.telephone, email: infos.email },
@@ -138,7 +157,7 @@ export function CheckoutForm({
       </div>
 
       {/* 1 — Coordonnées */}
-      <section data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+      <section id="etape-coordonnees" data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
         <TitreEtape n={1} titre="Vos coordonnées" fait={coordonneesOk} />
         <div className="grid gap-3">
           <Champ label="Nom complet" name="nom" required autoComplete="name" value={infos.nom} onChange={maj("nom")} />
@@ -153,32 +172,73 @@ export function CheckoutForm({
       </section>
 
       {/* 2 — Livraison */}
-      <section data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+      <section id="etape-livraison" data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
         <TitreEtape n={2} titre="Où livrer ?" fait={livraisonOk} />
-        <label className="relative block">
-          <select
-            required
-            value={communeId ?? ""}
-            onChange={(e) =>
-              setCommuneId(e.target.value ? Number(e.target.value) : null)
-            }
-            className="w-full appearance-none rounded-2xl border border-black/10 bg-blanc-casse px-4 pb-2.5 pt-6 text-sm text-noir outline-none transition focus:border-vert focus:bg-white focus:ring-4 focus:ring-vert/10"
+        <div className="relative">
+          <button
+            type="button"
+            aria-haspopup="listbox"
+            aria-expanded={listeOuverte}
+            onClick={() => setListeOuverte((o) => !o)}
+            className="flex w-full items-center rounded-2xl border border-black/10 bg-blanc-casse px-4 pb-2.5 pt-6 text-left text-sm text-noir outline-none transition focus:border-vert focus:bg-white focus:ring-4 focus:ring-vert/10"
           >
-            <option value="" disabled>
-              Choisir votre commune…
-            </option>
-            {communes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nom} ({fcfa(c.tarif)})
-              </option>
-            ))}
-          </select>
+            {commune ? (
+              <>
+                <span className="truncate font-semibold">{commune.nom}</span>
+                <span className="ml-auto shrink-0 pl-3 tabular-nums font-bold text-vert">
+                  {fcfa(commune.tarif)}
+                </span>
+              </>
+            ) : (
+              <span className="text-gris-fonce">Choisir votre commune…</span>
+            )}
+          </button>
           <span className={etiquette}>Commune de livraison</span>
           <ChevronDown
             aria-hidden
-            className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-gris-fonce"
+            className={`pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-gris-fonce transition-transform ${listeOuverte ? "rotate-180" : ""}`}
           />
-        </label>
+          {listeOuverte && (
+            <>
+              <button
+                type="button"
+                aria-label="Fermer la liste"
+                onClick={() => setListeOuverte(false)}
+                className="fixed inset-0 z-10 cursor-default"
+              />
+              <ul
+                role="listbox"
+                aria-label="Commune de livraison"
+                className="absolute inset-x-0 top-full z-20 mt-1.5 max-h-60 overflow-y-auto overscroll-contain rounded-2xl bg-white py-1.5 shadow-xl ring-1 ring-black/10"
+              >
+                {communes.map((c) => {
+                  const actif = c.id === communeId;
+                  return (
+                    <li key={c.id} role="option" aria-selected={actif}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCommuneId(c.id);
+                          setListeOuverte(false);
+                        }}
+                        className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm transition ${
+                          actif
+                            ? "bg-vert-clair/60 font-bold text-vert"
+                            : "font-semibold text-noir hover:bg-vert-clair/40"
+                        }`}
+                      >
+                        <span className="truncate">{c.nom}</span>
+                        <span className="shrink-0 tabular-nums">
+                          {fcfa(c.tarif)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </div>
         {commune?.quartiersInclus && commune.quartiersInclus !== commune.nom && (
           <p className="page-in mt-2 text-xs text-gris-fonce">
             Quartiers couverts : {commune.quartiersInclus}
@@ -333,8 +393,11 @@ export function CheckoutForm({
 
         <button
           type="submit"
-          disabled={pending || !coordonneesOk || !livraisonOk}
-          className="press shine mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-vert py-4 text-sm font-bold text-white transition hover:bg-[#24915d] disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={pending}
+          aria-disabled={!coordonneesOk || !livraisonOk}
+          className={`press shine mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-vert py-4 text-sm font-bold text-white transition hover:bg-[#24915d] disabled:opacity-60 ${
+            coordonneesOk && livraisonOk ? "" : "opacity-50"
+          }`}
         >
           {pending ? (
             <>
