@@ -145,6 +145,13 @@ export async function envoyerBonCommande(commandeId: number) {
       where: { id: c.id },
       data: { bonEnvoyeLe: new Date() },
     });
+  } else {
+    await signalerEchecEmail(
+      `echec_email:${c.reference}`,
+      `Bon de commande ${c.reference} non envoyé`,
+      `Le bon de commande destiné à <strong>${c.clientEmail}</strong> n'a pas pu être envoyé. Le client n'a rien reçu — prévenez-le par téléphone/WhatsApp.`,
+      c.id
+    );
   }
 }
 
@@ -160,7 +167,7 @@ export async function envoyerBonCommandeMaj(commandeId: number): Promise<boolean
   });
   if (!c || !c.clientEmail) return false;
   const lien = `${process.env.AUTH_URL ?? ""}/commande/${c.reference}`;
-  return !!(await notifier(
+  const ok = !!(await notifier(
     `bonmaj:${c.reference}:${c.statut}:${(c.delaiLivraison ?? "").trim().toLowerCase()}`,
     "bon_commande",
     c.clientEmail,
@@ -176,6 +183,15 @@ export async function envoyerBonCommandeMaj(commandeId: number): Promise<boolean
     </div>`,
     c.id
   ));
+  if (!ok) {
+    await signalerEchecEmail(
+      `echec_email_maj:${c.reference}:${c.statut}`,
+      `Email client non envoyé (commande ${c.reference})`,
+      `L'email destiné à <strong>${c.clientEmail}</strong> n'a pas pu partir.`,
+      c.id
+    );
+  }
+  return ok;
 }
 
 // Notification de changement de statut (CDC 12.3)
@@ -203,6 +219,27 @@ export async function notifierStatutCommande(commandeId: number) {
       <p>Merci de votre confiance.</p>
     </div>`,
     c.id
+  );
+}
+
+// Signale à l'admin qu'un email client n'a pas pu partir (ex. domaine
+// expéditeur non vérifié chez Resend). Dédupliqué par clé : un seul signal
+// par échec distinct.
+async function signalerEchecEmail(
+  cle: string,
+  sujet: string,
+  detail: string,
+  commandeId?: number
+) {
+  const admin = process.env.ADMIN_EMAIL;
+  if (!admin) return;
+  await notifier(
+    cle,
+    "alerte_admin_anomalie",
+    admin,
+    `[SOUKEYNA] ${sujet}`,
+    `<p>${detail}</p><p style="font-size:12px;color:#888">Cause fréquente : l'expéditeur EMAIL_FROM n'est pas un domaine vérifié dans Resend — vérifiez le domaine sur resend.com/domains puis mettez à jour EMAIL_FROM.</p>`,
+    commandeId
   );
 }
 
