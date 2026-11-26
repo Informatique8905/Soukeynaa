@@ -2,7 +2,6 @@
 
 import { useLayoutEffect, useRef } from "react";
 import Link from "next/link";
-import gsap from "gsap";
 
 /** Bannière promo de l’accueil, animée à l’entrée. */
 export function HeroPromo({
@@ -20,12 +19,20 @@ export function HeroPromo({
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     // Téléphone : bannière statique (page fixe)
     if (!window.matchMedia("(min-width: 768px)").matches) return;
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ delay: 0.15 });
-      tl.from(".hp-txt > *", { y: 18, opacity: 0, duration: 0.6, stagger: 0.09, ease: "power3.out" })
-        .from(".hp-img", { scale: 0.7, rotation: -8, opacity: 0, duration: 0.8, ease: "back.out(1.6)" }, 0.1);
-    }, el);
-    return () => ctx.revert();
+    let mort = false;
+    let ctx: { revert(): void } | null = null;
+    void import("gsap").then(({ gsap }) => {
+      if (mort) return;
+      ctx = gsap.context(() => {
+        const tl = gsap.timeline({ delay: 0.15 });
+        tl.from(".hp-txt > *", { y: 18, opacity: 0, duration: 0.6, stagger: 0.09, ease: "power3.out" })
+          .from(".hp-img", { scale: 0.7, rotation: -8, opacity: 0, duration: 0.8, ease: "back.out(1.6)" }, 0.1);
+      }, el);
+    });
+    return () => {
+      mort = true;
+      ctx?.revert();
+    };
   }, []);
 
   return (

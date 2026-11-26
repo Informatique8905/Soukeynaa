@@ -10,6 +10,7 @@ import { MotionRoot } from "@/components/motion/MotionRoot";
 import { NavProgress } from "@/components/motion/NavProgress";
 import { RetourHaut } from "@/components/boutique/RetourHaut";
 import { LienFavoris } from "@/components/boutique/LienFavoris";
+import { BadgePanier } from "@/components/boutique/BadgePanier";
 import { EnTete } from "@/components/boutique/EnTete";
 
 const AVANTAGES = [
@@ -103,14 +104,10 @@ export default async function BoutiqueLayout({
               className="press relative rounded-full bg-vert px-3.5 py-2.5 text-xs font-bold text-white shadow-md shadow-vert/25 hover:bg-vert-fonce"
             >
               Panier
-              {panierCount > 0 && (
-                <span
-                  key={panierCount}
-                  className="pop absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-noir px-1 text-[10px] font-bold text-white ring-2 ring-white"
-                >
-                  {panierCount > 99 ? "99+" : panierCount}
-                </span>
-              )}
+              <BadgePanier
+                count={panierCount}
+                className="pop absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-noir px-1 text-[10px] font-bold text-white ring-2 ring-white"
+              />
             </Link>
           </div>
         </div>

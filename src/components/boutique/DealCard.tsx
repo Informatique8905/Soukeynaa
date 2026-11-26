@@ -14,15 +14,15 @@ export function DealCard({ p, categorie }: { p: CarteProduit; categorie?: string
     <Link
       href={`/produit/${p.slug}`}
       data-reveal="scale"
-      className="cv-auto lift press group relative flex w-52 shrink-0 snap-start flex-col items-center overflow-hidden rounded-3xl bg-gradient-to-br from-vert to-vert-fonce p-4 pt-5 text-center text-white shadow-md shadow-vert/20 md:w-56"
+      className="cv-auto lift press group relative flex w-40 shrink-0 snap-start flex-col items-center overflow-hidden rounded-3xl bg-gradient-to-br from-vert to-vert-fonce p-3 pt-4 text-center text-white shadow-md shadow-vert/20 md:w-44"
     >
       <span aria-hidden className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-white/10 transition-transform duration-700 group-hover:scale-150" />
       {reduction > 0 && (
-        <span className="absolute left-3 top-3 rounded-full bg-dore px-2.5 py-1 text-xs font-extrabold text-noir shadow">
+        <span className="absolute left-2.5 top-2.5 rounded-full bg-dore px-2 py-0.5 text-[11px] font-extrabold text-noir shadow">
           -{reduction}%
         </span>
       )}
-      <div className="zoom-scroll relative mt-4 h-28 w-28 overflow-hidden rounded-full bg-white/20 ring-4 ring-white/30 transition-transform duration-500 group-hover:-rotate-3 group-hover:scale-105">
+      <div className="zoom-scroll relative mt-3 h-20 w-20 overflow-hidden rounded-full bg-white/20 ring-[3px] ring-white/30 transition-transform duration-500 group-hover:-rotate-3 group-hover:scale-105">
         {p.image ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
@@ -39,15 +39,15 @@ export function DealCard({ p, categorie }: { p: CarteProduit; categorie?: string
         )}
       </div>
       {categorie && (
-        <p className="relative mt-3 text-[11px] uppercase tracking-wider opacity-80">
+        <p className="relative mt-2.5 text-[10px] uppercase tracking-wider opacity-80">
           {categorie}
         </p>
       )}
-      <p className="relative mt-0.5 line-clamp-2 text-sm font-semibold leading-tight">
+      <p className="relative mt-0.5 line-clamp-2 text-[13px] font-semibold leading-tight">
         {p.nom}
       </p>
-      <p className="relative mt-2 text-sm">
-        <span className="text-base font-extrabold">{fcfa(p.prixAffiche)}</span>
+      <p className="relative mt-1.5 text-sm">
+        <span className="text-sm font-extrabold">{fcfa(p.prixAffiche)}</span>
         {p.prixAffiche < p.prix && (
           <span className="ml-1.5 text-xs line-through opacity-60">
             {fcfa(p.prix)}

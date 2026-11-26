@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import DishOrbitCarousel, { type Dish } from "@/components/ui/dish-orbit-carousel";
 import { ajouterAuPanier } from "@/app/(boutique)/panier/actions";
+import { deltaPanier } from "@/components/boutique/BadgePanier";
 import { cloud } from "@/lib/image";
 
 export interface LigneVariante {
@@ -279,8 +280,12 @@ export function FicheProduit({
       onAddToCart={async (dish, index, taille) => {
         const varianteId =
           cles[`${couleurParSlide[index]}|${taille ?? "Unique"}`] ?? null;
+        deltaPanier(1);
         const res = await ajouterAuPanier(produitId, varianteId, 1);
-        if (res?.erreur) throw new Error(res.erreur);
+        if (res?.erreur) {
+          deltaPanier(-1);
+          throw new Error(res.erreur);
+        }
         router.refresh();
       }}
       />

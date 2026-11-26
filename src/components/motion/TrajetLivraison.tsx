@@ -1,7 +1,6 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import gsap from "gsap";
 
 // Suivi de commande : frise typographique sobre (points + ligne, pas
 // d'illustration). La progression se remplit en douceur.
@@ -21,13 +20,19 @@ export function TrajetLivraison({
     const el = barre.current;
     if (!el) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const tween = gsap.fromTo(
-      el,
-      { scaleX: 0 },
-      { scaleX: frac, duration: 1 + frac, ease: "power2.inOut" }
-    );
+    let mort = false;
+    let tween: { kill(): void } | null = null;
+    void import("gsap").then(({ gsap }) => {
+      if (mort) return;
+      tween = gsap.fromTo(
+        el,
+        { scaleX: 0 },
+        { scaleX: frac, duration: 1 + frac, ease: "power2.inOut" }
+      );
+    });
     return () => {
-      tween.kill();
+      mort = true;
+      tween?.kill();
     };
   }, [frac]);
 

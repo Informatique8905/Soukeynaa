@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 // Révélation au scroll pour tout élément [data-reveal] de la page — y compris
 // les composants serveur (il suffit d'ajouter l'attribut) :
@@ -15,7 +13,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 // mêmes distances que les keyframes rv-in-mobile de globals.css.
 // Les éléments ajoutés plus tard sont pris en charge via MutationObserver.
 // Sans JS ou en mouvement réduit : tout reste visible.
-const FROM: Record<string, gsap.TweenVars> = {
+const FROM: Record<string, Record<string, number | string>> = {
   "": { y: 28 },
   left: { x: -28 },
   scale: { scale: 0.92 },
@@ -155,9 +153,19 @@ export function MotionRoot() {
         stopMobile();
       };
     }
-    // Desktop sans support natif (Firefox…) : repli GSAP ScrollTrigger.
-    gsap.registerPlugin(ScrollTrigger);
-    const root = document.documentElement;
+    // Desktop sans support natif (Firefox…) : repli GSAP ScrollTrigger,
+    // chargé à la demande — GSAP ne pèse plus sur le bundle initial
+    // des navigateurs modernes (Chromium, Safari ≥ 26).
+    let mort = false;
+    let stop: (() => void) | null = null;
+    void (async () => {
+      const [{ gsap }, { ScrollTrigger }] = await Promise.all([
+        import("gsap"),
+        import("gsap/ScrollTrigger"),
+      ]);
+      if (mort) return;
+      gsap.registerPlugin(ScrollTrigger);
+      const root = document.documentElement;
 
     let raf = 0;
     const triggers: ScrollTrigger[] = [];
@@ -220,14 +228,20 @@ export function MotionRoot() {
         });
     }, 1500);
 
-    return () => {
-      stopOndes();
+    stop = () => {
       window.removeEventListener("load", demarrer);
       mo.disconnect();
       cancelAnimationFrame(raf);
       clearInterval(secours);
       triggers.forEach((t) => t.kill());
       root.classList.remove("js-motion");
+    };
+    })();
+
+    return () => {
+      mort = true;
+      stopOndes();
+      stop?.();
     };
   }, []);
 

@@ -11,6 +11,7 @@ import {
   User,
 } from "lucide-react";
 import LiquidTabBar, { type LiquidTab } from "@/components/ui/liquid-tab-bar";
+import { useCompteurPanier } from "@/components/boutique/BadgePanier";
 
 const ITEMS: (LiquidTab & { href: string })[] = [
   { href: "/", label: "Accueil", icon: <House /> },
@@ -23,6 +24,7 @@ const ITEMS: (LiquidTab & { href: string })[] = [
 /** Barre de navigation mobile fixe en bas — bulle « liquide » animée. */
 export function NavBas({ cartCount }: { cartCount: number }) {
   const pathname = usePathname();
+  const badgePanier = useCompteurPanier(cartCount);
   // Se masque en descendant, réapparaî en remontant : plus
   // d'écran pour le contenu, navigation toujours à portée.
   const [cachee, setCachee] = useState(false);
@@ -61,7 +63,7 @@ export function NavBas({ cartCount }: { cartCount: number }) {
         items={ITEMS.map((it) => ({
           label: it.label,
           icon: it.icon,
-          badge: it.href === "/panier" ? cartCount : undefined,
+          badge: it.href === "/panier" ? badgePanier || undefined : undefined,
         }))}
         index={index}
         iconColor="#9aa1a8"

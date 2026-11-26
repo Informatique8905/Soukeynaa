@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ajouterAuPanier } from "@/app/(boutique)/panier/actions";
+import { deltaPanier } from "@/components/boutique/BadgePanier";
 import { fcfa } from "@/lib/format";
 
 interface Variante {
@@ -43,10 +44,14 @@ export function AjoutPanier({
     }
     start(async () => {
       try {
+        deltaPanier(quantite);
         const res = await ajouterAuPanier(produitId, varianteId, quantite);
-        if (res?.erreur) setErreur(res.erreur);
-        else setOk(true);
+        if (res?.erreur) {
+          deltaPanier(-quantite);
+          setErreur(res.erreur);
+        } else setOk(true);
       } catch {
+        deltaPanier(-quantite);
         setErreur("Erreur");
       }
     });

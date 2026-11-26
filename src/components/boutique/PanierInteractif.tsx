@@ -7,6 +7,7 @@ import { modifierQuantite, retirerLigne } from "@/app/(boutique)/panier/actions"
 import { fcfa } from "@/lib/format";
 import { cloud } from "@/lib/image";
 import { EtatVide } from "@/components/motion/EtatVide";
+import { deltaPanier } from "@/components/boutique/BadgePanier";
 import type { LignePanier } from "@/lib/cart";
 
 type Action =
@@ -35,16 +36,22 @@ export function PanierInteractif({ lignes }: { lignes: LignePanier[] }) {
   );
   const [pending, start] = useTransition();
 
-  const changer = (ligneId: number, quantite: number) =>
+  const changer = (ligneId: number, quantite: number) => {
+    const avant = optimistes.find((l) => l.id === ligneId)?.quantite;
+    if (avant !== undefined) deltaPanier(quantite - avant);
     start(async () => {
       majOptimiste({ type: "quantite", ligneId, quantite });
       await modifierQuantite(ligneId, quantite);
     });
-  const retirer = (ligneId: number) =>
+  };
+  const retirer = (ligneId: number) => {
+    const ligne = optimistes.find((l) => l.id === ligneId);
+    if (ligne) deltaPanier(-ligne.quantite);
     start(async () => {
       majOptimiste({ type: "retirer", ligneId });
       await retirerLigne(ligneId);
     });
+  };
 
   if (optimistes.length === 0) {
     return (
