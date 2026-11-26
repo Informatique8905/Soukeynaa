@@ -172,6 +172,7 @@ export default async function Accueil() {
                 src={cloud(b.url, 1200) ?? b.url}
                 alt={b.titre ?? `Bannière ${i + 1}`}
                 loading={i === 0 ? "eager" : "lazy"}
+                fetchPriority={i === 0 ? "high" : "auto"}
                 decoding="async"
                 className="h-full w-full object-cover"
               />

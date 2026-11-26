@@ -26,7 +26,7 @@ export function ProductCard({ p }: { p: CarteProduit }) {
       href={`/produit/${p.slug}`}
       prefetch={true}
       data-reveal
-      className="lift press group block rounded-3xl bg-white p-2 shadow-sm ring-1 ring-black/5"
+      className="cv-auto lift press group block rounded-3xl bg-white p-2 shadow-sm ring-1 ring-black/5"
     >
       <div className="zoom-scroll relative aspect-[4/5] overflow-hidden rounded-[1.25rem] bg-gris">
         {p.image ? (
@@ -44,7 +44,7 @@ export function ProductCard({ p }: { p: CarteProduit }) {
           </div>
         )}
         {reduction > 0 && (
-          <span className="absolute left-2 top-2 rounded-full bg-vert px-2.5 py-1 text-[11px] font-extrabold text-white shadow-md shadow-vert/30">
+          <span className="absolute left-2 top-2 rounded-full bg-bordeaux px-2.5 py-1 text-[11px] font-extrabold text-white shadow-md shadow-bordeaux/30">
             -{reduction}%
           </span>
         )}

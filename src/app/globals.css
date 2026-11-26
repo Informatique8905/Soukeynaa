@@ -454,6 +454,16 @@ label {
   animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* Listes longues : le navigateur saute le rendu des éléments hors écran
+   (layout + paint) — défilement bien plus fluide sur les résultats de
+   recherche et les pages catégorie */
+@supports (content-visibility: auto) {
+  .cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 340px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html.js-motion [data-reveal] {
     opacity: 1;

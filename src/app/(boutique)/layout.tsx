@@ -119,7 +119,7 @@ export default async function BoutiqueLayout({
       <div className="print:hidden"><NavBas cartCount={panierCount} /></div>
       <RetourHaut />
 
-      <footer className="relative mt-10 overflow-hidden rounded-t-[1.5rem] bg-noir text-white md:mt-16 md:rounded-t-[2rem] print:hidden">
+      <footer className="cv-auto relative mt-10 overflow-hidden rounded-t-[1.5rem] bg-noir text-white md:mt-16 md:rounded-t-[2rem] print:hidden">
         <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-vert/25 blur-3xl" />
 
         {/* Mobile : footer compact, sections repliables */}
