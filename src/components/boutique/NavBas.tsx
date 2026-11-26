@@ -28,8 +28,12 @@ export function NavBas({ cartCount }: { cartCount: number }) {
   // Se masque en descendant, réapparaî en remontant : plus
   // d'écran pour le contenu, navigation toujours à portée.
   const [cachee, setCachee] = useState(false);
+  // Hystérésis (~30 px cumulés par sens) comme EnTete : la barre ne bascule
+  // qu'après un vrai mouvement, pas au moindre tremblement du défilement.
   useEffect(() => {
     let derniere = window.scrollY;
+    let cumul = 0;
+    let sens: 1 | -1 = 1;
     let ticking = false;
     const auScroll = () => {
       if (ticking) return;
@@ -39,9 +43,20 @@ export function NavBas({ cartCount }: { cartCount: number }) {
         const delta = y - derniere;
         derniere = y;
         ticking = false;
-        if (y < 64) setCachee(false);
-        else if (delta > 6) setCachee(true);
-        else if (delta < -4) setCachee(false);
+        if (y < 64) {
+          cumul = 0;
+          setCachee(false);
+          return;
+        }
+        const d = delta > 0 ? 1 : -1;
+        if (d !== sens) {
+          sens = d;
+          cumul = 0;
+        }
+        cumul += Math.abs(delta);
+        if (cumul < 30) return;
+        cumul = 0;
+        setCachee(d === 1);
       });
     };
     window.addEventListener("scroll", auScroll, { passive: true });
