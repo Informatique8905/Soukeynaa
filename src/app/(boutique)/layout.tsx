@@ -10,6 +10,7 @@ import { MotionRoot } from "@/components/motion/MotionRoot";
 import { NavProgress } from "@/components/motion/NavProgress";
 import { RetourHaut } from "@/components/boutique/RetourHaut";
 import { LienFavoris } from "@/components/boutique/LienFavoris";
+import { EnTete } from "@/components/boutique/EnTete";
 
 const AVANTAGES = [
   "Livraison dans tout Abidjan",
@@ -54,8 +55,9 @@ export default async function BoutiqueLayout({
           ))}
         </div>
       </div>
-      {/* En-tête façon app : se compacte et prend une ombre au scroll */}
-      <header className="hdr-scroll sticky top-0 z-40 border-b border-black/5 bg-white/95 backdrop-blur-md print:hidden">
+      {/* En-tête façon app : se compacte, se masque en descendant et
+          revient en remontant (le contenu respire, la nav reste à portée) */}
+      <EnTete>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
           <Link href="/" aria-label="Accueil SOUKEYNA" className="press shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -112,7 +114,7 @@ export default async function BoutiqueLayout({
             </Link>
           </div>
         </div>
-      </header>
+      </EnTete>
 
       <div className="flex-1 pb-[100px] md:pb-0"><ViewTransition>{children}</ViewTransition></div>
 

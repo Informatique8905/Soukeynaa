@@ -7,6 +7,9 @@ import { cloud } from "@/lib/image";
 import { auth } from "@/auth";
 import { ProductCard, type CarteProduit } from "@/components/boutique/ProductCard";
 import { DealCard } from "@/components/boutique/DealCard";
+import { PiluleRecherche } from "@/components/boutique/PiluleRecherche";
+import { CarrouselBannieres } from "@/components/boutique/CarrouselBannieres";
+import { Truck, HandCoins, Smartphone, RefreshCcw } from "lucide-react";
 
 interface ImageJson {
   url?: string;
@@ -115,17 +118,15 @@ export default async function Accueil() {
         </h1>
       </div>
 
-      {/* Pilule de recherche */}
-      <Link
-        href="/recherche"
-        data-reveal
-        className="press group mt-4 flex items-center gap-3 rounded-full bg-white px-4 py-3.5 text-sm text-gris-fonce shadow-sm ring-1 ring-black/5 hover:ring-vert/40"
-      >
-        <span className="flex-1">Rechercher un article, une catégorie…</span>
-        <span className="hidden rounded-full bg-vert-clair px-2.5 py-1 text-[11px] font-semibold text-vert sm:inline">
-          Rechercher
-        </span>
-      </Link>
+      {/* Pilule de recherche : le placeholder tourne entre les catégories */}
+      <PiluleRecherche
+        exemples={[
+          "Rechercher un article, une catégorie…",
+          ...cartesCategories
+            .slice(0, 5)
+            .map((c) => `Rechercher « ${c.nom} »`),
+        ]}
+      />
 
       {/* Entrées par public : repère immédiat sans connaîre les noms (CDC 7.2) */}
       <nav
@@ -161,10 +162,7 @@ export default async function Accueil() {
 
       {/* Bannières administrables (CDC 7.1) */}
       {bannieres.length > 0 && (
-        <section
-          aria-label="Bannières"
-          className="no-scrollbar mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1"
-        >
+        <CarrouselBannieres nombre={bannieres.length}>
           {bannieres.map((b, i) => {
             const img = (
               /* eslint-disable-next-line @next/next/no-img-element */
@@ -196,7 +194,7 @@ export default async function Accueil() {
               </div>
             );
           })}
-        </section>
+        </CarrouselBannieres>
       )}
 
       {/* Bannière promo animée (SVG) */}
@@ -242,6 +240,34 @@ export default async function Accueil() {
           </div>
         </section>
       )}
+
+      {/* Réassurance : les engagements réels de la boutique */}
+      <section
+        aria-label="Nos engagements"
+        data-reveal
+        className="mt-8 grid grid-cols-2 gap-2.5 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:grid-cols-4"
+      >
+        {[
+          { icone: <Truck className="size-5" aria-hidden />, t: "Livraison Abidjan", s: "Toutes les communes" },
+          { icone: <HandCoins className="size-5" aria-hidden />, t: "À la livraison", s: "Payez à réception" },
+          { icone: <Smartphone className="size-5" aria-hidden />, t: "Mobile money", s: "Wave · OM · MTN · Moov" },
+          { icone: <RefreshCcw className="size-5" aria-hidden />, t: "Échanges faciles", s: "Par WhatsApp" },
+        ].map((r) => (
+          <div key={r.t} className="flex items-center gap-2.5 rounded-2xl bg-blanc-casse px-3 py-2.5">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-vert-clair text-vert">
+              {r.icone}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[12.5px] font-bold text-noir">
+                {r.t}
+              </span>
+              <span className="block truncate text-[11px] text-gris-fonce">
+                {r.s}
+              </span>
+            </span>
+          </div>
+        ))}
+      </section>
 
       {/* Offres du moment */}
       {cartesPromos.length > 0 && (

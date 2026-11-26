@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { getPrisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { getPanierDetails } from "@/lib/cart";
@@ -56,6 +56,36 @@ export default async function CommanderPage() {
 
       <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-5 md:items-start">
         <div className="md:col-span-3">
+          {/* Récapitulatif pliable — mobile : le total reste visible
+              sans ouvrir, le détail se déplie au tap */}
+          <details className="group mb-5 rounded-3xl bg-white shadow-sm ring-1 ring-black/5 md:hidden">
+            <summary className="flex h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-bold text-noir [&::-webkit-details-marker]:hidden">
+              <span className="flex items-center gap-2">
+                Récapitulatif
+                <span className="rounded-full bg-vert-clair px-2 py-0.5 text-[11px] font-bold text-vert">
+                  {nbArticles} article{nbArticles > 1 ? "s" : ""}
+                </span>
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="tabular-nums font-extrabold text-vert">
+                  {fcfa(panier.sousTotal)}
+                </span>
+                <ChevronDown className="size-4 text-gris-fonce transition-transform group-open:rotate-180" />
+              </span>
+            </summary>
+            <ul className="space-y-2.5 border-t border-black/5 px-4 py-3 text-sm">
+              {panier.lignes.map((l) => (
+                <li key={l.id} className="flex items-center justify-between gap-3">
+                  <span className="min-w-0 truncate text-gris-fonce">
+                    {l.quantite} × {l.nom}
+                  </span>
+                  <span className="shrink-0 font-medium tabular-nums">
+                    {fcfa(l.total)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </details>
           <CheckoutForm
             communes={communes.map((c) => ({
               id: c.id,

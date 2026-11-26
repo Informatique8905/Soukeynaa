@@ -581,6 +581,18 @@ label {
   }
 }
 
+/* Barre de filtres sticky (page recherche) : collée sous l'en-tête quand il
+   est visible, remonte en haut quand EnTete le masque au scroll */
+.pilules-sticky {
+  position: sticky;
+  top: 61px;
+  z-index: 30;
+  transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+html[data-header-cache] .pilules-sticky {
+  top: 0;
+}
+
 /* ================= Admin — surfaces de données ================= */
 /* Les composants admin (src/components/admin/ui.tsx) portent leurs propres
    classes ; seuls les tableaux de données sont stylés ici (.admin-table). */

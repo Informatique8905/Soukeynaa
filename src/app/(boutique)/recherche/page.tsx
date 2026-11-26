@@ -88,8 +88,9 @@ export default async function RecherchePage({
       {/* Pilule de recherche avec suggestions instantanées */}
       <BarreRecherche initial={terme} enPromo={enPromo} />
 
-      {/* Raccourcis */}
-      <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
+      {/* Raccourcis : barre sticky — collée sous l'en-tête, elle remonte
+          en haut quand l'en-tête se masque au scroll (.pilules-sticky) */}
+      <div className="pilules-sticky no-scrollbar -mx-4 mt-4 flex gap-2 overflow-x-auto bg-blanc-casse/95 px-4 py-2 backdrop-blur">
         <Link
           href={(() => {
             const params = new URLSearchParams();

@@ -1,6 +1,7 @@
 "use client"  
   
 import { useEffect, useLayoutEffect, useRef, useState } from "react"  
+import Link from "next/link"
 import { gsap } from "gsap"  
 import { ScrollTrigger } from "gsap/ScrollTrigger"  
   
@@ -263,7 +264,10 @@ const CSS =
   ".dsh-err{font-size:11px;color:#dc2626;margin:6px 0 0;text-align:center}" +
   ".dsh-spin{display:inline-block;width:14px;height:14px;border-radius:99px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:dsh-rot .7s linear infinite}" +
   "@keyframes dsh-rot{to{transform:rotate(360deg)}}" +
-  ".dsh-add--ok{background:#16a34a;box-shadow:0 10px 22px -10px rgba(22,163,74,.55)}" +  
+  ".dsh-add--ok{background:#16a34a;box-shadow:0 10px 22px -10px rgba(22,163,74,.55)}" +
+  ".dsh-count{position:absolute;right:14px;bottom:14px;z-index:6;padding:4px 10px;border-radius:99px;background:rgba(15,23,42,.72);color:#fff;font-size:11.5px;font-weight:600}" +
+  "@container (max-width:639px){.dsh-count{top:58px;right:14px;bottom:auto}}" +
+  ".dsh-voirpanier{display:block;margin-top:8px;text-align:center;font-size:12px;font-weight:700;color:var(--color-vert,#1e7b4f);text-decoration:underline;text-underline-offset:2px}" +  
   "@container (max-width:639px){" +
   // phone: colonne compacte bornée à la hauteur du stage — scroll interne si ça déborde
   ".dsh-canvas{position:relative;left:auto;top:auto;width:100%;height:auto;max-height:100%;transform:none;display:flex;flex-direction:column;align-items:center;padding:10px 14px 14px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}" +
@@ -755,6 +759,9 @@ export function DishOrbitCarousel({
                   ) : "Ajouter au panier"}  
                 </button>  
                 {addErr ? <p className="dsh-err">{addErr}</p> : null}
+                {ajoute === index ? (
+                  <Link href="/panier" className="dsh-voirpanier">Voir le panier →</Link>
+                ) : null}
                 </>
               ) : null}  
             </div>  
@@ -783,6 +790,9 @@ export function DishOrbitCarousel({
         </div>  
   
       </div>  
+      {n > 1 && (
+        <span className="dsh-count" aria-hidden="true">{index + 1} / {n}</span>
+      )}
       <p className="dsh-sr" aria-live="polite">{dish ? "Article " + (index + 1) + " sur " + n + " : " + dish.title + " " + dish.subtitle : ""}</p>  
     </div>  
     </div>  
