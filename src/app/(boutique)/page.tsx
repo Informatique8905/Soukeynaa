@@ -131,6 +131,25 @@ export default async function Accueil() {
         </span>
       </Link>
 
+      {/* Entrées par public : repère immédiat sans connaîre les noms (CDC 7.2) */}
+      <div className="mt-4 grid grid-cols-4 gap-2">
+        {[
+          { u: "femmes", label: "Pour elle" },
+          { u: "hommes", label: "Pour lui" },
+          { u: "enfants", label: "Enfants" },
+          { u: "accessoires", label: "Pour tous" },
+        ].map((p) => (
+          <Link
+            key={p.u}
+            href={`/recherche?u=${p.u}`}
+            data-reveal
+            className="press rounded-2xl bg-white px-1 py-3 text-center text-xs font-bold text-noir shadow-sm ring-1 ring-black/5 transition hover:text-vert hover:ring-vert/40"
+          >
+            {p.label}
+          </Link>
+        ))}
+      </div>
+
       {/* Bannières administrables (CDC 7.1) */}
       {bannieres.length > 0 && (
         <section

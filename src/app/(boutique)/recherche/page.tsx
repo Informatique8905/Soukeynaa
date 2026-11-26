@@ -4,6 +4,7 @@ import { getPrisma } from "@/lib/db";
 import { prixAvecPromos, promotionsActives } from "@/lib/pricing";
 import { UNIVERSES, type Universe } from "@/lib/constants";
 import { ProductCard } from "@/components/boutique/ProductCard";
+import { BarreRecherche } from "@/components/boutique/BarreRecherche";
 
 export const metadata = { title: "Recherche" };
 
@@ -39,6 +40,21 @@ export default async function RecherchePage({
   const prisma = getPrisma();
 
   const promos = await promotionsActives();
+  // Catégories proposées quand rien n'a encore été tapé : autre
+  // porte d'entrée pour qui ne connaî pas les noms d'articles.
+  const catVisites =
+    terme || enPromo || univers
+      ? []
+      : await prisma.category.findMany({
+          where: { active: true },
+          orderBy: { ordre: "asc" },
+          take: 10,
+          select: {
+            slug: true,
+            nom: true,
+            _count: { select: { produits: { where: { statut: "publie" } } } },
+          },
+        });
   const produits =
     terme || enPromo || univers
       ? await prisma.product.findMany({
@@ -69,24 +85,8 @@ export default async function RecherchePage({
         Recherche
       </h1>
 
-      {/* Pilule de recherche façon app */}
-      <form action="/recherche" data-reveal className="group relative mt-4">
-        {enPromo && <input type="hidden" name="promo" value="1" />}
-        <input
-          name="q"
-          type="search"
-          autoFocus
-          defaultValue={terme}
-          placeholder="Un article, une catégorie, une couleur…"
-          className="w-full rounded-full bg-white py-4 pl-11 pr-28 text-sm shadow-sm ring-1 ring-black/5 outline-none transition placeholder:text-gris-fonce focus:shadow-lg focus:shadow-vert/10 focus:ring-2 focus:ring-vert"
-        />
-        <button
-          type="submit"
-          className="press absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-vert px-5 py-2.5 text-xs font-bold text-white hover:bg-vert-fonce"
-        >
-          Chercher
-        </button>
-      </form>
+      {/* Pilule de recherche avec suggestions instantanées */}
+      <BarreRecherche initial={terme} enPromo={enPromo} />
 
       {/* Raccourcis */}
       <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
@@ -167,11 +167,36 @@ export default async function RecherchePage({
           />
         )
       ) : (
-        <EtatVide
-          dessin="loupe"
-          titre="Que cherchez-vous aujourd'hui ?"
-          texte="Tapez un mot ou touchez un raccourci ci-dessus."
-        />
+        <>
+          {catVisites.length > 0 && (
+            <div className="mt-6">
+              <p className="text-sm font-semibold text-noir">
+                Ou explorez une catégorie
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {catVisites.map((c) => (
+                  <Link
+                    key={c.slug}
+                    href={`/categorie/${c.slug}`}
+                    className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-noir ring-1 ring-black/10 transition hover:bg-vert-clair hover:text-vert"
+                  >
+                    {c.nom}
+                    <span className="ml-1.5 text-gris-fonce">
+                      {c._count.produits}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="mt-6">
+            <EtatVide
+              dessin="loupe"
+              titre="Que cherchez-vous aujourd'hui ?"
+              texte="Tapez un mot ou touchez un raccourci ci-dessus."
+            />
+          </div>
+        </>
       )}
     </main>
   );
