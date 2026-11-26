@@ -123,7 +123,14 @@ async function notifier(
       data: { cleDedup, type, destinataire, commandeId },
     });
   } catch {
-    return false; // P2002 : déjà en file/envoyée (CDC 12.2)
+    // P2002 : la notification existe déjà. Un échec passé ne doit pas
+    // bloquer définitivement l'envoi — on le réclame atomiquement et on
+    // retente ; un envoi réussi ou en cours reste, lui, dédupliqué.
+    const r = await prisma.notification.updateMany({
+      where: { cleDedup, statut: "erreur" },
+      data: { statut: "en_file", erreur: null, destinataire, commandeId },
+    });
+    if (r.count === 0) return false; // envoyée ou en cours (CDC 12.2)
   }
   const resultat = await envoyerEmail(destinataire, sujet, html);
   await prisma.notification.update({
