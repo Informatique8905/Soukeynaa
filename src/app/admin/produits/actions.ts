@@ -6,7 +6,8 @@ import { getPrisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 import { logAudit } from "@/lib/audit";
 import { slugify } from "@/lib/format";
-import { produitSchema } from "@/lib/validation";
+import { imageProduitSchema, produitSchema, varianteSchema } from "@/lib/validation";
+import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 
 interface ImageInput {
@@ -55,12 +56,15 @@ function lireFormulaire(formData: FormData) {
     statut: formData.get("statut"),
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message);
-  const images = JSON.parse(
-    String(formData.get("images") ?? "[]")
-  ) as ImageInput[];
-  const variantes = JSON.parse(
-    String(formData.get("variantes") ?? "[]")
-  ) as VarianteInput[];
+  // Chaque élément JSON est validé — le client peut envoyer n'importe quoi
+  const images = z
+    .array(imageProduitSchema)
+    .max(15)
+    .parse(JSON.parse(String(formData.get("images") ?? "[]"))) as ImageInput[];
+  const variantes = z
+    .array(varianteSchema)
+    .max(60)
+    .parse(JSON.parse(String(formData.get("variantes") ?? "[]")));
   return { data: parsed.data, images, variantes };
 }
 

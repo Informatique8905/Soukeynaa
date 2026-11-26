@@ -77,9 +77,11 @@ export async function modifierQuantite(ligneId: number, quantite: number) {
   if (quantite < 1) {
     await prisma.cartItem.delete({ where: { id: ligneId } });
   } else {
+    // Borne haute : le checkout revérifie le stock, mais une quantité
+    // absurde n'a pas à être persistée
     await prisma.cartItem.update({
       where: { id: ligneId },
-      data: { quantite },
+      data: { quantite: Math.min(quantite, 999) },
     });
   }
   revalidatePath("/panier");

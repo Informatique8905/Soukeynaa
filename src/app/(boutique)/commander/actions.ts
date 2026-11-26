@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getPrisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { getCart } from "@/lib/cart";
@@ -10,6 +10,13 @@ import { checkoutSchema } from "@/lib/validation";
 import { alerterAdmin, envoyerBonCommande } from "@/lib/email";
 import { initierTentative } from "@/lib/paiement";
 import { fcfa } from "@/lib/format";
+import { autorise, ipClient } from "@/lib/ratelimit";
+import { signerIdsCommandes, verifierIdsCommandes, COOKIE_COMMANDES } from "@/lib/ownership";
+
+// Erreur métier : seul ce type de message est renvoyé au client — toute
+// autre exception (Prisma, réseau…) devient un message générique et est
+// loguée serveur, jamais exposée.
+class ErreurMetier extends Error {}
 
 const DELAI_RESERVATION_MIN = Number(
   process.env.STOCK_RESERVATION_MINUTES ?? 30
@@ -20,6 +27,14 @@ export type CheckoutResult = { erreur: string } | { ok: true; url?: string };
 // Création de commande : tout ou rien — stock vérifié ET réservé dans la
 // même transaction que la commande (CDC 5.8, 9.5). Un échec annule tout.
 export async function creerCommande(input: unknown): Promise<CheckoutResult> {
+  // Limitation : 5 commandes / heure / IP — chaque commande réserve du
+  // stock et déclenche un email ; sans borne, un script vide le catalogue
+  // et transforme la boutique en relais de spam.
+  const ip = ipClient(await headers());
+  if (!autorise(`commande:${ip}`, 5, 3600_000)) {
+    return { erreur: "Trop de commandes — réessayez plus tard" };
+  }
+
   const parsed = checkoutSchema.safeParse(input);
   if (!parsed.success) {
     return { erreur: "Informations de commande invalides" };
@@ -64,13 +79,13 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
           include: { variantes: true },
         });
         if (!produit || produit.statut !== "publie") {
-          throw new Error(`« ${produit?.nom ?? "Produit"} » n'est plus disponible`);
+          throw new ErreurMetier(`« ${produit?.nom ?? "Produit"} » n'est plus disponible`);
         }
         const variante = item.varianteId
           ? produit.variantes.find((v) => v.id === item.varianteId)
           : null;
         if (produit.aVariantes && !variante) {
-          throw new Error(`Variante introuvable pour « ${produit.nom} »`);
+          throw new ErreurMetier(`Variante introuvable pour « ${produit.nom} »`);
         }
 
         // Décrément atomique : échoue si stock < quantité (anti-survente)
@@ -84,7 +99,7 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
               data: { stock: { decrement: item.quantite } },
             });
         if (conditionnel.count === 0) {
-          throw new Error(`Stock insuffisant pour « ${produit.nom} »`);
+          throw new ErreurMetier(`Stock insuffisant pour « ${produit.nom} »`);
         }
 
         const prix = await prixEffectif(produit, variante, tx);
@@ -143,8 +158,14 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
       return { reference: ref, id: cree.id };
     });
   } catch (e) {
+    if (!(e instanceof ErreurMetier)) {
+      console.error("[commande] échec création", e);
+    }
     return {
-      erreur: e instanceof Error ? e.message : "Erreur lors de la commande",
+      erreur:
+        e instanceof ErreurMetier
+          ? e.message
+          : "Erreur lors de la commande",
     };
   }
 
@@ -157,20 +178,15 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
   // visiteurs ayant réellement commandé (cookie, compte ou admin) voient les
   // coordonnées complètes sur /commande/[ref] — la référence est
   // séquentielle et sinon énumérable (CDC 14.5).
-  try {
-    const ids = JSON.parse(store.get("soukeyna_orders")?.value ?? "[]");
-    if (Array.isArray(ids)) {
-      ids.push(commandeCree.id);
-      store.set("soukeyna_orders", JSON.stringify(ids.slice(-20)), {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 90 * 24 * 3600,
-      });
-    }
-  } catch {
-    /* cookie illisible — la page affichera la vue masquée */
-  }
+  const ids = verifierIdsCommandes(store.get(COOKIE_COMMANDES)?.value);
+  ids.push(commandeCree.id);
+  store.set(COOKIE_COMMANDES, signerIdsCommandes(ids), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 90 * 24 * 3600,
+  });
 
   // Bon de commande + message de prise en charge : envoyé dès la création,
   // avant toute confirmation admin (non bloquant)

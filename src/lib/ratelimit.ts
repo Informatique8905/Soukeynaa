@@ -35,9 +35,25 @@ export function autorise(cle: string, max: number, fenetreMs: number): boolean {
   return true;
 }
 
-/** IP du client depuis les en-têtes de proxy (Vercel, nginx). */
-export function ipClient(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return req.headers.get("x-real-ip") ?? "inconnue";
+interface RequeteMin {
+  headers: { get(name: string): string | null };
+}
+
+/**
+ * IP du client. La valeur LA PLUS À DROITE de x-forwarded-for est celle
+ * ajoutée par le proxy le plus proche (Vercel, nginx) — les entrées à
+ * gauche sont client-contrôlées et spoofables. x-real-ip, également posé
+ * par la plateforme, est préféré quand il existe.
+ * Accepte une Request/Response-like ou directement l'objet Headers.
+ */
+export function ipClient(req: RequeteMin | Headers): string {
+  const h = req instanceof Headers ? req : req.headers;
+  const real = h.get("x-real-ip")?.trim();
+  if (real) return real;
+  const fwd = h.get("x-forwarded-for");
+  if (fwd) {
+    const dernier = fwd.split(",").pop()?.trim();
+    if (dernier) return dernier;
+  }
+  return "inconnue";
 }

@@ -69,6 +69,7 @@ export async function getOrCreateCart() {
   const store = await cookies();
   store.set(COOKIE, cartId, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 30 * 24 * 3600,

@@ -11,6 +11,7 @@ import {
   envoyerBonCommandeMaj,
 } from "@/lib/email";
 import type { StatutCommande } from "@/generated/prisma/enums";
+import { noteInterneSchema } from "@/lib/validation";
 
 // Transitions autorisées (CDC 11.8) — une commande payee ne revient jamais en arrière
 const TRANSITIONS: Record<StatutCommande, StatutCommande[]> = {
@@ -118,7 +119,11 @@ export async function definirDelaiLivraison(
 export async function enregistrerNoteInterne(id: number, formData: FormData) {
   await requireAdmin();
   const prisma = getPrisma();
-  const note = String(formData.get("noteInterne") ?? "");
+  const parsed = noteInterneSchema.safeParse({
+    noteInterne: formData.get("noteInterne"),
+  });
+  if (!parsed.success) throw new Error("Note invalide (2000 caractères max)");
+  const note = parsed.data.noteInterne;
   await prisma.order.update({
     where: { id },
     data: { noteInterne: note },

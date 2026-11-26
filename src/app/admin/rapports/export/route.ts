@@ -25,7 +25,7 @@ export async function GET(req: Request) {
         c.reference,
         c.createdAt.toISOString().slice(0, 10),
         csv(c.clientNom),
-        c.clientTelephone,
+        csv(c.clientTelephone),
         csv(c.communeNom),
         c.lignes.map((l) => `${l.quantite}x ${csv(l.nom)}`).join(" | "),
         c.sousTotal,
@@ -44,6 +44,10 @@ export async function GET(req: Request) {
   });
 }
 
+// Anti-injection de formules : une cellule commençant par = + - @ ou une
+// tabulation est interprétée comme formule par Excel/LibreOffice — on la
+// neutralise par une apostrophe initiale.
 function csv(v: string) {
-  return `"${v.replace(/"/g, '""')}"`;
+  const s = /^[=+\-@\t]/.test(v) ? `'${v}` : v;
+  return `"${s.replace(/"/g, '""')}"`;
 }

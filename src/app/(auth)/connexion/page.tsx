@@ -8,7 +8,10 @@ import Link from "next/link";
 function FormulaireConnexion() {
   const router = useRouter();
   const params = useSearchParams();
-  const callbackUrl = params.get("callbackUrl") ?? "/compte";
+  // Anti-open-redirect : seuls les chemins internes sont acceptés —
+  // « //evil.com » (URL scheme-relative) et les URL absolues sont rejetés.
+  const cb = params.get("callbackUrl") ?? "";
+  const callbackUrl = cb.startsWith("/") && !cb.startsWith("//") ? cb : "/compte";
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [erreur, setErreur] = useState("");

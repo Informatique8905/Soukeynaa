@@ -2,12 +2,15 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { getPrisma } from "@/lib/db";
+import { autorise, ipClient } from "@/lib/ratelimit";
 
 const MAX_TENTATIVES = 5;
 const BLOCAGE_MINUTES = 15;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
+  // JWT court : un rôle rétrogradé cesse d'être valide au plus tard à
+  // l'expiration du token (7 j au lieu des 30 j par défaut).
+  session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
   pages: { signIn: "/connexion" },
   providers: [
     Credentials({
@@ -15,7 +18,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         motDePasse: { label: "Mot de passe", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
+        // Limitation par IP : 30 tentatives / 15 min — complète le blocage
+        // par compte (anti-force-brute distribuée n'est que partiellement
+        // couverte par le blocage seul).
+        if (!autorise(`login:${ipClient(request)}`, 30, 15 * 60_000)) {
+          return null;
+        }
+
         const email = String(credentials?.email ?? "")
           .toLowerCase()
           .trim();
@@ -25,11 +35,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const prisma = getPrisma();
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return null;
-
-        // Blocage temporaire après échecs répétés (CDC 14.2)
-        if (user.bloqueJusqua && user.bloqueJusqua > new Date()) {
-          return null;
-        }
 
         const ok = await bcrypt.compare(motDePasse, user.motDePasseHash);
         if (!ok) {
@@ -47,6 +52,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        // Le blocage rejette les MAUVAISES tentatives — pas le titulaire :
+        // le bon mot de passe passe même pendant la fenêtre de blocage,
+        // sinon n'importe qui peut verrouiller le compte d'un tiers en
+        // boucle (déni de service ciblé, ex. sur le compte admin).
         if (user.tentativesEchec > 0 || user.bloqueJusqua) {
           await prisma.user.update({
             where: { id: user.id },

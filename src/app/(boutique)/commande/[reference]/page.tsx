@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getPrisma } from "@/lib/db";
 import { auth } from "@/auth";
+import { verifierIdsCommandes, COOKIE_COMMANDES } from "@/lib/ownership";
 import { BoutonPayer, RafraichirAuto } from "@/components/boutique/BoutonPayer";
 import { BonCommande } from "@/components/boutique/BonCommande";
 import { TrajetLivraison } from "@/components/motion/TrajetLivraison";
@@ -31,17 +32,10 @@ export default async function CommandePage({
   if (!commande) notFound();
 
   // Coordonnées visibles uniquement pour le vrai propriétaire (session,
-  // cookie posé à la commande) ou l'admin — la référence est séquentielle
-  // et sinon énumérable (CDC 14.5).
+  // cookie SIGNÉ posé à la commande) ou l'admin — la référence est
+  // séquentielle et sinon énumérable (CDC 14.5).
   const [session, store] = await Promise.all([auth(), cookies()]);
-  const idsCommandes: number[] = (() => {
-    try {
-      const v = JSON.parse(store.get("soukeyna_orders")?.value ?? "[]");
-      return Array.isArray(v) ? v : [];
-    } catch {
-      return [];
-    }
-  })();
+  const idsCommandes = verifierIdsCommandes(store.get(COOKIE_COMMANDES)?.value);
   const proprietaire =
     idsCommandes.includes(commande.id) ||
     (session?.user?.id !== undefined &&
@@ -75,7 +69,10 @@ export default async function CommandePage({
   );
   const enVerification = enAttente && tentativeActive;
   const payable =
-    enAttente && !tentativeActive && commande.statutPaiement === "en_attente";
+    proprietaire &&
+    enAttente &&
+    !tentativeActive &&
+    commande.statutPaiement === "en_attente";
 
   const expire = commande.reservationExpireLe.toLocaleTimeString("fr-FR", {
     hour: "2-digit",

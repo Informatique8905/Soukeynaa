@@ -133,11 +133,28 @@ export const connexionSchema = z.object({
 });
 
 // ===== Paramètres boutique (admin, décision D11)
+// URL d'image ou de lien : https:// absolue ou chemin interne — jamais
+// javascript:/data: (XSS stockée via les paramètres admin).
+const urlSure = z
+  .string()
+  .trim()
+  .refine((v) => /^https:\/\//i.test(v) || /^\/(?!\/)/.test(v), {
+    message: "URL invalide (https://… ou chemin interne /…)",
+  });
+
 export const banniereSchema = z.object({
-  url: z.string().trim().min(1).max(1000),
+  url: urlSure.max(1000),
   publicId: z.string().trim().max(300).optional(),
   titre: z.string().trim().max(120).optional(),
-  lien: z.string().trim().max(500).optional(),
+  lien: urlSure.max(500).optional(),
+  ordre: z.number().int().min(0).default(0),
+});
+
+// Image produit issue du formulaire admin (upload Cloudinary signé)
+export const imageProduitSchema = z.object({
+  publicId: z.string().trim().max(300),
+  url: urlSure.max(1000),
+  alt: z.string().trim().max(200).default(""),
   ordre: z.number().int().min(0).default(0),
 });
 
