@@ -191,10 +191,12 @@ export default async function Accueil() {
 
       {/* Bannière promo animée (SVG) */}
       {cartesPromos.length > 0 && (
-        <HeroPromo
+        <div data-reveal="blur">
+          <HeroPromo
           reduction={maxReduc}
           visuel={visuelPromo ? (cloud(visuelPromo, 360) ?? visuelPromo) : null}
-        />
+          />
+        </div>
       )}
 
       {/* Réassurance — défile en continu */}

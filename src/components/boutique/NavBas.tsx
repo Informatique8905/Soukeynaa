@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -22,6 +23,28 @@ const ITEMS: (LiquidTab & { href: string })[] = [
 /** Barre de navigation mobile fixe en bas — bulle « liquide » animée. */
 export function NavBas({ cartCount }: { cartCount: number }) {
   const pathname = usePathname();
+  // Se masque en descendant, réapparaî en remontant : plus
+  // d'écran pour le contenu, navigation toujours à portée.
+  const [cachee, setCachee] = useState(false);
+  useEffect(() => {
+    let derniere = window.scrollY;
+    let ticking = false;
+    const auScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const delta = y - derniere;
+        derniere = y;
+        ticking = false;
+        if (y < 64) setCachee(false);
+        else if (delta > 6) setCachee(true);
+        else if (delta < -4) setCachee(false);
+      });
+    };
+    window.addEventListener("scroll", auScroll, { passive: true });
+    return () => window.removeEventListener("scroll", auScroll);
+  }, []);
   const index = Math.max(
     0,
     ITEMS.findIndex((it) =>
@@ -32,7 +55,7 @@ export function NavBas({ cartCount }: { cartCount: number }) {
   return (
     <nav
       aria-label="Navigation principale"
-      className="fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className={`fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)] transition-transform duration-300 ease-out will-change-transform md:hidden ${cachee ? "translate-y-[110%]" : ""}`}
     >
       <LiquidTabBar
         items={ITEMS.map((it) => ({

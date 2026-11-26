@@ -8,6 +8,7 @@ import { NavBas } from "@/components/boutique/NavBas";
 import { Splash } from "@/components/boutique/Splash";
 import { MotionRoot } from "@/components/motion/MotionRoot";
 import { NavProgress } from "@/components/motion/NavProgress";
+import { RetourHaut } from "@/components/boutique/RetourHaut";
 
 export default async function BoutiqueLayout({
   children,
@@ -92,6 +93,7 @@ export default async function BoutiqueLayout({
       <div className="flex-1 pb-[100px] md:pb-0"><ViewTransition>{children}</ViewTransition></div>
 
       <div className="print:hidden"><NavBas cartCount={panierCount} /></div>
+      <RetourHaut />
 
       <footer className="relative mt-10 overflow-hidden rounded-t-[1.5rem] bg-noir text-white md:mt-16 md:rounded-t-[2rem] print:hidden">
         <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-vert/25 blur-3xl" />

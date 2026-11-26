@@ -19,6 +19,7 @@ const FROM: Record<string, gsap.TweenVars> = {
   "": { y: 28 },
   left: { x: -28 },
   scale: { scale: 0.92 },
+  blur: { scale: 0.97, filter: "blur(10px)" },
 };
 
 // États de départ du repli mobile — alignés sur rv-in-mobile(-left/-scale).
@@ -26,6 +27,7 @@ const FROM_MOBILE: Record<string, string> = {
   "": "translate3d(0, 14px, 0)",
   left: "translate3d(-14px, 0, 0)",
   scale: "scale(0.95)",
+  blur: "scale(0.96)",
 };
 
 // Repli mobile : IntersectionObserver + WAAPI — transform/opacity uniquement,
@@ -137,7 +139,8 @@ export function MotionRoot() {
             ease: "power3.out",
             stagger: 0.07,
             overwrite: true,
-            clearProps: "transform",
+            filter: "blur(0px)",
+            clearProps: "transform,filter",
           }),
       }));
     };
@@ -167,7 +170,7 @@ export function MotionRoot() {
         .forEach((el) => {
           const r = el.getBoundingClientRect();
           if (r.top < innerHeight && r.bottom > 0 && getComputedStyle(el).opacity === "0") {
-            gsap.to(el, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.4 });
+            gsap.to(el, { opacity: 1, x: 0, y: 0, scale: 1, filter: "blur(0px)", duration: 0.4 });
           }
         });
     }, 1500);
