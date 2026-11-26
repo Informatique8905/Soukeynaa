@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ViewTransition } from "react";
 import { fcfa } from "@/lib/format";
 import { cloud } from "@/lib/image";
 import { CoeurFav } from "./CoeurFav";
@@ -30,7 +31,8 @@ export function ProductCard({ p }: { p: CarteProduit }) {
     >
       <div className="zoom-scroll relative aspect-[4/5] overflow-hidden rounded-[1.25rem] bg-gris">
         {p.image ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
+          <ViewTransition name={p.id !== undefined ? `produit-${p.id}` : undefined} default="none" share="morph">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={cloud(p.image, 500) ?? p.image}
             alt={p.nom}
@@ -38,6 +40,7 @@ export function ProductCard({ p }: { p: CarteProduit }) {
             decoding="async"
             className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.07]"
           />
+          </ViewTransition>
         ) : (
           <div className="flex h-full items-center justify-center text-noir opacity-20">
             

@@ -1,8 +1,9 @@
 "use client"  
   
-import { useEffect, useLayoutEffect, useRef, useState } from "react"  
+import { useEffect, useLayoutEffect, useRef, useState, ViewTransition } from "react"  
 import Link from "next/link"
 import { gsap } from "gsap"
+import { ArrowLeft, Heart, Share2, Check, ChevronLeft, ChevronRight } from "lucide-react"
 import { hauteurViewport } from "@/lib/viewport"  
 import { ScrollTrigger } from "gsap/ScrollTrigger"  
   
@@ -79,6 +80,8 @@ export type DishOrbitCarouselProps = {
   favori?: { actif: boolean; onToggle: (dish: Dish) => void }
   /** Affichage « bibliothèque » : photo courante au centre, voisines en perspective 3D. */
   bibliotheque?: boolean
+  /** view-transition-name de l'image courante (morphing partagé depuis la carte produit). */
+  vtName?: string
   onChange?: (index: number) => void  
   className?: string  
 }  
@@ -193,7 +196,9 @@ const CSS =
   ".dsh-t1,.dsh-t2{display:block;white-space:nowrap;line-height:1;text-transform:uppercase;margin:0}" +  
   ".dsh-t1{font-weight:200;letter-spacing:-.015em;margin-top:6px}" +  
   ".dsh-t2{font-weight:800;letter-spacing:-.025em;margin-top:6px;color:color-mix(in oklab,var(--color-foreground) 86%,transparent)}" +  
-  ".dsh-acts{position:absolute;left:396px;top:280px;display:flex;gap:44px;font-size:12.5px;font-weight:500}" +  
+  ".dsh-acts{position:absolute;left:396px;top:280px;display:flex;gap:44px;font-size:12.5px;font-weight:500}" +
+  ".dsh-acts .dsh-btn{border:1.5px solid color-mix(in oklab,var(--color-foreground) 22%,transparent);border-radius:99px;padding:10px 20px;font-weight:700;background:color-mix(in oklab,var(--color-background) 75%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:transform .2s,border-color .2s}" +
+  ".dsh-acts .dsh-btn:hover{transform:translateY(-1px);border-color:var(--color-vert,#1e7b4f);color:var(--color-vert,#1e7b4f)}" +  
   ".dsh-acts .dsh-btn{display:flex;align-items:center;gap:9px;padding:4px 0}" +  
   ".dsh-acts .dsh-ico{width:13px;height:13px}" +  
   ".dsh-acts .dsh-fill{fill:currentColor;stroke:none}" +  
@@ -322,10 +327,12 @@ const HIDE_2 = "inset(0% 100% 0% 0%)" // heavy line: wipes in from the left
 const SHOW = "inset(0% 0% 0% 0%)"  
   
 const Icon = {
-  back: <span aria-hidden="true">←</span>,
-  heart: <span aria-hidden="true">♥</span>,
-  share: <span aria-hidden="true">↗</span>,
-  check: <span aria-hidden="true">✓</span>,
+  back: <ArrowLeft className="dsh-ico" aria-hidden="true" />,
+  heart: <Heart className="dsh-ico" aria-hidden="true" />,
+  share: <Share2 className="dsh-ico" aria-hidden="true" />,
+  check: <Check className="dsh-ico" aria-hidden="true" />,
+  prev: <ChevronLeft className="dsh-ico" aria-hidden="true" />,
+  next: <ChevronRight className="dsh-ico" aria-hidden="true" />,
 };
 export function DishOrbitCarousel({  
   dishes,  
@@ -339,6 +346,7 @@ export function DishOrbitCarousel({
   onPartager,
   favori,
   bibliotheque = false,
+  vtName,
   onChange,
   className,  
 }: DishOrbitCarouselProps) {  
@@ -649,7 +657,13 @@ export function DishOrbitCarousel({
                   zIndex: 20 - ad,
                   pointerEvents: cache ? "none" : "auto",
                 }}>
-                <img src={d.image} alt="" width={245} height={245} draggable={false} />
+                {vtName && i === index ? (
+                  <ViewTransition name={vtName} default="none" share="morph">
+                    <img src={d.image} alt="" width={245} height={245} draggable={false} />
+                  </ViewTransition>
+                ) : (
+                  <img src={d.image} alt="" width={245} height={245} draggable={false} />
+                )}
               </div>
             )
           })}
@@ -780,7 +794,7 @@ export function DishOrbitCarousel({
   
         <div className="dsh-strip">  
           <button type="button" className="dsh-btn dsh-arrow" aria-label="Article précédent" onClick={() => step(-1)}>  
-            <span aria-hidden="true">‹</span>  
+            {Icon.prev}
           </button>  
           <div className="dsh-win">  
             <div className="dsh-track" style={{ transform: "translateX(" + -start * ITEM + "px)" }}>  
@@ -795,7 +809,7 @@ export function DishOrbitCarousel({
             </div>  
           </div>  
           <button type="button" className="dsh-btn dsh-arrow" aria-label="Article suivant" onClick={() => step(1)}>  
-            <span aria-hidden="true">›</span>  
+            {Icon.next}
           </button>  
         </div>  
   

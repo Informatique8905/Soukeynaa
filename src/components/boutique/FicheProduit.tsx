@@ -267,6 +267,7 @@ export function FicheProduit({
         height="calc(100svh - var(--navh))"
       loop={false}
       bibliotheque
+      vtName={`produit-${produitId}`}
       onRetour={() => router.back()}
       onPartager={() => {
         const url = window.location.href;

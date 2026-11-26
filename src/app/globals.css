@@ -550,6 +550,22 @@ label {
   animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* Morphing partagé : la vignette d'une carte produit glisse jusqu'à la
+   grande image de la fiche (et revient au retour) — les deux images sont
+   nommées `produit-{id}` via <ViewTransition share="morph"> */
+::view-transition-group(.morph) {
+  animation-duration: 0.38s;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+::view-transition-image-pair(.morph) {
+  animation-name: morph-fondu;
+}
+@keyframes morph-fondu {
+  25% {
+    filter: blur(2px);
+  }
+}
+
 /* Listes longues : le navigateur saute le rendu des éléments hors écran
    (layout + paint) — défilement bien plus fluide sur les résultats de
    recherche et les pages catégorie */
@@ -561,6 +577,11 @@ label {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(.morph),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.01ms !important;
+  }
   html.js-motion [data-reveal] {
     opacity: 1;
   }
