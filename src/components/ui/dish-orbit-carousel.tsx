@@ -264,10 +264,12 @@ const CSS =
   ".dsh-err{font-size:11px;color:#dc2626;margin:6px 0 0;text-align:center}" +
   ".dsh-spin{display:inline-block;width:14px;height:14px;border-radius:99px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:dsh-rot .7s linear infinite}" +
   "@keyframes dsh-rot{to{transform:rotate(360deg)}}" +
-  ".dsh-add--ok{background:#16a34a;box-shadow:0 10px 22px -10px rgba(22,163,74,.55)}" +
+  ".dsh-add--ok{background:#16a34a;box-shadow:0 10px 22px -10px rgba(22,163,74,.55);animation:dsh-pop .35s cubic-bezier(.3,1.6,.5,1)}" +
+  "@keyframes dsh-pop{45%{transform:scale(1.06)}}" +
   ".dsh-count{position:absolute;right:14px;bottom:14px;z-index:6;padding:4px 10px;border-radius:99px;background:rgba(15,23,42,.72);color:#fff;font-size:11.5px;font-weight:600}" +
   "@container (max-width:639px){.dsh-count{top:58px;right:14px;bottom:auto}}" +
-  ".dsh-voirpanier{display:block;margin-top:8px;text-align:center;font-size:12px;font-weight:700;color:var(--color-vert,#1e7b4f);text-decoration:underline;text-underline-offset:2px}" +  
+  ".dsh-voirpanier{display:block;margin-top:8px;text-align:center;font-size:12px;font-weight:700;color:var(--color-vert,#1e7b4f);text-decoration:underline;text-underline-offset:2px;animation:dsh-vp .3s ease-out both}" +
+  "@keyframes dsh-vp{from{opacity:0;transform:translateY(4px)}}" +  
   "@container (max-width:639px){" +
   // phone: colonne compacte bornée à la hauteur du stage — scroll interne si ça déborde
   ".dsh-canvas{position:relative;left:auto;top:auto;width:100%;height:auto;max-height:100%;transform:none;display:flex;flex-direction:column;align-items:center;padding:10px 14px 14px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}" +
@@ -746,6 +748,7 @@ export function DishOrbitCarousel({
                     try {
                       await onAddToCart(dish, index, choixPour(index, dish))
                       setAjoute(index)
+                      if (!reducedRef.current) navigator.vibrate?.(12)
                     } catch (e) {
                       setAddErr(e instanceof Error && e.message ? e.message : "Réessayez")
                     } finally {

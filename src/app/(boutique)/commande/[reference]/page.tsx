@@ -121,6 +121,13 @@ export default async function CommandePage({
     hour: "2-digit",
     minute: "2-digit",
   });
+  const dateCommande = `${commande.createdAt.toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+  })} à ${commande.createdAt.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
   // Bon de commande : visible dès que la commande est validée ou qu'un délai
   // a été annoncé — réservé au propriétaire (données complètes, CDC 14.5)
   const bonVisible =
@@ -152,7 +159,7 @@ export default async function CommandePage({
               </h1>
               <p className="mt-1 text-sm text-gris-fonce">
                 {confirmee
-                  ? "Merci pour votre confiance — le récapitulatif vous a été envoyé par email."
+                  ? `Merci pour votre confiance — passée le ${dateCommande}, le récapitulatif vous a été envoyé par email.`
                   : "Finalisez le paiement pour valider votre commande."}
               </p>
             </div>

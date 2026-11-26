@@ -146,8 +146,11 @@ export function CheckoutForm({
 
   const maj =
     (k: keyof typeof infos) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setInfos((s) => ({ ...s, [k]: e.target.value }));
+      // Le message d'erreur disparaît dès qu'on reprend la saisie
+      setErreur("");
+    };
 
   function soumettre(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

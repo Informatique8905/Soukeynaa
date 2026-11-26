@@ -343,6 +343,19 @@ label {
     transform: scale(0.6);
   }
 }
+.succes-onde {
+  animation: succes-onde 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.45s both;
+}
+@keyframes succes-onde {
+  from {
+    opacity: 0.8;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
 .anim-check path {
   stroke-dasharray: 32;
   stroke-dashoffset: 32;
@@ -564,6 +577,7 @@ label {
   }
   .secouer,
   .succes-pop,
+  .succes-onde,
   .halo-pulse,
   .fav-pop,
   .fav-onde {
