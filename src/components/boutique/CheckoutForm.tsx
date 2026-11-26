@@ -108,7 +108,21 @@ export function CheckoutForm({
   function soumettre(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErreur("");
-    if (!coordonneesOk) {
+    // L'autocomplétion Android remplit les champs sans déclencher onChange :
+    // on lit les valeurs réelles du DOM (FormData), l'état React en secours.
+    const fd = new FormData(e.currentTarget);
+    const v = (k: string) => String(fd.get(k) ?? "");
+    const nom = v("nom").trim() || infos.nom.trim();
+    const telephone = v("telephone").trim() || infos.telephone;
+    const email = v("email").trim() || infos.email;
+    const adresse = v("adresse") || infos.adresse;
+    const coords =
+      nom.length >= 2 &&
+      telephone.replace(/\D/g, "").length >= 8 &&
+      /^\S+@\S+\.\S+$/.test(email);
+    const livr = !!commune && adresse.trim().length >= 5;
+    if (!coords) {
+      setInfos((i) => ({ ...i, nom, telephone, email, adresse }));
       setErreur(
         "Complétez vos coordonnées : nom, téléphone (8 chiffres min.) et email valide.",
       );
@@ -117,19 +131,23 @@ export function CheckoutForm({
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    if (!livraisonOk) {
+    if (!livr) {
+      setInfos((i) => ({ ...i, nom, telephone, email, adresse }));
       setErreur(
-        "Choisissez votre commune de livraison et indiquez un repère pour le livreur.",
+        commune
+          ? "Indiquez un repère précis pour le livreur (5 caractères min.)."
+          : "Choisissez votre commune de livraison.",
       );
       document
         .getElementById("etape-livraison")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
+    setInfos((i) => ({ ...i, nom, telephone, email, adresse }));
     start(async () => {
       const res = await creerCommande({
-        client: { nom: infos.nom, telephone: infos.telephone, email: infos.email },
-        livraison: { communeId: Number(communeId), adresse: infos.adresse },
+        client: { nom, telephone, email },
+        livraison: { communeId: Number(communeId), adresse },
         modePaiement: mode,
         moyenPaiement: mode === "en_ligne" ? moyen : undefined,
       });
