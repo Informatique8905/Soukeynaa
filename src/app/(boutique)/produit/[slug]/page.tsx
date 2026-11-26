@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getPrisma } from "@/lib/db";
-import { prixEffectif } from "@/lib/pricing";
+import { prixAvecPromos, prixEffectif, promotionsActives } from "@/lib/pricing";
+import { ProductCard } from "@/components/boutique/ProductCard";
 import { FicheProduit } from "@/components/boutique/FicheProduit";
 
 interface ImageJson {
@@ -22,7 +23,27 @@ export default async function ProduitPage({
   });
   if (!produit || produit.statut !== "publie") notFound();
 
-  const prix = await prixEffectif(produit);
+  const [prix, promos, candidats] = await Promise.all([
+    prixEffectif(produit),
+    promotionsActives(),
+    prisma.product.findMany({
+      where: {
+        statut: "publie",
+        categorieId: produit.categorieId,
+        id: { not: produit.id },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+    }),
+  ]);
+  // Le mê public d'abord : un client qui regarde un article
+  // femme voit en priorié les autres articles pour femmes.
+  const similaires = candidats
+    .sort(
+      (a, b) =>
+        Number(b.univers === produit.univers) - Number(a.univers === produit.univers)
+    )
+    .slice(0, 10);
 
   return (
     <main className="motion-safe:animate-entree">
@@ -59,6 +80,32 @@ export default async function ProduitPage({
           stock: v.stock,
         }))}
       />
+
+      {similaires.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 pb-10">
+          <h2 className="text-lg font-extrabold tracking-tight text-noir">
+            Dans la mê catégorie
+          </h2>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {similaires.map((p) => {
+              const px = prixAvecPromos(p, promos);
+              return (
+                <ProductCard
+                  key={p.id}
+                  p={{
+                    slug: p.slug,
+                    nom: p.nom,
+                    prix: p.prix,
+                    prixAffiche: px,
+                    image: (p.images as ImageJson[])?.[0]?.url ?? null,
+                    enPromo: px < p.prix,
+                  }}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
     </main>
   );
 }
