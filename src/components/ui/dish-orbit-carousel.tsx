@@ -75,6 +75,8 @@ export type DishOrbitCarouselProps = {
   onPartager?: (dish: Dish) => void
   /** Cœur favori flottant, en haut à droite. */
   favori?: { actif: boolean; onToggle: (dish: Dish) => void }
+  /** Affichage « bibliothèque » : photo courante au centre, voisines en perspective 3D. */
+  bibliotheque?: boolean
   onChange?: (index: number) => void  
   className?: string  
 }  
@@ -287,7 +289,18 @@ const CSS =
   ".dsh-th .dsh-btn{height:80px;gap:3px;padding-top:4px}" +
   ".dsh-th img{width:44px;height:44px}" +
   "}" +  
-  "@media (prefers-reduced-motion:reduce){.dsh-track,.dsh-dot,.dsh-dot i,.dsh-th .dsh-btn,.dsh-th img,.dsh-like{transition:none}}"  
+  // Bibliothèque 3D : la scène photo devient un cover-flow centré
+  ".dsh-bib .dsh-plates{--esp:100px;left:10px;top:60px;width:420px;height:310px;perspective:1000px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 11%,#000 74%,transparent 96%);mask-image:linear-gradient(90deg,transparent,#000 11%,#000 74%,transparent 96%)}" +
+  ".dsh-bib .dsh-orbit{inset:auto;left:50%;top:50%;width:252px;height:252px;transform-origin:50% 50%;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .55s ease;will-change:transform;cursor:pointer}" +
+  ".dsh-bib .dsh-orbit>img{width:100%;height:100%}" +
+  // Halo doux derrière la photo, teinté par l'accent de l'article
+  ".dsh-glow{position:absolute;left:10px;top:0;width:560px;height:560px;border-radius:50%;filter:blur(90px);opacity:.5;pointer-events:none;transition:background-color 1.1s ease}" +
+  "@container (max-width:639px){" +
+  ".dsh-bib .dsh-plates{--esp:30vw;position:relative;left:auto;top:auto;width:100%;height:min(58vw,32svh);margin-top:2px;flex:none}" +
+  ".dsh-bib .dsh-orbit{width:min(48vw,26svh);height:min(48vw,26svh)}" +
+  ".dsh-bib .dsh-glow{left:50%;top:40%;width:80vw;height:80vw;transform:translate(-50%,-50%)}" +
+  "}" +
+  "@media (prefers-reduced-motion:reduce){.dsh-bib .dsh-orbit{transition:none}.dsh-track,.dsh-dot,.dsh-dot i,.dsh-th .dsh-btn,.dsh-th img,.dsh-like{transition:none}}"
   
 const HIDE_1 = "inset(0% 0% 0% 100%)" // thin line: wipes in from the right  
 const HIDE_2 = "inset(0% 100% 0% 0%)" // heavy line: wipes in from the left  
@@ -310,7 +323,8 @@ export function DishOrbitCarousel({
   onRetour,
   onPartager,
   favori,
-  onChange,  
+  bibliotheque = false,
+  onChange,
   className,  
 }: DishOrbitCarouselProps) {  
   const n = dishes.length  
@@ -398,11 +412,11 @@ export function DishOrbitCarousel({
     if (tlRef.current) tlRef.current.progress(1).kill()  
     const b = parts(to)  
     if (from === -1 || from === to || reducedRef.current) {  
-      for (let i = 0; i < n; i++) if (i !== to) {  
-        const p = parts(i)  
-        gsap.set([p.orbit, p.head, p.body], { autoAlpha: 0 })  
-      }  
-      gsap.set([b.orbit, b.head, b.body, b.eye], { autoAlpha: 1, rotation: 0, y: 0 })  
+      for (let i = 0; i < n; i++) if (i !== to) {
+        const p = parts(i)
+        gsap.set(bibliotheque ? [p.head, p.body] : [p.orbit, p.head, p.body], { autoAlpha: 0 })
+      }
+      gsap.set(bibliotheque ? [b.head, b.body, b.eye] : [b.orbit, b.head, b.body, b.eye], { autoAlpha: 1, rotation: 0, y: 0 })
       gsap.set(b.t1, { clipPath: SHOW })  
       gsap.set(b.t2, { clipPath: SHOW })  
       arc.current.a0 = rest[0]  
@@ -415,11 +429,14 @@ export function DishOrbitCarousel({
     const a = parts(from)  
     const d = dirRef.current  
     const tl = gsap.timeline({ onComplete: () => { tlRef.current = null } })  
-    tlRef.current = tl  
-    // plate: out over the top on the orbit, the next one swings in from the far side  
-    tl.to(a.orbit, { rotation: SWING * d, duration: 0.62, ease: "power2.in" }, 0)  
-      .set(a.orbit, { autoAlpha: 0, rotation: 0 }, 0.62)  
-      .fromTo(b.orbit, { autoAlpha: 1, rotation: -SWING * d }, { rotation: 0, duration: 0.95, ease: "power3.out" }, 0.3)  
+    tlRef.current = tl
+    // plate: out over the top on the orbit, the next one swings in from the far side
+    // (mode bibliothèque : les photos sont positionnées par les styles — transition CSS)
+    if (!bibliotheque) {
+      tl.to(a.orbit, { rotation: SWING * d, duration: 0.62, ease: "power2.in" }, 0)
+        .set(a.orbit, { autoAlpha: 0, rotation: 0 }, 0.62)
+        .fromTo(b.orbit, { autoAlpha: 1, rotation: -SWING * d }, { rotation: 0, duration: 0.95, ease: "power3.out" }, 0.3)
+    }
     // title: thin line clips away to the right, heavy line to the left, then the next wipes in  
     tl.to(a.t1, { clipPath: HIDE_1, duration: 0.42, ease: "power2.in" }, 0)  
       .to(a.t2, { clipPath: HIDE_2, duration: 0.42, ease: "power2.in" }, 0.06)  
@@ -438,7 +455,7 @@ export function DishOrbitCarousel({
       .to(arc.current, { a0: rest[0], a1: rest[1], duration: 0.85, ease: "power3.out", onUpdate: drawArc }, 0.6)  
     if (arcRef.current) tl.to(arcRef.current, { fill: tint, duration: 1.1, ease: "power1.inOut" }, 0.1)  
     shown.current = to  
-  }, [index, n, dishes])  
+  }, [index, n, dishes, bibliotheque])
   
   useEffect(() => () => { tlRef.current?.kill() }, [])  
   
@@ -537,8 +554,8 @@ export function DishOrbitCarousel({
   return (  
     <div ref={trackRef} className={"dsh-trk" + (className ? " " + className : "")} style={{ height: compact ? height : "calc(" + height + " * " + (1 + steps * SCROLL_PER_DISH) + ")" }}>  
     <div  
-      ref={rootRef}  
-      className="dsh-root"  
+      ref={rootRef}
+      className={"dsh-root" + (bibliotheque ? " dsh-bib" : "")}
       style={{ height }}  
       role="region"  
       aria-roledescription="carousel"  
@@ -554,9 +571,13 @@ export function DishOrbitCarousel({
       {backdrop ? <div className="dsh-wash" /> : null}  
   
       <div className="dsh-canvas">  
-        <svg className="dsh-arc" viewBox="0 0 960 520" aria-hidden="true">  
-          <path ref={arcRef} style={{ opacity: 0.34 }} />  
-        </svg>  
+        {bibliotheque ? (
+          <div className="dsh-glow" aria-hidden="true" style={{ backgroundColor: dish ? dish.accent : "transparent" }} />
+        ) : (
+          <svg className="dsh-arc" viewBox="0 0 960 520" aria-hidden="true">
+            <path ref={arcRef} style={{ opacity: 0.34 }} />
+          </svg>
+        )}
   
         {(onRetour || onPartager || favori) && (
           <div className="dsh-top">
@@ -587,13 +608,36 @@ export function DishOrbitCarousel({
           ))}  
         </div>  
   
-        <div className="dsh-plates" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => (swipe.current = null)}>  
-          {dishes.map((d, i) => (  
-            <div key={i} ref={(el) => { orbits.current[i] = el }} className="dsh-orbit" aria-hidden={i !== index}>  
-              <img src={d.image} alt={d.alt ?? d.title + " " + d.subtitle} width={245} height={245} draggable={false} />  
-            </div>  
-          ))}  
-        </div>  
+        <div className="dsh-plates" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => (swipe.current = null)}>
+          {dishes.map((d, i) => {
+            if (!bibliotheque) {
+              return (
+                <div key={i} ref={(el) => { orbits.current[i] = el }} className="dsh-orbit" aria-hidden={i !== index}>
+                  <img src={d.image} alt={d.alt ?? d.title + " " + d.subtitle} width={245} height={245} draggable={false} />
+                </div>
+              )
+            }
+            const dist = i - index
+            const ad = Math.abs(dist)
+            const cache = ad > 2
+            const rot = Math.min(ad * 42, 52) * (dist > 0 ? 1 : -1)
+            return (
+              <div key={i} ref={(el) => { orbits.current[i] = el }} className="dsh-orbit"
+                role="button" tabIndex={-1}
+                aria-label={i === index ? d.alt ?? d.title + " " + d.subtitle : "Voir " + (d.alt ?? d.title + " " + d.subtitle)}
+                aria-hidden={cache}
+                onClick={() => { if (i !== index) go(i) }}
+                style={{
+                  transform: "translate(-50%,-50%) translateX(calc(" + dist + " * var(--esp,118px))) translateZ(" + -ad * 110 + "px) rotateY(" + rot + "deg) scale(" + (1 - Math.min(ad * 0.08, 0.22)) + ")",
+                  opacity: cache ? 0 : 1 - ad * 0.18,
+                  zIndex: 20 - ad,
+                  pointerEvents: cache ? "none" : "auto",
+                }}>
+                <img src={d.image} alt="" width={245} height={245} draggable={false} />
+              </div>
+            )
+          })}
+        </div>
   
         <div className="dsh-head" aria-live="polite">  
           {dishes.map((d, i) => (  

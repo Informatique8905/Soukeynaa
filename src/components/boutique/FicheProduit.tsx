@@ -265,6 +265,7 @@ export function FicheProduit({
         dishes={dishes}
         height="calc(100svh - var(--navh))"
       loop={false}
+      bibliotheque
       onRetour={() => router.back()}
       onPartager={() => {
         const url = window.location.href;

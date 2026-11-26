@@ -6,7 +6,7 @@ import { bannieresDe } from "@/lib/settings";
 import { cloud } from "@/lib/image";
 import { auth } from "@/auth";
 import { ProductCard, type CarteProduit } from "@/components/boutique/ProductCard";
-import { OffresBibliotheque } from "@/components/boutique/OffresBibliotheque";
+import { DealCard } from "@/components/boutique/DealCard";
 
 const AVANTAGES = [
   "Livraison dans tout Abidjan",
@@ -261,12 +261,11 @@ export default async function Accueil() {
               Tout voir →
             </Link>
           </div>
-          <OffresBibliotheque
-            offres={cartesPromos.map((p, i) => ({
-              ...p,
-              categorie: promos[i]?.categorie.nom,
-            }))}
-          />
+          <div className="no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-3 pt-1 md:grid md:grid-cols-4 md:overflow-visible xl:grid-cols-6">
+            {cartesPromos.map((p, i) => (
+              <DealCard key={p.slug} p={p} categorie={promos[i]?.categorie.nom} />
+            ))}
+          </div>
         </section>
       )}
 
