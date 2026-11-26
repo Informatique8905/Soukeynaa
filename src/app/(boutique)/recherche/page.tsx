@@ -11,6 +11,15 @@ interface ImageJson {
   url?: string;
 }
 
+// Un accessoire se porte par tous : il remonte aussi sous Femmes et Hommes
+// dans la recherche (CDC 4.5, articles communs aux deux publics).
+const PUBLICS_FILTRE: Record<Universe, Universe[]> = {
+  femmes: ["femmes", "accessoires"],
+  hommes: ["hommes", "accessoires"],
+  enfants: ["enfants"],
+  accessoires: ["accessoires"],
+};
+
 const RACCOURCIS: { slug: Universe; label: string }[] = [
   { slug: "femmes", label: "Femmes" },
   { slug: "hommes", label: "Hommes" },
@@ -35,7 +44,7 @@ export default async function RecherchePage({
       ? await prisma.product.findMany({
           where: {
             statut: "publie",
-            ...(univers ? { univers } : {}),
+            ...(univers ? { univers: { in: PUBLICS_FILTRE[univers] } } : {}),
             ...(enPromo ? { prixReduit: { not: null } } : {}),
             ...(terme
               ? {
