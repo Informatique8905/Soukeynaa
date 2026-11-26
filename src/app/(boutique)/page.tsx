@@ -134,10 +134,10 @@ export default async function Accueil() {
       {/* Entrées par public : repère immédiat sans connaîre les noms (CDC 7.2) */}
       <div className="mt-4 grid grid-cols-4 gap-2">
         {[
-          { u: "femmes", label: "Pour elle" },
-          { u: "hommes", label: "Pour lui" },
+          { u: "femmes", label: "Femmes" },
+          { u: "hommes", label: "Hommes" },
           { u: "enfants", label: "Enfants" },
-          { u: "accessoires", label: "Pour tous" },
+          { u: "accessoires", label: "Accessoires" },
         ].map((p) => (
           <Link
             key={p.u}

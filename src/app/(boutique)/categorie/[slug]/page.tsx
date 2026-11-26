@@ -14,10 +14,10 @@ interface ImageJson {
 // repère tout de suite ce qui est pour femmes, hommes, enfants ou unisexe
 // (CDC 4.5 — les accessoires sont portés par tous, 7.2 — navigation).
 const SECTIONS: { u: Universe; label: string }[] = [
-  { u: "femmes", label: "Pour femmes" },
-  { u: "hommes", label: "Pour hommes" },
-  { u: "enfants", label: "Pour enfants" },
-  { u: "accessoires", label: "Pour tous" },
+  { u: "femmes", label: "Femmes" },
+  { u: "hommes", label: "Hommes" },
+  { u: "enfants", label: "Enfants" },
+  { u: "accessoires", label: "Accessoires" },
 ];
 
 export default async function CategoriePage({
