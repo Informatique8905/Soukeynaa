@@ -9,6 +9,7 @@ import { Splash } from "@/components/boutique/Splash";
 import { MotionRoot } from "@/components/motion/MotionRoot";
 import { NavProgress } from "@/components/motion/NavProgress";
 import { RetourHaut } from "@/components/boutique/RetourHaut";
+import { LienFavoris } from "@/components/boutique/LienFavoris";
 
 export default async function BoutiqueLayout({
   children,
@@ -72,6 +73,7 @@ export default async function BoutiqueLayout({
                 Admin
               </Link>
             )}
+            <LienFavoris />
             <Link
               href="/panier"
               className="press relative rounded-full bg-vert px-3.5 py-2.5 text-xs font-bold text-white shadow-md shadow-vert/25 hover:bg-vert-fonce"

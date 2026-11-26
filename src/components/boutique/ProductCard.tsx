@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { fcfa } from "@/lib/format";
 import { cloud } from "@/lib/image";
+import { CoeurFav } from "./CoeurFav";
 
 export interface CarteProduit {
+  id?: number;
   slug: string;
   nom: string;
   prix: number;
   prixAffiche: number;
   image: string | null;
   enPromo: boolean;
+  /** Stock réel (articles sans variantes). undefined = pas d'affichage stock. */
+  stock?: number;
 }
 
 export function ProductCard({ p }: { p: CarteProduit }) {
@@ -44,9 +48,18 @@ export function ProductCard({ p }: { p: CarteProduit }) {
             -{reduction}%
           </span>
         )}
-        <span className="absolute bottom-2 right-2 grid size-9 translate-y-2 place-items-center rounded-full bg-white/95 text-noir opacity-0 shadow-md backdrop-blur transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
-          
-        </span>
+        {p.id !== undefined && <CoeurFav produitId={p.id} />}
+        {p.stock !== undefined && p.stock <= 5 && (
+          <span
+            className={`absolute bottom-2 left-2 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-sm ${
+              p.stock === 0
+                ? "bg-noir/85 text-white"
+                : "bg-amber-100/95 text-amber-800"
+            }`}
+          >
+            {p.stock === 0 ? "Épuisé" : `Plus que ${p.stock}`}
+          </span>
+        )}
       </div>
       <div className="px-1.5 pb-1.5 pt-2.5">
         <p className="line-clamp-2 text-sm font-semibold leading-snug text-noir">

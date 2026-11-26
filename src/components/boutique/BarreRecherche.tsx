@@ -2,7 +2,26 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Search, Tag } from "lucide-react";
+import { Search, Tag, History } from "lucide-react";
+
+const CLE_RECH = "soukeyna_rech";
+function lireRecentes(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(CLE_RECH) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+function memoriserRecherche(t: string) {
+  const s = t.trim();
+  if (s.length < 2) return;
+  try {
+    const l = lireRecentes().filter((x) => x.toLowerCase() !== s.toLowerCase());
+    localStorage.setItem(CLE_RECH, JSON.stringify([s, ...l].slice(0, 6)));
+  } catch {
+    /* stockage indisponible */
+  }
+}
 
 interface Suggestions {
   categories: { slug: string; nom: string }[];
@@ -20,6 +39,11 @@ export function BarreRecherche({
 }) {
   const [terme, setTerme] = useState(initial);
   const [sugg, setSugg] = useState<Suggestions | null>(null);
+  const [recentes, setRecentes] = useState<string[]>([]);
+  useEffect(() => {
+    const id = setTimeout(() => setRecentes(lireRecentes()), 0);
+    return () => clearTimeout(id);
+  }, []);
   const [ouvert, setOuvert] = useState(false);
   const boite = useRef<HTMLFormElement>(null);
 
@@ -70,6 +94,7 @@ export function BarreRecherche({
       className="group relative mt-4"
       autoComplete="off"
       role="search"
+      onSubmit={() => memoriserRecherche(terme)}
     >
       {enPromo && <input type="hidden" name="promo" value="1" />}
       <input
@@ -134,11 +159,29 @@ export function BarreRecherche({
           )}
           <Link
             href={`/recherche?q=${encodeURIComponent(terme.trim())}`}
-            onClick={() => setOuvert(false)}
+            onClick={() => {
+              memoriserRecherche(terme);
+              setOuvert(false);
+            }}
             className="block bg-vert-clair px-4 py-2.5 text-center text-xs font-bold text-vert-fonce transition hover:bg-vert hover:text-white"
           >
             Voir tous les résultats pour « {terme.trim()} »
           </Link>
+        </div>
+      )}
+
+      {terme.trim() === "" && recentes.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <History className="size-3.5 text-gris-fonce" aria-hidden />
+          {recentes.map((r) => (
+            <Link
+              key={r}
+              href={`/recherche?q=${encodeURIComponent(r)}`}
+              className="rounded-full bg-white px-3.5 py-1.5 text-xs font-semibold text-noir ring-1 ring-black/10 transition hover:bg-vert-clair hover:text-vert"
+            >
+              {r}
+            </Link>
+          ))}
         </div>
       )}
     </form>

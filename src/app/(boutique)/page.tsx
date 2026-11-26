@@ -29,6 +29,8 @@ type ProduitBase = {
   prixReduit: number | null;
   images: unknown;
   categorieId: number;
+  stock: number;
+  aVariantes: boolean;
 };
 
 function versCartes(
@@ -38,9 +40,11 @@ function versCartes(
   return produits.map((p) => {
     const prix = prixAvecPromos(p, promos);
     return {
+      id: p.id,
       slug: p.slug,
       nom: p.nom,
       prix: p.prix,
+      stock: p.aVariantes ? undefined : p.stock,
       prixAffiche: prix,
       image: (p.images as ImageJson[])?.[0]?.url ?? null,
       enPromo: prix < p.prix,

@@ -89,9 +89,11 @@ export default async function CategoriePage({
                   <ProductCard
                     key={p.id}
                     p={{
+                      id: p.id,
                       slug: p.slug,
                       nom: p.nom,
                       prix: p.prix,
+                      stock: p.aVariantes ? undefined : p.stock,
                       prixAffiche: prix,
                       image: (p.images as ImageJson[])?.[0]?.url ?? null,
                       enPromo: prix < p.prix,
