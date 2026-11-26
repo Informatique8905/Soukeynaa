@@ -145,19 +145,25 @@ export function CheckoutForm({
     }
     setInfos((i) => ({ ...i, nom, telephone, email, adresse }));
     start(async () => {
-      const res = await creerCommande({
-        client: { nom, telephone, email },
-        livraison: { communeId: Number(communeId), adresse },
-        modePaiement: mode,
-        moyenPaiement: mode === "en_ligne" ? moyen : undefined,
-      });
-      if ("erreur" in res) {
-        setErreur(res.erreur);
-      } else if (res.url) {
-        // Paiement direct : la page du moyen choisi (Jèko) s'ouvre aussitôt.
-        window.location.href = res.url;
+      try {
+        const res = await creerCommande({
+          client: { nom, telephone, email },
+          livraison: { communeId: Number(communeId), adresse },
+          modePaiement: mode,
+          moyenPaiement: mode === "en_ligne" ? moyen : undefined,
+        });
+        if ("erreur" in res) {
+          setErreur(res.erreur);
+        } else if (res.url) {
+          // Paiement direct : la page du moyen choisi (Jèko) s'ouvre aussitôt.
+          window.location.href = res.url;
+        }
+        // ok sans url => redirect() côté serveur
+      } catch {
+        // Sans ce catch, une exception de l'action laisserait le bouton
+        // bloqué en « Redirection… » (pending jamais relâché).
+        setErreur("Une erreur est survenue — vérifiez votre connexion puis réessayez.");
       }
-      // ok sans url => redirect() côté serveur
     });
   }
 
@@ -194,8 +200,15 @@ export function CheckoutForm({
         </div>
       </section>
 
-      {/* 2 — Livraison */}
-      <section id="etape-livraison" data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+      {/* 2 — Livraison : liste ouverte => section au premier plan (les
+          animations data-reveal gardent un transform actif, ce qui
+          créait un contexte de pile plaçant la liste derrière la
+          section paiement) */}
+      <section
+        id="etape-livraison"
+        data-reveal
+        className={`rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 ${listeOuverte ? "relative z-30" : ""}`}
+      >
         <TitreEtape n={2} titre="Où livrer ?" fait={livraisonOk} />
         <div className="relative">
           <button
