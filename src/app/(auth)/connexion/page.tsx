@@ -4,6 +4,8 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import Link from "next/link";
+import { Mail, Lock } from "lucide-react";
+import { ChampAuth, EnTeteAuth } from "@/components/boutique/auth-ui";
 
 function FormulaireConnexion() {
   const router = useRouter();
@@ -37,59 +39,68 @@ function FormulaireConnexion() {
     router.refresh();
   }
 
-  const champ =
-    "w-full rounded-xl border border-black/10 bg-blanc-casse py-3 pr-4 text-sm outline-none transition focus:border-vert focus:bg-white focus:ring-4 focus:ring-vert/10";
-
   return (
-    <main className="mx-auto max-w-md px-4 py-8">
-      <div data-reveal="scale" className="rounded-[2rem] bg-white/90 p-6 shadow-xl shadow-vert/10 ring-1 ring-black/5 backdrop-blur-xl sm:p-8">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/logo-soukeyna.png"
-          alt="Soukeyna Styl'"
-          className="mx-auto h-14 w-auto"
-        />
-        <h1 className="mt-4 text-center text-xl font-extrabold text-noir">
+    <main className="mx-auto max-w-md px-4 pb-10 pt-3">
+      <EnTeteAuth />
+
+      {/* Carte qui chevauche le bandeau visuel */}
+      <div
+        data-reveal="scale"
+        className="relative z-10 -mt-10 rounded-[1.75rem] bg-white p-6 shadow-xl shadow-noir/10 ring-1 ring-black/5"
+      >
+        <h1 className="text-center text-xl font-extrabold text-noir">
           Ravi de vous revoir
         </h1>
         <p className="mt-1 text-center text-sm text-gris-fonce">
           Connectez-vous pour suivre vos commandes
         </p>
 
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          <div className="group relative">
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              className={champ}
-            />
-          </div>
-          <div className="group relative">
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              value={motDePasse}
-              onChange={(e) => setMotDePasse(e.target.value)}
-              placeholder="Mot de passe"
-              className={champ}
-            />
-          </div>
+        <form onSubmit={onSubmit} className="mt-6 space-y-3.5">
+          <ChampAuth
+            icone={Mail}
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setErreur("");
+            }}
+            placeholder="Email"
+          />
+          <ChampAuth
+            icone={Lock}
+            motDePasse
+            required
+            autoComplete="current-password"
+            value={motDePasse}
+            onChange={(e) => {
+              setMotDePasse(e.target.value);
+              setErreur("");
+            }}
+            placeholder="Mot de passe"
+          />
           {erreur && (
-            <p role="alert" className="page-in rounded-xl bg-red-50 p-3 text-sm text-red-700">
+            <p
+              role="alert"
+              className="page-in rounded-xl bg-red-50 p-3 text-sm text-red-700"
+            >
               {erreur}
             </p>
           )}
           <button
             type="submit"
             disabled={chargement}
-            className="press shine flex w-full items-center justify-center gap-2 rounded-full bg-vert py-4 font-bold text-white shadow-lg shadow-vert/25 hover:bg-vert-fonce disabled:opacity-50"
+            className="press shine flex w-full items-center justify-center gap-2 rounded-full bg-vert py-4 text-[15px] font-bold text-white shadow-lg shadow-vert/25 hover:bg-vert-fonce disabled:opacity-50"
           >
-            {chargement ? "Connexion…" : "Se connecter"}
+            {chargement ? (
+              <>
+                <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                Connexion…
+              </>
+            ) : (
+              "Se connecter"
+            )}
           </button>
         </form>
       </div>
