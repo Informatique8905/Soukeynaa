@@ -315,6 +315,85 @@ label {
   }
 }
 
+/* Champ invalide au blur : courte secousse latérale */
+.secouer {
+  animation: secouer 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes secouer {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+/* Écran de confirmation : le disque pop, puis la coche se trace
+   (.anim-check = l'icône lucide Check posée dans SuccesAnime) */
+.succes-pop {
+  animation: succes-pop 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@keyframes succes-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+.anim-check path {
+  stroke-dasharray: 32;
+  stroke-dashoffset: 32;
+  animation: draw-check 0.5s ease-out 0.3s forwards;
+}
+@keyframes draw-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Halo pulsant sur l'étape courante du suivi de commande */
+.halo-pulse {
+  animation: halo-pulse 1.8s ease-out infinite;
+}
+@keyframes halo-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(30 123 79 / 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgb(30 123 79 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(30 123 79 / 0);
+  }
+}
+
+/* Cœur favori : pop de l'icône + onde qui s'étend au tap */
+.fav-pop {
+  animation: fav-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes fav-pop {
+  45% {
+    transform: scale(1.25);
+  }
+}
+.fav-onde {
+  pointer-events: none;
+  animation: fav-onde 0.35s ease-out forwards;
+}
+@keyframes fav-onde {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
 /* Flottement doux (visuels décoratifs) */
 .float {
   animation: float 5s ease-in-out infinite;
@@ -482,6 +561,23 @@ label {
   .press:active,
   .lift:hover {
     transform: none;
+  }
+  .secouer,
+  .succes-pop,
+  .halo-pulse,
+  .fav-pop,
+  .fav-onde {
+    animation: none;
+  }
+  /* Sans animation le tracé resterait masqué (dashoffset initial = 32) */
+  .anim-check path {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+  /* L'étape courante garde un repère fixe */
+  .halo-pulse {
+    box-shadow: 0 0 0 4px rgb(30 123 79 / 0.15);
   }
 }
 

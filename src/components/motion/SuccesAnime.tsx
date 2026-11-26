@@ -1,4 +1,8 @@
-// Marque de confirmation typographique — disque vert + « ✓ », sobre.
+import { Check } from "lucide-react";
+
+// Marque de confirmation : disque qui pop puis coche qui se trace
+// (animations .succes-pop / .anim-check définies dans globals.css,
+// neutralisées par prefers-reduced-motion).
 // (`taille`/`confettis` conservés pour compatibilité d'appel, ignorés.)
 export function SuccesAnime({
   ton = "vert",
@@ -11,13 +15,13 @@ export function SuccesAnime({
   return (
     <div
       aria-hidden="true"
-      className={`mx-auto grid size-20 place-items-center rounded-full text-3xl font-bold ${
+      className={`succes-pop mx-auto grid size-[72px] place-items-center rounded-full ${
         ambre
           ? "bg-amber-100 text-amber-700 ring-8 ring-amber-50"
-          : "bg-vert text-white ring-8 ring-vert/10"
+          : "bg-vert/10 text-vert ring-8 ring-vert/10"
       }`}
     >
-      ✓
+      <Check className="anim-check size-9" strokeWidth={3} aria-hidden />
     </div>
   );
 }

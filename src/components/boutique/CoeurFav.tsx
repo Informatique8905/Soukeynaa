@@ -58,7 +58,18 @@ export function CoeurFav({ produitId }: { produitId: number }) {
         actif ? "text-red-500" : "text-noir/70 hover:text-red-500"
       }`}
     >
-      <Heart className={`size-4 ${actif ? "fill-current" : ""}`} aria-hidden />
+      {actif && (
+        <span
+          key={`onde-${produitId}`}
+          aria-hidden
+          className="fav-onde absolute inset-0 rounded-full ring-2 ring-red-400"
+        />
+      )}
+      <Heart
+        key={String(actif)}
+        className={`size-4 ${actif ? "fav-pop fill-current" : ""}`}
+        aria-hidden
+      />
     </button>
   );
 }

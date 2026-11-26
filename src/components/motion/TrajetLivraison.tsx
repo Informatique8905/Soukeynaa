@@ -55,7 +55,7 @@ export function TrajetLivraison({
               <span
                 className={`size-2 rounded-full ${
                   actuelle
-                    ? "bg-vert ring-4 ring-vert/20"
+                    ? "bg-vert halo-pulse"
                     : atteinte
                       ? "bg-vert"
                       : "bg-black/15"

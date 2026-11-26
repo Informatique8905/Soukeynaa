@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { creerCommande } from "@/app/(boutique)/commander/actions";
 import { fcfa } from "@/lib/format";
 import { Compteur } from "@/components/motion/Compteur";
@@ -34,15 +34,48 @@ const champ =
 const etiquette =
   "pointer-events-none absolute left-4 top-2 text-[11px] font-semibold text-gris-fonce transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-vert";
 
+type EtatChamp = "neutre" | "ok" | "ko";
+
+// La bordure du champ reflète la validation au blur ; `secouer` rejoue la
+// secousse à chaque passage en erreur.
+function champEtat(base: string, etat: EtatChamp): string {
+  const bordure =
+    etat === "ok"
+      ? "border-vert"
+      : etat === "ko"
+        ? "border-red-500 bg-red-50/50"
+        : "border-black/10";
+  return base.replace("border-black/10", bordure) + (etat === "ko" ? " secouer" : "");
+}
+
 function Champ({
   label,
+  etat = "neutre",
+  erreurMsg,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+}: React.InputHTMLAttributes<HTMLInputElement> & {
+  label: string;
+  etat?: EtatChamp;
+  erreurMsg?: string;
+}) {
   return (
-    <label className="relative block">
-      <input {...props} placeholder={label} className={champ} />
-      <span className={etiquette}>{label}</span>
-    </label>
+    <div>
+      <label className="relative block">
+        <input {...props} placeholder={label} className={champEtat(champ, etat)} />
+        <span className={etiquette}>{label}</span>
+        {etat === "ok" && (
+          <Check
+            aria-hidden
+            className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-vert"
+          />
+        )}
+      </label>
+      {etat === "ko" && erreurMsg && (
+        <p role="alert" className="page-in mt-1 pl-1 text-xs font-medium text-red-600">
+          {erreurMsg}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -87,7 +120,18 @@ export function CheckoutForm({
     adresse: "",
   });
   const [erreur, setErreur] = useState("");
+  const [touche, setTouche] = useState<Record<string, boolean>>({});
   const [pending, start] = useTransition();
+
+  const floute = (k: string) => () => setTouche((t) => ({ ...t, [k]: true }));
+  const valide = {
+    nom: infos.nom.trim().length >= 2,
+    telephone: infos.telephone.replace(/\D/g, "").length >= 8,
+    email: /^\S+@\S+\.\S+$/.test(infos.email),
+    adresse: infos.adresse.trim().length >= 5,
+  };
+  const etatDe = (k: keyof typeof valide): EtatChamp =>
+    touche[k] ? (valide[k] ? "ok" : "ko") : "neutre";
 
   const commune = communes.find((c) => c.id === communeId);
   const total = sousTotal + (commune?.tarif ?? 0);
@@ -123,6 +167,7 @@ export function CheckoutForm({
     const livr = !!commune && adresse.trim().length >= 5;
     if (!coords) {
       setInfos((i) => ({ ...i, nom, telephone, email, adresse }));
+      setTouche({ nom: true, telephone: true, email: true });
       setErreur(
         "Complétez vos coordonnées : nom, téléphone (8 chiffres min.) et email valide.",
       );
@@ -133,6 +178,7 @@ export function CheckoutForm({
     }
     if (!livr) {
       setInfos((i) => ({ ...i, nom, telephone, email, adresse }));
+      setTouche((t) => ({ ...t, adresse: true }));
       setErreur(
         commune
           ? "Indiquez un repère précis pour le livreur (5 caractères min.)."
@@ -189,10 +235,10 @@ export function CheckoutForm({
       <section id="etape-coordonnees" data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
         <TitreEtape n={1} titre="Vos coordonnées" fait={coordonneesOk} />
         <div className="grid gap-3">
-          <Champ label="Nom complet" name="nom" required autoComplete="name" value={infos.nom} onChange={maj("nom")} />
+          <Champ label="Nom complet" name="nom" required autoComplete="name" value={infos.nom} onChange={maj("nom")} onBlur={floute("nom")} etat={etatDe("nom")} erreurMsg="Indiquez votre nom complet." />
           <div className="grid gap-3 md:grid-cols-2">
-            <Champ label="Téléphone (07 XX XX XX XX)" name="telephone" type="tel" required autoComplete="tel" inputMode="tel" value={infos.telephone} onChange={maj("telephone")} />
-            <Champ label="Email" name="email" type="email" required autoComplete="email" value={infos.email} onChange={maj("email")} />
+            <Champ label="Téléphone (07 XX XX XX XX)" name="telephone" type="tel" required autoComplete="tel" inputMode="tel" value={infos.telephone} onChange={maj("telephone")} onBlur={floute("telephone")} etat={etatDe("telephone")} erreurMsg="Numéro trop court (8 chiffres min.)." />
+            <Champ label="Email" name="email" type="email" required autoComplete="email" value={infos.email} onChange={maj("email")} onBlur={floute("email")} etat={etatDe("email")} erreurMsg="Adresse email invalide." />
           </div>
           <p className="text-xs text-gris-fonce">
             Le bon de commande vous est envoyé par email.
@@ -280,19 +326,33 @@ export function CheckoutForm({
             Quartiers couverts : {commune.quartiersInclus}
           </p>
         )}
-        <label className="relative mt-3 block">
-          <textarea
-            name="adresse"
-            required
-            autoComplete="street-address"
-            rows={2}
-            value={infos.adresse}
-            onChange={maj("adresse")}
-            placeholder="Adresse / point de repère"
-            className={champ + " resize-none"}
-          />
-          <span className={etiquette}>Adresse / point de repère pour le livreur</span>
-        </label>
+        <div>
+          <label className="relative mt-3 block">
+            <textarea
+              name="adresse"
+              required
+              autoComplete="street-address"
+              rows={2}
+              value={infos.adresse}
+              onChange={maj("adresse")}
+              onBlur={floute("adresse")}
+              placeholder="Adresse / point de repère"
+              className={champEtat(champ, etatDe("adresse")) + " resize-none"}
+            />
+            <span className={etiquette}>Adresse / point de repère pour le livreur</span>
+            {etatDe("adresse") === "ok" && (
+              <Check
+                aria-hidden
+                className="pointer-events-none absolute right-4 top-5 size-4 text-vert"
+              />
+            )}
+          </label>
+          {etatDe("adresse") === "ko" && (
+            <p role="alert" className="page-in mt-1 pl-1 text-xs font-medium text-red-600">
+              Indiquez un repère précis pour le livreur.
+            </p>
+          )}
+        </div>
       </section>
 
       {/* 3 — Paiement */}

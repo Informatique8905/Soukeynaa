@@ -260,7 +260,10 @@ const CSS =
   ".dsh-add:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 14px 26px -10px rgba(30,123,79,.6)}" +  
   ".dsh-add:disabled{opacity:.4;cursor:not-allowed}" +  
   ".dsh-add .dsh-ico{width:14px;height:14px}" +  
-  ".dsh-err{font-size:11px;color:#dc2626;margin:6px 0 0;text-align:center}" +  
+  ".dsh-err{font-size:11px;color:#dc2626;margin:6px 0 0;text-align:center}" +
+  ".dsh-spin{display:inline-block;width:14px;height:14px;border-radius:99px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:dsh-rot .7s linear infinite}" +
+  "@keyframes dsh-rot{to{transform:rotate(360deg)}}" +
+  ".dsh-add--ok{background:#16a34a;box-shadow:0 10px 22px -10px rgba(22,163,74,.55)}" +  
   "@container (max-width:639px){" +
   // phone: colonne compacte bornée à la hauteur du stage — scroll interne si ça déborde
   ".dsh-canvas{position:relative;left:auto;top:auto;width:100%;height:auto;max-height:100%;transform:none;display:flex;flex-direction:column;align-items:center;padding:10px 14px 14px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}" +
@@ -730,7 +733,7 @@ export function DishOrbitCarousel({
               ) : null}  
               {onAddToCart ? (  
                 <>
-                <button type="button" className="dsh-btn dsh-add"  
+                <button type="button" className={"dsh-btn dsh-add" + (ajoute === index ? " dsh-add--ok" : "")}
                   disabled={adding || (dish.tailles?.length ? dish.tailles.every((t) => t.stock === 0) : false)}  
                   onClick={async () => {
                     if (adding) return
@@ -745,7 +748,11 @@ export function DishOrbitCarousel({
                       setAdding(false)
                     }
                   }}>  
-                  {adding ? "Ajout…" : ajoute === index ? "Ajouté ✓" : "Ajouter au panier"}  
+                  {adding ? (
+                    <><span className="dsh-spin" aria-hidden="true" /> Ajout…</>
+                  ) : ajoute === index ? (
+                    <>{Icon.check} Ajouté au panier</>
+                  ) : "Ajouter au panier"}  
                 </button>  
                 {addErr ? <p className="dsh-err">{addErr}</p> : null}
                 </>

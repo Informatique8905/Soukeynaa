@@ -8,6 +8,8 @@ import { reconcilierTentative } from "@/lib/paiement";
 import { BoutonPayer, RafraichirAuto } from "@/components/boutique/BoutonPayer";
 import { BonCommande } from "@/components/boutique/BonCommande";
 import { TrajetLivraison } from "@/components/motion/TrajetLivraison";
+import { SuccesAnime } from "@/components/motion/SuccesAnime";
+import { CopierReference } from "@/components/boutique/CopierReference";
 
 const ETAPES_EN_LIGNE = ["en_attente_paiement", "payee", "en_preparation", "expediee", "livree"] as const;
 const LABELS_EN_LIGNE = ["Commandée", "Payée", "Préparation", "En route", "Livrée"];
@@ -86,6 +88,7 @@ export default async function CommandePage({
     : aLaLivraison
       ? ETAPES_LIVRAISON.indexOf(commande.statut as never) + 1
       : ETAPES_EN_LIGNE.indexOf(commande.statut as never);
+  const confirmee = !annulee && etapeCourante >= 1;
   const enAttente =
     !aLaLivraison &&
     commande.statut === "en_attente_paiement" &&
@@ -136,12 +139,30 @@ export default async function CommandePage({
         >
           ← Mes commandes
         </Link>
-        <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-gris-fonce ring-1 ring-black/5">
-          Réf. {commande.reference}
-        </span>
+        <CopierReference reference={commande.reference} />
       </div>
 
       <div className="mt-5 flex max-w-2xl flex-col gap-4">
+          {/* Clôture : disque animé + titre rassurant (CDC confirmation) */}
+          {!annulee && (
+            <div data-reveal className="pt-1 text-center">
+              <SuccesAnime ton={confirmee ? "vert" : "ambre"} />
+              <h1 className="mt-3 text-[22px] font-extrabold tracking-tight text-noir">
+                {confirmee ? "Commande confirmée" : "Commande enregistrée"}
+              </h1>
+              <p className="mt-1 text-sm text-gris-fonce">
+                {confirmee
+                  ? "Merci pour votre confiance — le récapitulatif vous a été envoyé par email."
+                  : "Finalisez le paiement pour valider votre commande."}
+              </p>
+            </div>
+          )}
+          {annulee && (
+            <p className="rounded-2xl bg-red-50 p-3 text-center text-sm font-semibold text-red-700">
+              Cette commande a été annulée.
+            </p>
+          )}
+
           {/* Suivi */}
           {!annulee && (
             <section data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 print:hidden">
