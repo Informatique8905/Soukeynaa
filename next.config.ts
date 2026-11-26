@@ -47,7 +47,7 @@ const nextConfig: NextConfig = {
     staleTimes: { dynamic: 30, static: 300 },
   },
   // Aperçu navigateur / téléphone sur le dev server (HMR, chunks dev)
-  allowedDevOrigins: ["127.0.0.1", "192.168.16.1"],
+  allowedDevOrigins: ["127.0.0.1", "192.168.16.1", "192.168.1.19"],
   images: {
     remotePatterns: [
       {
