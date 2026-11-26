@@ -8,14 +8,6 @@ import { auth } from "@/auth";
 import { ProductCard, type CarteProduit } from "@/components/boutique/ProductCard";
 import { DealCard } from "@/components/boutique/DealCard";
 
-const AVANTAGES = [
-  "Livraison dans tout Abidjan",
-  "Paiement à la livraison",
-  "Wave · Orange Money · MTN · Moov",
-  "Paiement en ligne sécurisé",
-  "Retours & échanges faciles",
-];
-
 interface ImageJson {
   url?: string;
   alt?: string;
@@ -73,12 +65,12 @@ export default async function Accueil() {
     prisma.product.findMany({
       where: { statut: "publie" },
       orderBy: { createdAt: "desc" },
-      take: 8,
+      take: 4,
     }),
     prisma.product.findMany({
       where: { statut: "publie", prixReduit: { not: null } },
       orderBy: { updatedAt: "desc" },
-      take: 8,
+      take: 20,
       include: { categorie: { select: { nom: true } } },
     }),
     promotionsActives(),
@@ -136,7 +128,10 @@ export default async function Accueil() {
       </Link>
 
       {/* Entrées par public : repère immédiat sans connaîre les noms (CDC 7.2) */}
-      <div className="mt-4 grid grid-cols-4 gap-2">
+      <nav
+        aria-label="Explorer par public ou catégorie"
+        className="no-scrollbar -mx-4 mt-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1"
+      >
         {[
           { u: "femmes", label: "Femmes" },
           { u: "hommes", label: "Hommes" },
@@ -147,12 +142,22 @@ export default async function Accueil() {
             key={p.u}
             href={`/recherche?u=${p.u}`}
             data-reveal
-            className="press rounded-2xl bg-white px-1 py-3 text-center text-xs font-bold text-noir shadow-sm ring-1 ring-black/5 transition hover:text-vert hover:ring-vert/40"
+            className="press shrink-0 snap-start rounded-full bg-vert px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-vert-fonce"
           >
             {p.label}
           </Link>
         ))}
-      </div>
+        {cartesCategories.map((c) => (
+          <Link
+            key={c.slug}
+            href={`/categorie/${c.slug}`}
+            data-reveal
+            className="press shrink-0 snap-start rounded-full bg-white px-4 py-2.5 text-xs font-bold text-noir shadow-sm ring-1 ring-black/5 transition hover:text-vert hover:ring-vert/40"
+          >
+            {c.nom}
+          </Link>
+        ))}
+      </nav>
 
       {/* Bannières administrables (CDC 7.1) */}
       {bannieres.length > 0 && (
@@ -202,17 +207,6 @@ export default async function Accueil() {
           />
         </div>
       )}
-
-      {/* Réassurance — défile en continu */}
-      <div className="relative mt-4 overflow-hidden rounded-2xl bg-white py-2.5 shadow-sm ring-1 ring-black/5 [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
-        <div className="defile flex w-max text-xs font-semibold text-noir">
-          {[...AVANTAGES, ...AVANTAGES].map((a, i) => (
-            <span key={i} className="whitespace-nowrap pr-8" aria-hidden={i >= AVANTAGES.length}>
-              {a} <span className="ml-6 text-vert">•</span>
-            </span>
-          ))}
-        </div>
-      </div>
 
       {/* Catégories en cartes illustrées */}
       {cartesCategories.length > 0 && (
@@ -267,7 +261,7 @@ export default async function Accueil() {
               Tout voir →
             </Link>
           </div>
-          <div className="no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-3 pt-1 md:grid md:grid-cols-4 md:overflow-visible xl:grid-cols-6">
+          <div className="no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-3 pt-1">
             {cartesPromos.map((p, i) => (
               <DealCard key={p.slug} p={p} categorie={promos[i]?.categorie.nom} />
             ))}
@@ -294,7 +288,7 @@ export default async function Accueil() {
               Tout voir →
             </Link>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {cartesNouveautes.map((p) => (
               <ProductCard key={p.slug} p={p} />
             ))}

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Palette SOUKEYNA : blanc 60 %, vert 30 %, noir 10 % */
+/* Palette SOUKEYNA : blanc dominant, vert principal, bordeaux + doré en contraste */
 @theme {
   --animate-entree: entree 0.3s ease-out both;
   @keyframes entree {
@@ -20,6 +20,10 @@
   --color-vert: #1e7b4f;
   --color-vert-fonce: #15613d;
   --color-vert-clair: #e3f0e9;
+  --color-bordeaux: #7a1f2b;
+  --color-bordeaux-fonce: #5d1620;
+  --color-dore: #c9a227;
+  --color-dore-clair: #f5ecd2;
   --color-noir: #171512;
   --color-gris: #eef0ec;
   --color-gris-fonce: #5f6660;
@@ -581,3 +585,4 @@ label {
     scrollbar-color: #d8e4dc transparent;
   }
 }
+

@@ -11,6 +11,14 @@ import { NavProgress } from "@/components/motion/NavProgress";
 import { RetourHaut } from "@/components/boutique/RetourHaut";
 import { LienFavoris } from "@/components/boutique/LienFavoris";
 
+const AVANTAGES = [
+  "Livraison dans tout Abidjan",
+  "Paiement à la livraison",
+  "Wave · Orange Money · MTN · Moov",
+  "Paiement en ligne sécurisé",
+  "Retours & échanges faciles",
+];
+
 export default async function BoutiqueLayout({
   children,
 }: {
@@ -32,6 +40,20 @@ export default async function BoutiqueLayout({
       <Splash />
       <MotionRoot />
       <NavProgress />
+      {/* Barre d'annonce défilante tout en haut (bordeaux, contraste) :
+          disparaît au scroll — l'en-tête collant prend le relais */}
+      <div
+        aria-hidden
+        className="overflow-hidden bg-bordeaux text-white print:hidden"
+      >
+        <div className="defile flex w-max py-1.5 text-[11px] font-semibold">
+          {[...AVANTAGES, ...AVANTAGES].map((a, i) => (
+            <span key={i} className="whitespace-nowrap pr-8">
+              {a} <span className="ml-6 text-dore">•</span>
+            </span>
+          ))}
+        </div>
+      </div>
       {/* En-tête façon app : se compacte et prend une ombre au scroll */}
       <header className="hdr-scroll sticky top-0 z-40 border-b border-black/5 bg-white/95 backdrop-blur-md print:hidden">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
