@@ -27,6 +27,7 @@ export function BoutonPayer({
     MOYENS.some((m) => m.v === moyenInitial) ? moyenInitial! : "wave"
   );
   const [pending, start] = useTransition();
+  const router = useRouter();
 
   function payer() {
     setErreur("");
@@ -42,6 +43,9 @@ export function BoutonPayer({
           window.location.href = data.url;
         } else {
           setErreur(data.erreur || "Paiement indisponible pour le moment");
+          // 409/410 : état réel côté serveur (payée, en cours, expirée) —
+          // on recharge pour afficher le suivi à jour.
+          if (res.status === 409 || res.status === 410) router.refresh();
         }
       } catch {
         setErreur("Erreur réseau, réessayez");

@@ -11,7 +11,8 @@ import { envoyerBonCommande, alerterAdmin } from "@/lib/email";
 // paiements échoués — on interroge GET /payment_requests/{id} pour chaque
 // tentative restée "en_attente" trop longtemps.
 //   success → confirme (ou a_verifier si la commande n'est plus payable)
-//   error   → echoue + stock libéré
+//   error   → echoue (stock conservé : retentative possible jusqu'à
+//             reservationExpireLe, puis cron liberer-reservations)
 //   pending au-delà de 2× la réservation → a_verifier (revue admin)
 // À appeler périodiquement avec : Authorization: Bearer $CRON_SECRET
 export async function GET(req: Request) {

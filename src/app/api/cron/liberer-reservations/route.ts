@@ -15,8 +15,10 @@ export async function GET(req: Request) {
   const prisma = getPrisma();
   const expirees = await prisma.order.findMany({
     where: {
+      // echoue/annule inclus : la réservation survit à une tentative
+      // soldée (retentative, CDC 10.10) et doit être libérée à l'échéance.
       statut: "en_attente_paiement",
-      statutPaiement: { in: ["en_attente", "a_verifier"] },
+      statutPaiement: { in: ["en_attente", "a_verifier", "echoue", "annule"] },
       reservationExpireLe: { lt: new Date() },
     },
     select: { id: true, reference: true },

@@ -1,6 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { getPrisma } from "@/lib/db";
 import { libererStock } from "@/lib/stock";
+import { envoyerBonCommande, alerterAdmin } from "@/lib/email";
 import type { Payment } from "@/generated/prisma/client";
 import { Prisma } from "@/generated/prisma/client";
 import type { StatutPaiement, MoyenPaiement } from "@/generated/prisma/enums";
@@ -97,8 +98,14 @@ export async function appliquerTransition(
       data: { statutPaiement: "confirme", statut: "payee" },
     });
   } else if (["echoue", "annule", "expire"].includes(statutFinal)) {
-    // Libération immédiate du stock réservé (CDC 5.8)
-    await libererStock(tx, paiement.commandeId);
+    // Échec/abandon d'une tentative : la réservation de stock est CONSERVÉE
+    // — le client peut relancer un paiement jusqu'à reservationExpireLe
+    // (CDC 10.10). Seule l'expiration libère ici ; l'annulation de commande
+    // passe par restituerStockCommande, l'expiration de réservation par le
+    // cron liberer-reservations.
+    if (statutFinal === "expire") {
+      await libererStock(tx, paiement.commandeId);
+    }
     await tx.order.update({
       where: { id: paiement.commandeId },
       data: { statutPaiement: statutFinal },
@@ -191,7 +198,10 @@ export async function statutJekoReel(
   try {
     const res = await fetch(
       `${base}/partner_api/payment_requests/${paymentRequestId}`,
-      { headers: { "X-API-KEY": apiKey, "X-API-KEY-ID": keyId } }
+      {
+        headers: { "X-API-KEY": apiKey, "X-API-KEY-ID": keyId },
+        signal: AbortSignal.timeout(10_000),
+      }
     );
     if (!res.ok) return null;
     const data = await res.json().catch(() => ({}));
@@ -202,6 +212,62 @@ export async function statutJekoReel(
   } catch {
     return null;
   }
+}
+
+// ===== Réconciliation ponctuelle d'une tentative (suivi + retentative) =====
+// Jèko n'envoie PAS de webhook pour les paiements échoués (CDC 10.11) :
+// une tentative restée « en_attente » doit être vérifiée auprès de l'API,
+// sinon elle bloque tout nouveau paiement jusqu'au passage du cron.
+// Retourne le statut après réconciliation — inchangé si encore « pending »,
+// si l'API est injoignable ou si la tentative n'a pas d'id Jèko.
+export async function reconcilierTentative(
+  paiement: Payment,
+  commandeStatut: string
+): Promise<StatutPaiement> {
+  if (paiement.statut !== "en_attente" || !paiement.transactionJeko) {
+    return paiement.statut;
+  }
+  const reel = await statutJekoReel(paiement.transactionJeko);
+  if (reel !== "success" && reel !== "error") return paiement.statut;
+
+  // Succès alors que la commande n'est plus payable → revue admin (CDC 10.12)
+  const cible: StatutPaiement =
+    reel === "error"
+      ? "echoue"
+      : commandeStatut !== "en_attente_paiement"
+        ? "a_verifier"
+        : "confirme";
+
+  const prisma = getPrisma();
+  const appliquee = await prisma.$transaction(async (tx) => {
+    await journaliser(
+      tx,
+      paiement.id,
+      "reconciliation",
+      `Statut réel : ${reel} → ${cible}`
+    );
+    return appliquerTransition(tx, paiement, cible);
+  });
+
+  if (!appliquee) {
+    // Transition appliquée entre-temps (webhook, cron) : statut réel en base
+    const actuel = await prisma.payment.findUnique({
+      where: { id: paiement.id },
+      select: { statut: true },
+    });
+    return actuel?.statut ?? paiement.statut;
+  }
+  if (cible === "confirme") {
+    envoyerBonCommande(paiement.commandeId).catch(() => {});
+  } else if (cible === "a_verifier") {
+    alerterAdmin(
+      "alerte_admin_anomalie",
+      `Paiement à vérifier ${paiement.referenceCommande}`,
+      `<p>Paiement confirmé par l'agrégateur alors que la commande <strong>${paiement.referenceCommande}</strong> n'est plus payable. Revue admin requise (CDC 10.12).</p>`,
+      paiement.commandeId
+    ).catch(() => {});
+  }
+  return cible;
 }
 
 // ===== Tentative de paiement complète (checkout + retentative) =====
@@ -251,9 +317,30 @@ export async function initierTentative(params: {
   }
 
   // Verrou commande : une seule tentative active (en_attente / a_verifier)
-  const tentativeActive = commande.paiements.find(
+  let tentativeActive = commande.paiements.find(
     (p) => p.statut === "en_attente" || p.statut === "a_verifier"
   );
+  // Jèko ne notifie pas les échecs : une tentative « en_attente » peut déjà
+  // être soldée côté agrégateur — on vérifie avant de bloquer le client.
+  if (tentativeActive?.statut === "en_attente") {
+    const resolu = await reconcilierTentative(
+      tentativeActive,
+      commande.statut
+    );
+    if (resolu === "confirme") {
+      return { ok: false, erreur: "Commande déjà payée", code: 409 };
+    }
+    if (resolu === "a_verifier") {
+      // Paiement possible en revue admin : jamais de nouvelle tentative
+      return {
+        ok: false,
+        erreur: "Un paiement est en cours de vérification",
+        code: 409,
+      };
+    }
+    // Retentative uniquement après échec/annulation/expiration (CDC 10.10)
+    if (resolu !== "en_attente") tentativeActive = undefined;
+  }
   if (tentativeActive) {
     return {
       ok: false,
@@ -266,14 +353,23 @@ export async function initierTentative(params: {
   // initiations concurrentes ne passent pas toutes les deux (P2002 → 409).
   let paiement;
   try {
-    paiement = await prisma.payment.create({
-      data: {
-        commandeId: commande.id,
-        referenceCommande: commande.reference,
-        cleIdempotence: randomUUID(),
-        montant: commande.total,
-        moyen,
-      },
+    paiement = await prisma.$transaction(async (tx) => {
+      const p = await tx.payment.create({
+        data: {
+          commandeId: commande.id,
+          referenceCommande: commande.reference,
+          cleIdempotence: randomUUID(),
+          montant: commande.total,
+          moyen,
+        },
+      });
+      // La commande repasse « en attente » de paiement : elle avait pu être
+      // marquée echoue/annule par la tentative précédente (R5).
+      await tx.order.update({
+        where: { id: commande.id },
+        data: { statutPaiement: "en_attente" },
+      });
+      return p;
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {

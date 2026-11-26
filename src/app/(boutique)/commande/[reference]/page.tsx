@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getPrisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { verifierIdsCommandes, COOKIE_COMMANDES } from "@/lib/ownership";
+import { reconcilierTentative } from "@/lib/paiement";
 import { BoutonPayer, RafraichirAuto } from "@/components/boutique/BoutonPayer";
 import { BonCommande } from "@/components/boutique/BonCommande";
 import { TrajetLivraison } from "@/components/motion/TrajetLivraison";
@@ -22,14 +23,40 @@ export default async function CommandePage({
 }) {
   const [{ reference }, { moyen }] = await Promise.all([params, searchParams]);
   const prisma = getPrisma();
-  const commande = await prisma.order.findUnique({
+  let commande = await prisma.order.findUnique({
     where: { reference },
     include: {
       lignes: true,
-      paiements: { select: { statut: true } },
+      paiements: {
+        where: { statut: { in: ["en_attente", "a_verifier"] } },
+      },
     },
   });
   if (!commande) notFound();
+
+  // Jèko n'envoie PAS de webhook pour les paiements échoués (CDC 10.11) :
+  // sans vérification en temps réel, une tentative restée « en_attente »
+  // bloquerait le bouton de paiement jusqu'au passage du cron.
+  let resolue = false;
+  for (const p of commande.paiements) {
+    if (
+      p.statut === "en_attente" &&
+      (await reconcilierTentative(p, commande.statut)) !== "en_attente"
+    ) {
+      resolue = true;
+    }
+  }
+  if (resolue) {
+    commande = await prisma.order.findUniqueOrThrow({
+      where: { id: commande.id },
+      include: {
+        lignes: true,
+        paiements: {
+          where: { statut: { in: ["en_attente", "a_verifier"] } },
+        },
+      },
+    });
+  }
 
   // Coordonnées visibles uniquement pour le vrai propriétaire (session,
   // cookie SIGNÉ posé à la commande) ou l'admin — la référence est
@@ -68,11 +95,16 @@ export default async function CommandePage({
     (p) => p.statut === "en_attente" || p.statut === "a_verifier"
   );
   const enVerification = enAttente && tentativeActive;
+  // Retentative autorisée après échec/abandon/expiration d'une tentative
+  // (CDC 10.10) — jamais pour une commande payée ou en vérification.
   const payable =
     proprietaire &&
     enAttente &&
     !tentativeActive &&
-    commande.statutPaiement === "en_attente";
+    ["en_attente", "echoue", "annule"].includes(commande.statutPaiement);
+  const tentativePrecedente =
+    commande.statutPaiement === "echoue" ||
+    commande.statutPaiement === "annule";
 
   const expire = commande.reservationExpireLe.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
@@ -139,6 +171,13 @@ export default async function CommandePage({
 
           {payable && (
             <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 print:hidden">
+              {tentativePrecedente && (
+                <p className="mb-3 rounded-xl bg-red-50 p-2.5 text-center text-sm font-semibold text-red-700">
+                  {commande.statutPaiement === "echoue"
+                    ? "Le paiement précédent a échoué — réessayez ou choisissez un autre moyen."
+                    : "Le paiement précédent a été abandonné — vous pouvez le relancer."}
+                </p>
+              )}
               <BoutonPayer
                 commandeId={commande.id}
                 montant={commande.total}
