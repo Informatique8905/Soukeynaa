@@ -4,10 +4,21 @@ import { EnTetePage } from "@/components/boutique/EnTetePage";
 import { EtatVide } from "@/components/motion/EtatVide";
 import { prixAvecPromos, promotionsActives } from "@/lib/pricing";
 import { ProductCard } from "@/components/boutique/ProductCard";
+import type { Universe } from "@/lib/constants";
 
 interface ImageJson {
   url?: string;
 }
+
+// Sections par public : dans une même catégorie (ex. Chaussures), le client
+// repère tout de suite ce qui est pour femmes, hommes, enfants ou unisexe
+// (CDC 4.5 — les accessoires sont portés par tous, 7.2 — navigation).
+const SECTIONS: { u: Universe; label: string }[] = [
+  { u: "femmes", label: "Pour femmes" },
+  { u: "hommes", label: "Pour hommes" },
+  { u: "enfants", label: "Pour enfants" },
+  { u: "accessoires", label: "Pour tous" },
+];
 
 export default async function CategoriePage({
   params,
@@ -33,6 +44,13 @@ export default async function CategoriePage({
     promotionsActives(),
   ]);
 
+  const groupes = SECTIONS.map((s) => ({
+    label: s.label,
+    liste: produits.filter((p) => p.univers === s.u),
+  })).filter((g) => g.liste.length > 0);
+  // Une seule section remplie = grille simple, sans titre superflu.
+  const sections = groupes.length > 1 ? groupes : [{ label: null, liste: produits }];
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-6">
       <EnTetePage
@@ -50,24 +68,40 @@ export default async function CategoriePage({
           action={{ href: "/", label: "Retour à l'accueil" }}
         />
       ) : (
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {produits.map((p) => {
-            const prix = prixAvecPromos(p, promos);
-            return (
-              <ProductCard
-                key={p.id}
-                p={{
-                  slug: p.slug,
-                  nom: p.nom,
-                  prix: p.prix,
-                  prixAffiche: prix,
-                  image: (p.images as ImageJson[])?.[0]?.url ?? null,
-                  enPromo: prix < p.prix,
-                }}
-              />
-            );
-          })}
-        </div>
+        sections.map((g, i) => (
+          <section key={g.label ?? "unique"}>
+            {g.label && (
+              <h2
+                className={`${i === 0 ? "mt-5" : "mt-9"} text-lg font-extrabold tracking-tight text-noir`}
+              >
+                {g.label}
+                <span className="ml-2 text-sm font-semibold text-gris-fonce">
+                  {g.liste.length}
+                </span>
+              </h2>
+            )}
+            <div
+              className={`${g.label ? "mt-3" : "mt-5"} grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5`}
+            >
+              {g.liste.map((p) => {
+                const prix = prixAvecPromos(p, promos);
+                return (
+                  <ProductCard
+                    key={p.id}
+                    p={{
+                      slug: p.slug,
+                      nom: p.nom,
+                      prix: p.prix,
+                      prixAffiche: prix,
+                      image: (p.images as ImageJson[])?.[0]?.url ?? null,
+                      enPromo: prix < p.prix,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </section>
+        ))
       )}
     </main>
   );

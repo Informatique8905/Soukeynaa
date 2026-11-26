@@ -22,7 +22,7 @@ export default async function PageCategories() {
 
   const SUGGESTIONS = [
     "Chaussures", "Sacs", "Robes", "Chemises & T-shirts", "Pantalons", "Jupes",
-    "Ensembles", "Pagnes & Tissus", "Montres", "Bijoux", "Lingerie",
+    "Ensembles", "Pagnes & Tissus", "Montres", "Bijoux", "Jouets", "Produits de beauté", "Lingerie",
     "Chapeaux & Casquettes", "Ceintures", "Lunettes",
   ];
   const existants = new Set(categories.map((c) => c.nom.trim().toLowerCase()));

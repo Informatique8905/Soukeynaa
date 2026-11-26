@@ -283,7 +283,10 @@ export function ProduitForm({
           description="Le public choisi permet au client de filtrer la recherche"
         >
           <div className="grid gap-4">
-            <Champ label="Pour qui ? *">
+            <Champ
+              label="Pour qui ? *"
+              aide="Choisissez Accessoires pour un article porté par tous (montre, sac, jouet, divers) : il sera visible sous Femmes et Hommes"
+            >
               <div className="grid grid-cols-2 gap-2">
                 {PUBLICS.map((p) => (
                   <label key={p.value} className="cursor-pointer">
