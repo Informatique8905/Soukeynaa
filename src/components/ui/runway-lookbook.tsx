@@ -3,6 +3,7 @@
 import * as React from "react"  
 import gsap from "gsap"  
 import { ScrollTrigger } from "gsap/ScrollTrigger"  
+import { hauteurViewport } from "@/lib/viewport"
   
 /**  
  * Runway Lookbook â€” a fashion-house runway page. The collection's looks queue  
@@ -331,6 +332,7 @@ export default function RunwayLookbook({
   const st = React.useRef(null as ScrollTrigger | null)  
   const size = React.useRef({ w: 1, h: 1, railH: 1 })  
   const [index, setIndex] = React.useState(0)  
+  const h = hauteurViewport(height)
   const [narrow, setNarrow] = React.useState(false)  
   const [reduced, setReduced] = React.useState(false)  
   const onIndexRef = React.useRef(onIndexChange)  
@@ -486,7 +488,7 @@ export default function RunwayLookbook({
       ref={trackRef}  
       className={"rwl-track " + className}  
       data-narrow={narrow ? "" : undefined}  
-      style={{ height: "calc(" + height + " * " + (1 + steps * scrollPerLook) + ")" }}  
+      style={{ height: "calc(" + h + " * " + (1 + steps * scrollPerLook) + ")" }}  
       role="region"  
       aria-roledescription="carousel"  
       aria-label={ariaLabel}  
@@ -494,7 +496,7 @@ export default function RunwayLookbook({
       <style>  
         {(fontSrc ? "@font-face{font-family:" + FONT + ";src:url(" + fontSrc + ") format('woff2');font-weight:200 600;font-display:swap}" : "") + CSS}  
       </style>  
-      <div className="rwl-pin" style={{ height }}>  
+      <div className="rwl-pin" style={{ height: h }}>  
         <header className="rwl-head rwl-cap">  
           <span className="rwl-brand">{brand}</span>  
           <nav className="rwl-tabs" aria-label="Sections">  

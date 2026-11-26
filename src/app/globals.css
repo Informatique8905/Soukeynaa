@@ -96,8 +96,8 @@ html {
   /* Les ancres ne passent jamais sous l'en-tê collant */
   scroll-padding-top: 84px;
   -webkit-tap-highlight-color: transparent;
-  /* hidden en repli pour les iOS < 16 qui ignorent clip */
-  overflow-x: hidden;
+  /* clip uniquement : overflow-x:hidden sur html casserait le position
+     sticky de l'en-tête sur iOS ≤ 15 — le repli hidden reste sur body */
   overflow-x: clip;
   /* pas de zoom au double-tap */
   touch-action: manipulation;
@@ -109,6 +109,8 @@ html {
 }
 
 body {
+  /* hidden en repli pour les iOS < 16 qui ignorent clip — sur body (pas
+     html) il préserve le position sticky de l'en-tête */
   overflow-x: hidden;
   overflow-x: clip;
   width: 100%;

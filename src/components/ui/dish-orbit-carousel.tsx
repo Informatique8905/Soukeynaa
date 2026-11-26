@@ -2,7 +2,8 @@
   
 import { useEffect, useLayoutEffect, useRef, useState } from "react"  
 import Link from "next/link"
-import { gsap } from "gsap"  
+import { gsap } from "gsap"
+import { hauteurViewport } from "@/lib/viewport"  
 import { ScrollTrigger } from "gsap/ScrollTrigger"  
   
 gsap.registerPlugin(ScrollTrigger)  
@@ -277,7 +278,7 @@ const CSS =
   ".dsh-arc{width:200%;height:auto;left:-60%;top:-30px}" +
   ".dsh-top{position:relative;left:auto;right:auto;top:auto;width:100%;align-self:stretch;margin-bottom:4px;flex:none}" +
   ".dsh-pager{left:10px;top:128px}" +
-  ".dsh-plates{position:relative;left:auto;top:auto;width:min(46vw,25svh);height:min(46vw,25svh);margin-top:0;flex:none;touch-action:pan-y}" +
+  ".dsh-plates{position:relative;left:auto;top:auto;width:min(46vw,25vh);height:min(46vw,25vh);width:min(46vw,25svh);height:min(46vw,25svh);margin-top:0;flex:none;touch-action:pan-y}" +
   ".dsh-orbit>img{width:100%;height:100%}" +
   ".dsh-head{position:relative;left:auto;top:auto;width:100%;height:112px;margin-top:6px;flex:none}" +
   ".dsh-hd{text-align:center;transform:scale(.74);transform-origin:50% 0}" +
@@ -300,13 +301,13 @@ const CSS =
   "}" +  
   // Bibliothèque 3D : la scène photo devient un cover-flow centré
   ".dsh-bib .dsh-plates{--esp:100px;left:10px;top:60px;width:420px;height:310px;perspective:1000px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 11%,#000 74%,transparent 96%);mask-image:linear-gradient(90deg,transparent,#000 11%,#000 74%,transparent 96%)}" +
-  ".dsh-bib .dsh-orbit{inset:auto;left:50%;top:50%;width:252px;height:252px;transform-origin:50% 50%;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .55s ease;will-change:transform;cursor:pointer}" +
-  ".dsh-bib .dsh-orbit>img{width:100%;height:100%}" +
+  ".dsh-bib .dsh-orbit{inset:auto;left:50%;top:50%;width:252px;height:252px;transform-origin:50% 50%;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .55s ease;will-change:transform;cursor:pointer;background:#fff;border-radius:20px;box-shadow:0 14px 34px -18px rgba(15,23,18,.3);overflow:hidden}" +
+  ".dsh-bib .dsh-orbit>img{width:100%;height:100%;padding:10px;box-sizing:border-box}" +
   // Halo doux derrière la photo, teinté par l'accent de l'article
   ".dsh-glow{position:absolute;left:10px;top:0;width:560px;height:560px;border-radius:50%;filter:blur(90px);opacity:.5;pointer-events:none;transition:background-color 1.1s ease}" +
   "@container (max-width:639px){" +
-  ".dsh-bib .dsh-plates{--esp:30vw;position:relative;left:auto;top:auto;width:100%;height:min(58vw,32svh);margin-top:2px;flex:none}" +
-  ".dsh-bib .dsh-orbit{width:min(48vw,26svh);height:min(48vw,26svh)}" +
+  ".dsh-bib .dsh-plates{--esp:30vw;position:relative;left:auto;top:auto;width:100%;height:min(62vw,34vh);height:min(62vw,34svh);margin-top:0;flex:none}" +
+  ".dsh-bib .dsh-orbit{width:min(54vw,30vh);height:min(54vw,30vh);width:min(54vw,30svh);height:min(54vw,30svh)}" +
   ".dsh-bib .dsh-glow{left:50%;top:40%;width:80vw;height:80vw;transform:translate(-50%,-50%)}" +
   "}" +
   "@media (prefers-reduced-motion:reduce){.dsh-bib .dsh-orbit{transition:none}.dsh-track,.dsh-dot,.dsh-dot i,.dsh-th .dsh-btn,.dsh-th img,.dsh-like{transition:none}}"
@@ -336,7 +337,8 @@ export function DishOrbitCarousel({
   onChange,
   className,  
 }: DishOrbitCarouselProps) {  
-  const n = dishes.length  
+  const n = dishes.length
+  const h = hauteurViewport(height)  
   const [index, setIndex] = useState(0)  
   const [tab, setTab] = useState("overview")  
   const [choix, setChoix] = useState({} as Record<number, string>)  
@@ -561,11 +563,11 @@ export function DishOrbitCarousel({
   const dish = dishes[index]  
   
   return (  
-    <div ref={trackRef} className={"dsh-trk" + (className ? " " + className : "")} style={{ height: compact ? height : "calc(" + height + " * " + (1 + steps * SCROLL_PER_DISH) + ")" }}>  
+    <div ref={trackRef} className={"dsh-trk" + (className ? " " + className : "")} style={{ height: compact ? h : "calc(" + h + " * " + (1 + steps * SCROLL_PER_DISH) + ")" }}>  
     <div  
       ref={rootRef}
       className={"dsh-root" + (bibliotheque ? " dsh-bib" : "")}
-      style={{ height }}  
+      style={{ height: h }}  
       role="region"  
       aria-roledescription="carousel"  
       aria-label="Articles"  
