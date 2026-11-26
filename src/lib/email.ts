@@ -1,8 +1,64 @@
 import { getPrisma } from "@/lib/db";
-import { fcfa, dateFr } from "./format";
+import { fcfa, dateFr, dateHeureFr } from "./format";
 
-// Envoi via Resend (CDC 12). Déduplication garantie par Notification.cleDedup
+// Envoi d'emails (CDC 12). Déduplication garantie par Notification.cleDedup
 // unique : deux appels concurrents → un seul email part (P2002 = déjà fait).
+//
+// Fournisseurs (dans l'ordre de priorité) :
+//   1. Brevo   — BREVO_API_KEY : envoi possible vers n'importe quel client
+//                dès que l'expéditeur EMAIL_FROM est validé (clic dans le
+//                mail de vérification, pas de DNS à configurer).
+//   2. Resend  — RESEND_API_KEY : exige un domaine vérifié pour écrire aux
+//                clients ; "onboarding@resend.dev" = sandbox, n'atteint que
+//                l'adresse du compte Resend.
+
+const MAIL_REGEX = /^(?:"([^"]+)"|([^<]*?))\s*<([^>\s]+)>$/;
+
+function parseFrom(): { email: string; name: string } | null {
+  const brut = (process.env.EMAIL_FROM ?? "").trim();
+  if (!brut) return null;
+  const m = MAIL_REGEX.exec(brut);
+  if (m) return { email: m[3], name: (m[1] ?? m[2] ?? "SOUKEYNA").trim() };
+  return { email: brut, name: "SOUKEYNA" };
+}
+
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function envoyerBrevo(
+  destinataire: string,
+  sujet: string,
+  html: string
+): Promise<{ ok: boolean; erreur?: string }> {
+  const key = process.env.BREVO_API_KEY;
+  const from = parseFrom();
+  if (!key || !from) return { ok: false, erreur: "Brevo non configuré" };
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "api-key": key },
+      body: JSON.stringify({
+        sender: { email: from.email, name: from.name },
+        to: [{ email: destinataire }],
+        subject: sujet,
+        htmlContent: html,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { ok: false, erreur: data?.message ?? `Brevo ${res.status}` };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, erreur: "Service email injoignable" };
+  }
+}
 
 async function envoyerResend(
   destinataire: string,
@@ -11,7 +67,7 @@ async function envoyerResend(
 ): Promise<{ ok: boolean; erreur?: string }> {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
-  if (!key || !from) return { ok: false, erreur: "Email non configuré" };
+  if (!key || !from) return { ok: false, erreur: "Resend non configuré" };
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -30,6 +86,15 @@ async function envoyerResend(
   } catch {
     return { ok: false, erreur: "Service email injoignable" };
   }
+}
+
+async function envoyerEmail(
+  destinataire: string,
+  sujet: string,
+  html: string
+): Promise<{ ok: boolean; erreur?: string }> {
+  if (process.env.BREVO_API_KEY) return envoyerBrevo(destinataire, sujet, html);
+  return envoyerResend(destinataire, sujet, html);
 }
 
 /** Envoie une notification dédupliquée. Retourne false si déjà envoyée. */
@@ -57,7 +122,7 @@ async function notifier(
   } catch {
     return false; // P2002 : déjà en file/envoyée (CDC 12.2)
   }
-  const resultat = await envoyerResend(destinataire, sujet, html);
+  const resultat = await envoyerEmail(destinataire, sujet, html);
   await prisma.notification.update({
     where: { cleDedup },
     data: resultat.ok
@@ -67,40 +132,173 @@ async function notifier(
   return resultat.ok;
 }
 
+// Signale à l'admin qu'un email client n'a pas pu partir (ex. expéditeur
+// non vérifié). Dédupliqué par clé : un seul signal par échec.
+async function signalerEchecEmail(
+  cle: string,
+  sujet: string,
+  detail: string,
+  commandeId?: number
+) {
+  const admin = process.env.ADMIN_EMAIL;
+  if (!admin) return;
+  await notifier(
+    cle,
+    "alerte_admin_anomalie",
+    admin,
+    `[SOUKEYNA] ${sujet}`,
+    `<p>${detail}</p><p style="font-size:12px;color:#888">Cause fréquente : l'expéditeur EMAIL_FROM n'est pas vérifié chez le fournisseur (domaine Resend à valider, ou configurez BREVO_API_KEY avec un expéditeur Brevo validé).</p>`,
+    commandeId
+  );
+}
+
 interface BonHtml {
   reference: string;
+  createdAt: Date;
   clientNom: string;
   clientTelephone: string;
   communeNom: string;
   adresseLivraison: string;
   fraisLivraison: number;
+  sousTotal: number;
   total: number;
   delaiLivraison: string | null;
+  modePaiement: string;
+  statutPaiement: string;
   lignes: {
     nom: string;
     varianteLabel: string | null;
     quantite: number;
+    prixUnitaire: number;
     total: number;
   }[];
 }
 
-// Corps « bon de commande » partagé : tableau des articles, totaux, livraison
-// — réutilisé par le bon initial, le bon mis à jour et l'email de délai.
-function blocBon(c: BonHtml): string {
-  const lignesHtml = c.lignes
+// Carte « bon » au format du site — tableaux + styles inline (compatible
+// messageries). titreDoc : « BON DE COMMANDE » ou « BON DE LIVRAISON ».
+function carteBon(c: BonHtml, titreDoc: string): string {
+  const base = (process.env.AUTH_URL ?? "").replace(/\/+$/, "");
+  const logo = `${base}/logo-soukeyna.png`;
+  const aLaLivraison = c.modePaiement === "livraison";
+  const aRegler = aLaLivraison && c.statutPaiement !== "confirme";
+
+  const lignes = c.lignes
     .map(
-      (l) =>
-        `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee">${l.quantite} × ${l.nom}${l.varianteLabel ? ` <small>(${l.varianteLabel})</small>` : ""}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${fcfa(l.total)}</td></tr>`
+      (l) => `
+        <tr>
+          <td style="padding:12px 0;border-bottom:1px solid #eee;vertical-align:top">
+            <div style="font-size:14px;font-weight:600;color:#1a1a1a">${esc(l.nom)}</div>
+            <div style="font-size:12px;color:#777">${l.varianteLabel ? esc(l.varianteLabel) + " · " : ""}${l.quantite} × ${fcfa(l.prixUnitaire)}</div>
+          </td>
+          <td align="right" style="padding:12px 0;border-bottom:1px solid #eee;font-size:14px;font-weight:700;color:#1a1a1a;white-space:nowrap;vertical-align:top">${fcfa(l.total)}</td>
+        </tr>`
     )
     .join("");
+
+  const delai = c.delaiLivraison
+    ? `<tr><td style="padding:0 24px 16px">
+        <table width="100%" cellpadding="0" cellspacing="0"><tr>
+          <td style="background:#e3f0e9;border-radius:14px;padding:12px 16px">
+            <span style="display:inline-block;background:#1e7b4f;color:#fff;border-radius:999px;width:24px;height:24px;line-height:24px;text-align:center;font-size:13px">✓</span>
+            <span style="font-size:14px;font-weight:700;color:#15613d;padding-left:8px">${esc(c.delaiLivraison)}</span>
+          </td>
+        </tr></table>
+      </td></tr>`
+    : "";
+
+  const badge = aLaLivraison
+    ? `<span style="display:inline-block;background:#fef3c7;color:#92400e;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:700">Paiement à la livraison</span>`
+    : `<span style="display:inline-block;background:#e3f0e9;color:#15613d;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:700">Paiement en ligne${c.statutPaiement === "confirme" ? " · confirmé" : ""}</span>`;
+
   return `
-      <table style="width:100%;border-collapse:collapse;font-size:14px">
-        ${lignesHtml}
-        <tr><td style="padding:6px 12px">Livraison à ${c.communeNom}</td><td style="text-align:right;padding:6px 12px">${fcfa(c.fraisLivraison)}</td></tr>
-        <tr><td style="padding:10px 12px;font-weight:bold">Total</td><td style="text-align:right;padding:10px 12px;font-weight:bold;color:#6b1226">${fcfa(c.total)}</td></tr>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #eee">
+    <tr>
+      <td style="background:#3f0d1e;padding:18px 22px">
+        <table width="100%" cellpadding="0" cellspacing="0"><tr>
+          <td>
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td style="background:#ffffff;border-radius:10px;padding:5px 9px">
+                <img src="${logo}" alt="SOUKEYNA" height="28" style="display:block;height:28px;width:auto"/>
+              </td>
+              <td style="padding-left:10px">
+                <div style="font-size:14px;font-weight:800;color:#ffffff;letter-spacing:1px">SOUKEYNA</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.7)">Abidjan · Côte d'Ivoire</div>
+              </td>
+            </tr></table>
+          </td>
+          <td align="right" style="vertical-align:middle">
+            <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.6)">${titreDoc}</div>
+            <div style="font-size:14px;font-weight:800;color:#ffffff">${esc(c.reference)}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.7)">${dateHeureFr(c.createdAt)}</div>
+          </td>
+        </tr></table>
+      </td>
+    </tr>
+    <tr><td style="padding:18px 22px 8px">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td width="48%" style="vertical-align:top">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#888">CLIENT</div>
+          <div style="font-size:14px;font-weight:700;color:#1a1a1a;padding-top:4px">${esc(c.clientNom)}</div>
+          <div style="font-size:13px;color:#777">${esc(c.clientTelephone)}</div>
+        </td>
+        <td width="4%"></td>
+        <td width="48%" style="vertical-align:top">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#888">LIVRAISON</div>
+          <div style="font-size:14px;font-weight:700;color:#1a1a1a;padding-top:4px">${esc(c.communeNom)}</div>
+          <div style="font-size:13px;color:#777">${esc(c.adresseLivraison)}</div>
+        </td>
+      </tr></table>
+    </td></tr>
+    ${delai}
+    <tr><td style="padding:8px 22px 0">
+      <table width="100%" cellpadding="0" cellspacing="0">${lignes}</table>
+    </td></tr>
+    <tr><td style="padding:14px 22px 16px;border-top:1px solid #eee">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:13px;color:#777;padding:3px 0">Sous-total</td>
+          <td align="right" style="font-size:13px;color:#777;padding:3px 0;white-space:nowrap">${fcfa(c.sousTotal)}</td>
+        </tr>
+        <tr>
+          <td style="font-size:13px;color:#777;padding:3px 0">Livraison à ${esc(c.communeNom)}</td>
+          <td align="right" style="font-size:13px;color:#777;padding:3px 0;white-space:nowrap">${fcfa(c.fraisLivraison)}</td>
+        </tr>
+        <tr>
+          <td style="font-size:15px;font-weight:800;color:#1a1a1a;padding-top:8px">${aRegler ? "À payer au livreur" : "Total"}</td>
+          <td align="right" style="font-size:17px;font-weight:800;color:#1e7b4f;padding-top:8px;white-space:nowrap">${fcfa(c.total)}</td>
+        </tr>
       </table>
-      <h3>Livraison</h3>
-      <p>${c.adresseLivraison}, ${c.communeNom}<br/>Tél : ${c.clientTelephone}</p>`;
+    </td></tr>
+    <tr><td style="background:#f6f4ef;border-top:1px solid #eee;padding:12px 22px">
+      ${badge}${aRegler ? `<span style="font-size:11px;color:#777;padding-left:8px">Préparez le montant exact</span>` : ""}
+    </td></tr>
+  </table>`;
+}
+
+// Cadre commun : fond crème, message d'intro, carte bon, bouton, pied.
+function cadreMail(
+  intro: string,
+  corps: string,
+  cta?: { url: string; label: string }
+): string {
+  const bouton = cta
+    ? `<tr><td align="center" style="padding:20px 0 4px">
+        <a href="${cta.url}" style="display:inline-block;background:#1e7b4f;color:#ffffff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">${cta.label}</a>
+      </td></tr>`
+    : "";
+  return `
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f4ef;font-family:Arial,Helvetica,sans-serif">
+    <tr><td align="center" style="padding:24px 12px">
+      <table width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px">
+        <tr><td style="padding:0 6px 16px;font-size:14px;color:#333;line-height:1.55">${intro}</td></tr>
+        <tr><td>${corps}</td></tr>
+        ${bouton}
+        <tr><td align="center" style="padding:18px 10px 0;font-size:11px;color:#999">
+          Merci de votre confiance. SOUKEYNA, Abidjan. Pour tout retour ou échange, contactez-nous par téléphone ou WhatsApp.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`;
 }
 
 // Bon de commande — envoyé UNE SEULE FOIS à la création de la commande,
@@ -111,26 +309,30 @@ export async function envoyerBonCommande(commandeId: number) {
     where: { id: commandeId },
     include: { lignes: true },
   });
-  if (!c || c.bonEnvoyeLe) return;
+  if (!c || c.bonEnvoyeLe || !c.clientEmail) return;
 
   const enAttentePaiement =
     c.modePaiement !== "livraison" && c.statutPaiement !== "confirme";
-  const suite = c.modePaiement === "livraison"
-    ? `Vous réglerez <strong>${fcfa(c.total)}</strong> au livreur à la réception.`
-    : enAttentePaiement
-      ? "Finalisez le paiement pour lancer la préparation."
-      : "Votre paiement est confirmé.";
+  const suite =
+    c.modePaiement === "livraison"
+      ? `Vous réglerez <strong>${fcfa(c.total)}</strong> au livreur à la réception.`
+      : enAttentePaiement
+        ? "Finalisez le paiement pour lancer la préparation."
+        : "Votre paiement est confirmé.";
 
-  const html = `
-    <div style="font-family:sans-serif;max-width:560px;margin:auto">
-      <h1 style="color:#6b1226;letter-spacing:2px">SOUKEYNA</h1>
-      <h2>Bon de commande ${c.reference}</h2>
-      <p>Bonjour ${c.clientNom},</p>
-      <p><strong>Nous traitons votre commande.</strong> ${suite} Voici votre bon de commande.</p>
-      ${blocBon(c)}
-      <p><a href="${process.env.AUTH_URL ?? ""}/commande/${c.reference}" style="display:inline-block;background:#1e7b4f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">${enAttentePaiement ? "Finaliser mon paiement" : "Voir mon bon de commande en ligne"}</a></p>
-      <p style="font-size:12px;color:#888">Passée le ${dateFr(c.createdAt)}. Pour tout retour ou échange, contactez-nous par téléphone ou WhatsApp.</p>
-    </div>`;
+  const lien = `${process.env.AUTH_URL ?? ""}/commande/${c.reference}`;
+  const html = cadreMail(
+    `Bonjour <strong>${esc(c.clientNom)}</strong>,<br/>
+     <strong>Nous traitons votre commande.</strong> ${suite}<br/>
+     Voici votre bon de commande :`,
+    carteBon(c, "BON DE COMMANDE"),
+    {
+      url: lien,
+      label: enAttentePaiement
+        ? "Finaliser mon paiement"
+        : "Voir mon bon de commande en ligne",
+    }
+  );
 
   const envoye = await notifier(
     `bon_commande:${c.reference}`,
@@ -149,16 +351,16 @@ export async function envoyerBonCommande(commandeId: number) {
     await signalerEchecEmail(
       `echec_email:${c.reference}`,
       `Bon de commande ${c.reference} non envoyé`,
-      `Le bon de commande destiné à <strong>${c.clientEmail}</strong> n'a pas pu être envoyé. Le client n'a rien reçu — prévenez-le par téléphone/WhatsApp.`,
+      `Le bon de commande destiné à <strong>${esc(c.clientEmail)}</strong> n'a pas pu être envoyé. Le client n'a rien reçu — prévenez-le par téléphone/WhatsApp.`,
       c.id
     );
   }
 }
 
-// Bon de commande mis à jour — envoyé quand l'admin valide la commande
-// (passage en préparation). Même référence ; le délai annoncé est inclus
-// s'il a été renseigné. Dédoublonné par (statut, délai) : un nouvel état
-// renvoie le bon, un double appel non.
+// Bon de livraison — envoyé quand l'admin valide la commande (passage en
+// préparation) : même référence, créneau de livraison inclus s'il est
+// renseigné. Dédoublonné par (statut, délai) : un nouvel état renvoie le
+// bon, un double appel non.
 export async function envoyerBonCommandeMaj(commandeId: number): Promise<boolean> {
   const prisma = getPrisma();
   const c = await prisma.order.findUnique({
@@ -172,22 +374,20 @@ export async function envoyerBonCommandeMaj(commandeId: number): Promise<boolean
     "bon_commande",
     c.clientEmail,
     `Commande ${c.reference} validée`,
-    `<div style="font-family:sans-serif;max-width:560px;margin:auto">
-      <h1 style="color:#6b1226;letter-spacing:2px">SOUKEYNA</h1>
-      <h2>Bon de commande ${c.reference}</h2>
-      <p>Bonjour ${c.clientNom},<br/>votre commande est validée et passe en préparation. Voici votre bon de commande mis à jour.</p>
-      ${c.delaiLivraison ? `<p style="background:#e3f0e9;color:#15613d;padding:10px 14px;border-radius:8px;font-weight:bold">${c.delaiLivraison}</p>` : ""}
-      ${blocBon(c)}
-      <p><a href="${lien}" style="display:inline-block;background:#1e7b4f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Voir mon bon de commande</a></p>
-      <p style="font-size:12px;color:#888">Une question ? Répondez à cet email ou contactez-nous par téléphone/WhatsApp.</p>
-    </div>`,
+    cadreMail(
+      `Bonjour <strong>${esc(c.clientNom)}</strong>,<br/>
+       votre commande est <strong>validée</strong> et passe en préparation.
+       Voici votre ${c.delaiLivraison ? "bon de livraison" : "bon de commande"} mis à jour :`,
+      carteBon(c, c.delaiLivraison ? "BON DE LIVRAISON" : "BON DE COMMANDE"),
+      { url: lien, label: "Voir mon bon de commande" }
+    ),
     c.id
   ));
   if (!ok) {
     await signalerEchecEmail(
       `echec_email_maj:${c.reference}:${c.statut}`,
       `Email client non envoyé (commande ${c.reference})`,
-      `L'email destiné à <strong>${c.clientEmail}</strong> n'a pas pu partir.`,
+      `L'email destiné à <strong>${esc(c.clientEmail)}</strong> n'a pas pu partir.`,
       c.id
     );
   }
@@ -198,8 +398,11 @@ export async function envoyerBonCommandeMaj(commandeId: number): Promise<boolean
 export async function notifierStatutCommande(commandeId: number) {
   const prisma = getPrisma();
   const c = await prisma.order.findUnique({ where: { id: commandeId } });
-  if (!c) return;
-  const STATUTS: Record<string, { libelle: string; type: Parameters<typeof notifier>[1] }> = {
+  if (!c || !c.clientEmail) return;
+  const STATUTS: Record<
+    string,
+    { libelle: string; type: Parameters<typeof notifier>[1] }
+  > = {
     en_preparation: { libelle: "en préparation", type: "delai_livraison" },
     expediee: { libelle: "en cours de livraison", type: "expediee" },
     livree: { libelle: "livrée", type: "livree" },
@@ -212,34 +415,16 @@ export async function notifierStatutCommande(commandeId: number) {
     info.type,
     c.clientEmail,
     `Commande ${c.reference} ${info.libelle}`,
-    `<div style="font-family:sans-serif;max-width:560px;margin:auto">
-      <h1 style="color:#6b1226;letter-spacing:2px">SOUKEYNA</h1>
-      <p>Bonjour ${c.clientNom},<br/>votre commande <strong>${c.reference}</strong> est <strong>${info.libelle}</strong>.</p>
-      <p><a href="${process.env.AUTH_URL ?? ""}/commande/${c.reference}" style="display:inline-block;background:#1e7b4f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Suivre ma commande / voir le bon</a></p>
-      <p>Merci de votre confiance.</p>
-    </div>`,
+    cadreMail(
+      `Bonjour <strong>${esc(c.clientNom)}</strong>,<br/>
+       votre commande <strong>${esc(c.reference)}</strong> est <strong>${info.libelle}</strong>.`,
+      "",
+      {
+        url: `${process.env.AUTH_URL ?? ""}/commande/${c.reference}`,
+        label: "Suivre ma commande / voir le bon",
+      }
+    ),
     c.id
-  );
-}
-
-// Signale à l'admin qu'un email client n'a pas pu partir (ex. domaine
-// expéditeur non vérifié chez Resend). Dédupliqué par clé : un seul signal
-// par échec distinct.
-async function signalerEchecEmail(
-  cle: string,
-  sujet: string,
-  detail: string,
-  commandeId?: number
-) {
-  const admin = process.env.ADMIN_EMAIL;
-  if (!admin) return;
-  await notifier(
-    cle,
-    "alerte_admin_anomalie",
-    admin,
-    `[SOUKEYNA] ${sujet}`,
-    `<p>${detail}</p><p style="font-size:12px;color:#888">Cause fréquente : l'expéditeur EMAIL_FROM n'est pas un domaine vérifié dans Resend — vérifiez le domaine sur resend.com/domains puis mettez à jour EMAIL_FROM.</p>`,
-    commandeId
   );
 }
 
@@ -263,8 +448,9 @@ export async function alerterAdmin(
 }
 
 // Email du délai prévisionnel de livraison (CDC 11.7, 12.3) — envoyé quand
-// l'admin renseigne le délai. La clé contient la valeur du délai : une
-// correction déclenche un nouvel envoi, un double appel non.
+// l'admin renseigne le créneau : le client reçoit le bon de livraison.
+// La clé contient la valeur du délai : une correction déclenche un nouvel
+// envoi, un double appel non.
 export async function envoyerDelaiLivraison(commandeId: number): Promise<boolean> {
   const prisma = getPrisma();
   const c = await prisma.order.findUnique({
@@ -273,22 +459,29 @@ export async function envoyerDelaiLivraison(commandeId: number): Promise<boolean
   });
   if (!c?.delaiLivraison || !c.clientEmail) return false;
   const lien = `${process.env.AUTH_URL ?? ""}/commande/${c.reference}`;
-  return !!(await notifier(
+  const ok = !!(await notifier(
     `delai:${c.reference}:${c.delaiLivraison.trim().toLowerCase()}`,
     "delai_livraison",
     c.clientEmail,
     `Livraison prévue : ${c.delaiLivraison} · commande ${c.reference}`,
-    `<div style="font-family:sans-serif;max-width:560px;margin:auto">
-      <h1 style="color:#6b1226;letter-spacing:2px">SOUKEYNA</h1>
-      <h2>Bon de commande ${c.reference}</h2>
-      <p>Bonjour ${c.clientNom},<br/>bonne nouvelle : votre commande <strong>${c.reference}</strong> arrive bientôt. Voici votre bon de commande mis à jour.</p>
-      <p style="background:#e3f0e9;color:#15613d;padding:10px 14px;border-radius:8px;font-weight:bold">${c.delaiLivraison}</p>
-      ${blocBon(c)}
-      <p><a href="${lien}" style="display:inline-block;background:#1e7b4f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Voir mon bon de commande</a></p>
-      <p style="font-size:12px;color:#888">Une question ? Répondez à cet email ou contactez-nous par téléphone/WhatsApp.</p>
-    </div>`,
+    cadreMail(
+      `Bonjour <strong>${esc(c.clientNom)}</strong>,<br/>
+       bonne nouvelle : votre commande <strong>${esc(c.reference)}</strong> arrive bientôt.
+       Voici votre bon de livraison :`,
+      carteBon(c, "BON DE LIVRAISON"),
+      { url: lien, label: "Voir mon bon de commande" }
+    ),
     c.id
   ));
+  if (!ok) {
+    await signalerEchecEmail(
+      `echec_email_delai:${c.reference}`,
+      `Email client non envoyé (commande ${c.reference})`,
+      `L'email destiné à <strong>${esc(c.clientEmail)}</strong> n'a pas pu partir.`,
+      c.id
+    );
+  }
+  return ok;
 }
 
 // Récapitulatif de rapport automatique (CDC 13.8) — envoyé à l'admin si
@@ -313,9 +506,9 @@ export async function envoyerRapport(
         : "du mois";
   const top = v.topProduits
     .slice(0, 5)
-    .map((p) => `<li>${p.quantite} × ${p.nom}</li>`)
+    .map((p) => `<li>${p.quantite} × ${esc(p.nom)}</li>`)
     .join("");
-  return envoyerResend(
+  return envoyerEmail(
     destinataire,
     `Rapport ${label} du ${dateFr(periode.debut)} au ${dateFr(periode.fin)}`,
     `<div style="font-family:sans-serif;max-width:560px;margin:auto">
