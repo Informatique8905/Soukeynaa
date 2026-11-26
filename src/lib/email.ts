@@ -15,7 +15,10 @@ import { fcfa, dateFr, dateHeureFr } from "./format";
 const MAIL_REGEX = /^(?:"([^"]+)"|([^<]*?))\s*<([^>\s]+)>$/;
 
 function parseFrom(): { email: string; name: string } | null {
-  const brut = (process.env.EMAIL_FROM ?? "").trim();
+  const brut = (process.env.EMAIL_FROM ?? "")
+    .trim()
+    .replace(/^"+|"+$/g, "")
+    .trim();
   if (!brut) return null;
   const m = MAIL_REGEX.exec(brut);
   if (m) return { email: m[3], name: (m[1] ?? m[2] ?? "SOUKEYNA").trim() };
@@ -132,6 +135,13 @@ async function notifier(
   return resultat.ok;
 }
 
+// Alertes email admin : désactivées par défaut — le tableau de bord
+// suffit (CDC 12.4 couvert côté interface). Définir ALERTES_ADMIN_EMAIL=on
+// pour les réactiver.
+function alertesAdminActives(): boolean {
+  return process.env.ALERTES_ADMIN_EMAIL === "on";
+}
+
 // Signale à l'admin qu'un email client n'a pas pu partir (ex. expéditeur
 // non vérifié). Dédupliqué par clé : un seul signal par échec.
 async function signalerEchecEmail(
@@ -141,7 +151,7 @@ async function signalerEchecEmail(
   commandeId?: number
 ) {
   const admin = process.env.ADMIN_EMAIL;
-  if (!admin) return;
+  if (!admin || !alertesAdminActives()) return;
   await notifier(
     cle,
     "alerte_admin_anomalie",
@@ -348,10 +358,13 @@ export async function envoyerBonCommande(commandeId: number) {
       data: { bonEnvoyeLe: new Date() },
     });
   } else {
+    const n = await prisma.notification.findUnique({
+      where: { cleDedup: `bon_commande:${c.reference}` },
+    });
     await signalerEchecEmail(
       `echec_email:${c.reference}`,
       `Bon de commande ${c.reference} non envoyé`,
-      `Le bon de commande destiné à <strong>${esc(c.clientEmail)}</strong> n'a pas pu être envoyé. Le client n'a rien reçu — prévenez-le par téléphone/WhatsApp.`,
+      `Le bon de commande destiné à <strong>${esc(c.clientEmail)}</strong> n'a pas pu être envoyé. Le client n'a rien reçu — prévenez-le par téléphone/WhatsApp.${n?.erreur ? `<br/>Motif : ${esc(n.erreur)}` : ""}`,
       c.id
     );
   }
@@ -436,7 +449,7 @@ export async function alerterAdmin(
   commandeId?: number
 ) {
   const admin = process.env.ADMIN_EMAIL;
-  if (!admin) return;
+  if (!admin || !alertesAdminActives()) return;
   await notifier(
     `${type}:${sujet}:${Date.now()}`,
     type,
