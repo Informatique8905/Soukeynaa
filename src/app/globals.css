@@ -334,7 +334,7 @@ html.js-motion [data-reveal] {
   display: none;
 }
 
-/* ================= Téléphone : page fixe ================= */
+/* ================= Téléphone : dynamique mesurée ================= */
 @media (max-width: 767px) {
   /* < 16px, Safari iOS zoome au focus et la page se déplace ensuite */
   input,
@@ -342,17 +342,53 @@ html.js-motion [data-reveal] {
   textarea {
     font-size: 16px !important;
   }
-  /* Aucune animation décorative permanente ni de fondu de navigation */
-  .float,
-  .shine::after,
-  .defile,
-  .page-fade,
-  .page-in,
-  [class*="animate-entree"] {
-    animation: none !important;
+}
+
+/* Révélations au scroll sur téléphone : transform/opacity uniquement,
+   distance courte (14 px) et plage resserrée — l'animation se termine
+   dès que ~35 % de l'élément est entré dans le viewport, donc la page
+   ne « bouge » plus sous le doigt. Sans support de view() : le contenu
+   reste visible immédiatement (progressive enhancement). */
+@keyframes rv-in-mobile {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+}
+@keyframes rv-in-mobile-left {
+  from { opacity: 0; transform: translate3d(-14px, 0, 0); }
+}
+@keyframes rv-in-mobile-scale {
+  from { opacity: 0; transform: scale(0.95); }
+}
+@supports (animation-timeline: view()) {
+  @media (max-width: 767px) {
+    [data-reveal] {
+      animation: rv-in-mobile 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+    [data-reveal="left"] {
+      animation-name: rv-in-mobile-left;
+    }
+    [data-reveal="scale"] {
+      animation-name: rv-in-mobile-scale;
+    }
   }
-  .shine::after {
-    display: none;
+}
+
+/* Zoom doux des visuels au scroll (Ken Burns léger) : la photo grandit
+   progressivement pendant la traversée du viewport — transform seul,
+   la mise en page ne bouge jamais. S'applique via la classe .zoom-scroll
+   posée sur le conteneur overflow-hidden de l'image. */
+@keyframes zoom-scroll {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
+@supports (animation-timeline: view()) {
+  @media (max-width: 767px) {
+    .zoom-scroll img {
+      animation: zoom-scroll linear both;
+      animation-timeline: view();
+      animation-range: entry 0% exit 100%;
+    }
   }
 }
 
@@ -360,6 +396,7 @@ html.js-motion [data-reveal] {
   html.js-motion [data-reveal] {
     opacity: 1;
   }
+  .zoom-scroll img,
   .shine::after,
   .shimmer,
   .float,

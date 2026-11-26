@@ -22,7 +22,7 @@ export function DealCard({ p, categorie }: { p: CarteProduit; categorie?: string
           -{reduction}%
         </span>
       )}
-      <div className="relative mt-4 h-28 w-28 overflow-hidden rounded-full bg-white/20 ring-4 ring-white/30 transition-transform duration-500 group-hover:-rotate-3 group-hover:scale-105">
+      <div className="zoom-scroll relative mt-4 h-28 w-28 overflow-hidden rounded-full bg-white/20 ring-4 ring-white/30 transition-transform duration-500 group-hover:-rotate-3 group-hover:scale-105">
         {p.image ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img

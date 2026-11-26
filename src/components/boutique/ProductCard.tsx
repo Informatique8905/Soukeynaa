@@ -24,7 +24,7 @@ export function ProductCard({ p }: { p: CarteProduit }) {
       data-reveal
       className="lift press group block rounded-3xl bg-white p-2 shadow-sm ring-1 ring-black/5"
     >
-      <div className="relative aspect-[4/5] overflow-hidden rounded-[1.25rem] bg-gris">
+      <div className="zoom-scroll relative aspect-[4/5] overflow-hidden rounded-[1.25rem] bg-gris">
         {p.image ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img

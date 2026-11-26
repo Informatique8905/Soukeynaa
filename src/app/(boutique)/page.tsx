@@ -153,7 +153,7 @@ export default async function Accueil() {
                 key={i}
                 href={b.lien}
                 data-reveal
-                className="lift press relative h-36 w-full min-w-0 shrink-0 snap-start overflow-hidden rounded-3xl shadow-sm sm:h-44"
+                className="zoom-scroll lift press relative h-36 w-full min-w-0 shrink-0 snap-start overflow-hidden rounded-3xl shadow-sm sm:h-44"
               >
                 {img}
               </Link>
@@ -161,7 +161,7 @@ export default async function Accueil() {
               <div
                 key={i}
                 data-reveal
-                className="relative h-36 w-full min-w-0 shrink-0 snap-start overflow-hidden rounded-3xl shadow-sm sm:h-44"
+                className="zoom-scroll relative h-36 w-full min-w-0 shrink-0 snap-start overflow-hidden rounded-3xl shadow-sm sm:h-44"
               >
                 {img}
               </div>
@@ -199,7 +199,7 @@ export default async function Accueil() {
                 key={cat.slug}
                 href={`/categorie/${cat.slug}`}
                 data-reveal
-                className="lift press group relative h-44 w-36 shrink-0 snap-start overflow-hidden rounded-3xl bg-vert shadow-sm md:h-48 md:w-auto"
+                className="zoom-scroll lift press group relative h-44 w-36 shrink-0 snap-start overflow-hidden rounded-3xl bg-vert shadow-sm md:h-48 md:w-auto"
               >
                 {cat.image ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
