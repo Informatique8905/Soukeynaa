@@ -151,8 +151,13 @@ export function CheckoutForm({
         modePaiement: mode,
         moyenPaiement: mode === "en_ligne" ? moyen : undefined,
       });
-      if ("erreur" in res) setErreur(res.erreur);
-      // ok => redirect() côté serveur
+      if ("erreur" in res) {
+        setErreur(res.erreur);
+      } else if (res.url) {
+        // Paiement direct : la page du moyen choisi (Jèko) s'ouvre aussitôt.
+        window.location.href = res.url;
+      }
+      // ok sans url => redirect() côté serveur
     });
   }
 
@@ -419,7 +424,7 @@ export function CheckoutForm({
         >
           {pending ? (
             <>
-              <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Création de la commande…
+              <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Redirection sécurisée…
             </>
           ) : mode === "livraison" ? (
             <>
@@ -427,7 +432,7 @@ export function CheckoutForm({
             </>
           ) : (
             <>
-              Continuer vers le paiement
+              Payer {fcfa(total)} maintenant
             </>
           )}
         </button>

@@ -8,13 +8,14 @@ import { getCart } from "@/lib/cart";
 import { prixEffectif } from "@/lib/pricing";
 import { checkoutSchema } from "@/lib/validation";
 import { alerterAdmin, envoyerBonCommande } from "@/lib/email";
+import { initierTentative } from "@/lib/paiement";
 import { fcfa } from "@/lib/format";
 
 const DELAI_RESERVATION_MIN = Number(
   process.env.STOCK_RESERVATION_MINUTES ?? 30
 );
 
-export type CheckoutResult = { erreur: string } | { ok: true };
+export type CheckoutResult = { erreur: string } | { ok: true; url?: string };
 
 // Création de commande : tout ou rien — stock vérifié ET réservé dans la
 // même transaction que la commande (CDC 5.8, 9.5). Un échec annule tout.
@@ -191,9 +192,20 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
     }
   }
 
-  redirect(
-    `/commande/${reference}${
-      aLaLivraison ? "?ok=1" : `?moyen=${moyenPaiement ?? "wave"}`
-    }`
-  );
+  if (aLaLivraison) {
+    redirect(`/commande/${reference}?ok=1`);
+  }
+
+  // Paiement en ligne : initiation immédiate — le client part directement
+  // sur la page du moyen choisi (Wave, OM, MTN…), sans écran intermédiaire.
+  const tentative = await initierTentative({
+    commandeId: commandeCree.id,
+    moyenJeko: moyenPaiement ?? "wave",
+  });
+  if (tentative.ok) {
+    return { ok: true, url: tentative.url };
+  }
+  // Initiation impossible (service indisponible…) : la page de suivi
+  // permet de relancer le paiement avec BoutonPayer.
+  redirect(`/commande/${reference}?moyen=${moyenPaiement ?? "wave"}`);
 }

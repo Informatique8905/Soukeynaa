@@ -1,8 +1,8 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { getPrisma } from "@/lib/db";
 import { libererStock } from "@/lib/stock";
 import type { Payment } from "@/generated/prisma/client";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import type { StatutPaiement, MoyenPaiement } from "@/generated/prisma/enums";
 
 type Db = Prisma.TransactionClient | ReturnType<typeof getPrisma>;
@@ -202,4 +202,125 @@ export async function statutJekoReel(
   } catch {
     return null;
   }
+}
+
+// ===== Tentative de paiement complète (checkout + retentative) =====
+// Vérifs commande, verrou anti-double-paiement, création Payment avec clé
+// d'idempotence unique (CDC 10.10), puis appel Jèko. Partagée par la route
+// /api/paiement/initier (retentative depuis le suivi) et le checkout
+// (paiement direct à la création de la commande).
+
+// Moyens activés sur le compte Jèko (l'API exige paymentMethod)
+const MOYENS_JEKO: Record<string, MoyenPaiement> = {
+  wave: "wave",
+  orange: "orange_money",
+  mtn: "mtn_momo",
+  moov: "moov_money",
+  djamo: "carte",
+};
+
+export type ResultatTentative =
+  | { ok: true; url: string }
+  | { ok: false; erreur: string; code: number };
+
+export async function initierTentative(params: {
+  commandeId: number;
+  moyenJeko: string;
+}): Promise<ResultatTentative> {
+  const moyen = MOYENS_JEKO[params.moyenJeko];
+  if (!moyen) {
+    return { ok: false, erreur: "Choisissez un moyen de paiement", code: 400 };
+  }
+  const prisma = getPrisma();
+  const commande = await prisma.order.findUnique({
+    where: { id: params.commandeId },
+    include: { paiements: { orderBy: { createdAt: "desc" } } },
+  });
+  if (!commande) {
+    return { ok: false, erreur: "Commande introuvable", code: 404 };
+  }
+  if (commande.statutPaiement === "confirme") {
+    // Déjà payée — jamais de nouvelle session (anti-double-paiement)
+    return { ok: false, erreur: "Commande déjà payée", code: 409 };
+  }
+  if (
+    commande.statut !== "en_attente_paiement" ||
+    commande.reservationExpireLe < new Date()
+  ) {
+    return { ok: false, erreur: "Cette commande n'est plus payable", code: 410 };
+  }
+
+  // Verrou commande : une seule tentative active (en_attente / a_verifier)
+  const tentativeActive = commande.paiements.find(
+    (p) => p.statut === "en_attente" || p.statut === "a_verifier"
+  );
+  if (tentativeActive) {
+    return {
+      ok: false,
+      erreur: "Un paiement est déjà en cours pour cette commande",
+      code: 409,
+    };
+  }
+
+  // Index unique partiel payments(commandeId WHERE statut actif) : deux
+  // initiations concurrentes ne passent pas toutes les deux (P2002 → 409).
+  let paiement;
+  try {
+    paiement = await prisma.payment.create({
+      data: {
+        commandeId: commande.id,
+        referenceCommande: commande.reference,
+        cleIdempotence: randomUUID(),
+        montant: commande.total,
+        moyen,
+      },
+    });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return {
+        ok: false,
+        erreur: "Un paiement est déjà en cours pour cette commande",
+        code: 409,
+      };
+    }
+    throw e;
+  }
+  await journaliser(prisma, paiement.id, "initiation", "Tentative créée");
+
+  const reponse = await initierPaiementJeko({
+    paiement,
+    email: commande.clientEmail,
+    telephone: commande.clientTelephone,
+    moyen: params.moyenJeko,
+  });
+
+  if (!reponse.ok) {
+    await prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: paiement.id },
+        data: { statut: "echoue" },
+      });
+      await journaliser(tx, paiement.id, "anomalie", reponse.erreur ?? "");
+    });
+    return {
+      ok: false,
+      erreur: reponse.erreur ?? "Paiement indisponible",
+      code: 503,
+    };
+  }
+
+  if (reponse.reference) {
+    await prisma.payment.update({
+      where: { id: paiement.id },
+      data: { transactionJeko: reponse.reference },
+    });
+  }
+  if (!reponse.url) {
+    return {
+      ok: false,
+      erreur: "Réponse du service de paiement incomplète",
+      code: 502,
+    };
+  }
+  return { ok: true, url: reponse.url };
 }
