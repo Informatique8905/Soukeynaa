@@ -101,15 +101,60 @@ function repliMobile() {
   };
 }
 
+// Onde tactile : petit disque né au point de contact sur les éléments
+// .press — le clic répond visuellement avant même le relâchement. Le disque
+// vit dans <body> en position absolute (coordonnées page) : il reste collé
+// à l'élément pendant le scroll, et son rayon est borné par les bords de
+// l'élément pour ne pas déborder de la carte ou du bouton.
+function ondes() {
+  const surPointerDown = (e: PointerEvent) => {
+    if (e.button !== 0) return;
+    const el = (e.target as Element | null)?.closest?.(".press");
+    if (!(el instanceof HTMLElement)) return;
+    const r = el.getBoundingClientRect();
+    const marge = Math.min(
+      e.clientX - r.left,
+      r.right - e.clientX,
+      e.clientY - r.top,
+      r.bottom - e.clientY,
+      56,
+    );
+    const taille = Math.max(20, marge * 2);
+    const x = e.clientX + window.scrollX - taille / 2;
+    const y = e.clientY + window.scrollY - taille / 2;
+    const onde = document.createElement("span");
+    onde.className = "tap-onde";
+    onde.style.cssText =
+      `left:${x}px;top:${y}px;width:${taille}px;height:${taille}px;--onde-c:${getComputedStyle(el).color};`;
+    document.body.appendChild(onde);
+    onde.addEventListener("animationend", () => onde.remove(), { once: true });
+    // Un scroll annule l'onde aussitôt (le tap devenait un geste de scroll).
+    document.addEventListener("scroll", () => onde.remove(), {
+      once: true,
+      capture: true,
+      passive: true,
+    });
+  };
+  document.addEventListener("pointerdown", surPointerDown, { passive: true });
+  return () => document.removeEventListener("pointerdown", surPointerDown);
+}
+
 export function MotionRoot() {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const stopOndes = ondes();
     // Révélation native par le navigateur (scroll-driven animations) :
     // le CSS anime déjà les [data-reveal], rien à faire côté JS.
-    if (CSS.supports("animation-timeline: view()")) return;
+    if (CSS.supports("animation-timeline: view()")) return stopOndes;
     // Mobile sans support natif (iOS < 26, vieux Chrome, Firefox) :
     // repli léger, mêmes révélations que le CSS.
-    if (!window.matchMedia("(min-width: 768px)").matches) return repliMobile();
+    if (!window.matchMedia("(min-width: 768px)").matches) {
+      const stopMobile = repliMobile();
+      return () => {
+        stopOndes();
+        stopMobile();
+      };
+    }
     // Desktop sans support natif (Firefox…) : repli GSAP ScrollTrigger.
     gsap.registerPlugin(ScrollTrigger);
     const root = document.documentElement;
@@ -176,6 +221,7 @@ export function MotionRoot() {
     }, 1500);
 
     return () => {
+      stopOndes();
       window.removeEventListener("load", demarrer);
       mo.disconnect();
       cancelAnimationFrame(raf);

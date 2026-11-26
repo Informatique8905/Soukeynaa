@@ -184,10 +184,47 @@ html.js-motion [data-reveal] {
   }
 }
 
+/* Tap instantané : aucun surlignage gris natif (iOS/Android), aucun
+   délai d'attente du double-tap — le clic réagit à la milliseconde */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+a,
+button,
+[role='button'],
+[role='tab'],
+[role='radio'],
+[role='option'],
+[role='switch'],
+summary,
+label {
+  touch-action: manipulation;
+}
+
+/* Onde au point de contact — disque injecté par MotionRoot sur les
+   éléments .press ; sa teinte suit la couleur du texte de l'élément
+   (--onde-c), visible sur bouton vert comme sur carte blanche */
+.tap-onde {
+  position: absolute;
+  z-index: 9990;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--onde-c, currentColor) 16%, transparent);
+  pointer-events: none;
+  opacity: 0.9;
+  transform: scale(0.3);
+  animation: tap-onde 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes tap-onde {
+  to {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
 /* Retour tactile : enfoncement léger au clic/tap */
 .press {
   transition:
-    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1),
     box-shadow 0.2s ease,
     background-color 0.2s ease,
     color 0.2s ease;
@@ -403,6 +440,14 @@ html.js-motion [data-reveal] {
       animation-range: entry 0% exit 100%;
     }
   }
+}
+
+/* Transition de page (React ViewTransition) : fondu croisé court et
+   nerveux — la nouvelle page paraît « instantanée » au clic */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
