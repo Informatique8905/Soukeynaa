@@ -20,6 +20,14 @@ export default async function PageCategories() {
   });
   const racines = categories.filter((c) => !c.parentId);
 
+  const SUGGESTIONS = [
+    "Chaussures", "Sacs", "Robes", "Chemises & T-shirts", "Pantalons", "Jupes",
+    "Ensembles", "Pagnes & Tissus", "Montres", "Bijoux", "Lingerie",
+    "Chapeaux & Casquettes", "Ceintures", "Lunettes",
+  ];
+  const existants = new Set(categories.map((c) => c.nom.trim().toLowerCase()));
+  const suggestions = SUGGESTIONS.filter((s) => !existants.has(s.toLowerCase()));
+
   const etat = (active: boolean) =>
     active ? <Pastille ton="vert">Active</Pastille> : <Pastille ton="gris">Inactive</Pastille>;
 
@@ -68,6 +76,24 @@ export default async function PageCategories() {
           </CaseLibellee>
           <button className={bouton("primaire")}>Ajouter</button>
         </form>
+        {suggestions.length > 0 && (
+          <div className="mt-4 border-t border-border pt-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Suggestions fréquentes, un clic pour ajouter
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {suggestions.map((s) => (
+                <form key={s} action={creerCategorie}>
+                  <input type="hidden" name="nom" value={s} />
+                  <input type="hidden" name="active" value="on" />
+                  <button className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-vert hover:bg-vert-clair hover:text-vert-fonce">
+                    + {s}
+                  </button>
+                </form>
+              ))}
+            </div>
+          </div>
+        )}
       </Panneau>
 
       {/* Mobile : cartes */}

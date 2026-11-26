@@ -42,6 +42,9 @@ export default async function RecherchePage({
                   OR: [
                     { nom: { contains: terme, mode: "insensitive" } },
                     { description: { contains: terme, mode: "insensitive" } },
+                    { categorie: { nom: { contains: terme, mode: "insensitive" } } },
+                    { categorie: { parent: { nom: { contains: terme, mode: "insensitive" } } } },
+                    { variantes: { some: { couleur: { contains: terme, mode: "insensitive" } } } },
                   ],
                 }
               : {}),

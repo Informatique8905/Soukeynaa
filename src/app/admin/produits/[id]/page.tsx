@@ -39,6 +39,7 @@ export default async function ModifierProduit({
     prix: produit.prix,
     prixReduit: produit.prixReduit,
     categorieId: produit.categorieId,
+    univers: produit.univers,
     images: produit.images as unknown as ImageJson[],
     aVariantes: produit.aVariantes,
     variantes: produit.variantes.map((v) => ({

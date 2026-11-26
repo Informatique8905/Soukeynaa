@@ -44,6 +44,7 @@ export interface ProduitInitial {
   prix: number;
   prixReduit?: number | null;
   categorieId: number;
+  univers?: string;
   images: ImageProduit[];
   aVariantes: boolean;
   variantes: Variante[];
@@ -57,6 +58,13 @@ const STATUT_LABELS: Record<string, string> = {
   brouillon: "Brouillon",
   desactive: "Désactivé",
 };
+
+const PUBLICS = [
+  { value: "femmes", label: "Femmes" },
+  { value: "hommes", label: "Hommes" },
+  { value: "enfants", label: "Enfants" },
+  { value: "accessoires", label: "Accessoires" },
+];
 
 export function ProduitForm({
   categories,
@@ -270,8 +278,30 @@ export function ProduitForm({
           </Champ>
         </Panneau>
 
-        <Panneau titre="Organisation">
+        <Panneau
+          titre="Organisation"
+          description="Le public choisi permet au client de filtrer la recherche"
+        >
           <div className="grid gap-4">
+            <Champ label="Pour qui ? *">
+              <div className="grid grid-cols-2 gap-2">
+                {PUBLICS.map((p) => (
+                  <label key={p.value} className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="univers"
+                      value={p.value}
+                      required
+                      defaultChecked={(initial?.univers ?? "femmes") === p.value}
+                      className="peer sr-only"
+                    />
+                    <span className="block rounded-lg border border-border px-3 py-2 text-center text-sm font-semibold text-muted-foreground transition peer-checked:border-vert peer-checked:bg-vert-clair peer-checked:text-vert-fonce">
+                      {p.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </Champ>
             <Champ label="Catégorie *">
               <select
                 name="categorie"

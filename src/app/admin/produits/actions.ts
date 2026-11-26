@@ -47,6 +47,7 @@ function lireFormulaire(formData: FormData) {
       ? Number(formData.get("prixReduit"))
       : undefined,
     categorie: Number(formData.get("categorie")),
+    univers: formData.get("univers"),
     aVariantes: formData.get("aVariantes") === "on",
     variantes: [],
     stock: Number(formData.get("stock") ?? 0),
