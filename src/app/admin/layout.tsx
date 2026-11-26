@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/admin";
 import { getPrisma } from "@/lib/db";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { NavProgress } from "@/components/motion/NavProgress";
+import { ActualisationAuto } from "@/components/admin/ActualisationAuto";
 
 export default async function AdminLayout({
   children,
@@ -31,6 +32,7 @@ export default async function AdminLayout({
       alertesPaiements={alertesPaiements}
     >
       <NavProgress />
+      <ActualisationAuto secondes={20} />
       <ViewTransition>{children}</ViewTransition>
     </AdminShell>
   );
