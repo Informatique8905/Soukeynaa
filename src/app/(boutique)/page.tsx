@@ -9,7 +9,6 @@ import { ProductCard, type CarteProduit } from "@/components/boutique/ProductCar
 import { DealCard } from "@/components/boutique/DealCard";
 import { PiluleRecherche } from "@/components/boutique/PiluleRecherche";
 import { CarrouselBannieres } from "@/components/boutique/CarrouselBannieres";
-import { Truck, HandCoins, Smartphone, RefreshCcw } from "lucide-react";
 
 interface ImageJson {
   url?: string;
@@ -240,34 +239,6 @@ export default async function Accueil() {
           </div>
         </section>
       )}
-
-      {/* Réassurance : les engagements réels de la boutique */}
-      <section
-        aria-label="Nos engagements"
-        data-reveal
-        className="mt-8 grid grid-cols-2 gap-2.5 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:grid-cols-4"
-      >
-        {[
-          { icone: <Truck className="size-5" aria-hidden />, t: "Livraison Abidjan", s: "Toutes les communes" },
-          { icone: <HandCoins className="size-5" aria-hidden />, t: "À la livraison", s: "Payez à réception" },
-          { icone: <Smartphone className="size-5" aria-hidden />, t: "Mobile money", s: "Wave · OM · MTN · Moov" },
-          { icone: <RefreshCcw className="size-5" aria-hidden />, t: "Échanges faciles", s: "Par WhatsApp" },
-        ].map((r) => (
-          <div key={r.t} className="flex items-center gap-2.5 rounded-2xl bg-blanc-casse px-3 py-2.5">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-vert-clair text-vert">
-              {r.icone}
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-[12.5px] font-bold text-noir">
-                {r.t}
-              </span>
-              <span className="block truncate text-[11px] text-gris-fonce">
-                {r.s}
-              </span>
-            </span>
-          </div>
-        ))}
-      </section>
 
       {/* Offres du moment */}
       {cartesPromos.length > 0 && (

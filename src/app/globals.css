@@ -461,6 +461,7 @@ label {
 /* Bandeau qui défile en continu (contenu dupliqué ×2) */
 .defile {
   animation: defile 28s linear infinite;
+  will-change: transform;
 }
 .defile:hover {
   animation-play-state: paused;
@@ -534,6 +535,7 @@ label {
       animation: zoom-scroll linear both;
       animation-timeline: view();
       animation-range: entry 0% exit 100%;
+      will-change: transform;
     }
   }
 }

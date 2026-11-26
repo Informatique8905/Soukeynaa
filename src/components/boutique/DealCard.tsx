@@ -14,7 +14,7 @@ export function DealCard({ p, categorie }: { p: CarteProduit; categorie?: string
     <Link
       href={`/produit/${p.slug}`}
       data-reveal="scale"
-      className="lift press group relative flex w-52 shrink-0 snap-start flex-col items-center overflow-hidden rounded-3xl bg-gradient-to-br from-vert to-vert-fonce p-4 pt-5 text-center text-white shadow-md shadow-vert/20 md:w-56"
+      className="cv-auto lift press group relative flex w-52 shrink-0 snap-start flex-col items-center overflow-hidden rounded-3xl bg-gradient-to-br from-vert to-vert-fonce p-4 pt-5 text-center text-white shadow-md shadow-vert/20 md:w-56"
     >
       <span aria-hidden className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-white/10 transition-transform duration-700 group-hover:scale-150" />
       {reduction > 0 && (
