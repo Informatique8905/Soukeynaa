@@ -274,6 +274,8 @@ const CSS =
   ".dsh-save{display:flex;align-items:baseline;gap:7px;font-size:11px}" +
   ".dsh-save s{opacity:.5}" +
   ".dsh-save b{color:#1e7b4f;font-weight:700;white-space:nowrap}" +
+  ".dsh-urgence{display:inline-flex;align-items:center;padding:5px 10px;border-radius:99px;font-size:10.5px;font-weight:700;background:#fef3c7;color:#92400e;white-space:nowrap}" +
+  ".dsh-urgence--vide{background:#171512;color:#fff}" +
   ".dsh-chips{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 10px}" +
   ".dsh-chip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;padding:4px 9px;border-radius:99px;background:color-mix(in oklab,var(--color-foreground) 7%,transparent)}" +
   ".dsh-chip i{width:5px;height:5px;border-radius:99px;background:#1e7b4f}" +
@@ -723,7 +725,7 @@ export function DishOrbitCarousel({
               <div key={i} ref={(el) => { bodies.current[i] = el }} className="dsh-body" aria-hidden={i !== index}>  
                 <div className="dsh-rate">  
                   <span
-                    className="dsh-badge"
+                    className="dsh-badge pop"
                     style={{
                       background: teinter(d.accent, 0.16),
                       boxShadow: "inset 0 0 0 1.5px " + teinter(d.accent, 0.45),
@@ -734,9 +736,18 @@ export function DishOrbitCarousel({
                   {d.prixBarre != null && d.prixBarre > d.prix && (
                     <span className="dsh-save">
                       <s>{d.prixBarre.toLocaleString("fr-FR")} F</s>
-                      <b>Économisez {(d.prixBarre - d.prix).toLocaleString("fr-FR")} F</b>
+                      <b>Économisez {(d.prixBarre - d.prix).toLocaleString("fr-FR")} F · −{Math.round((1 - d.prix / d.prixBarre) * 100)}%</b>
                     </span>
                   )}
+                  {(() => {
+                    const t = choixPour(i, d);
+                    const st = d.tailles?.find((x) => x.label === t)?.stock;
+                    return st !== undefined && st <= 5 ? (
+                      <span className={"dsh-urgence" + (st === 0 ? " dsh-urgence--vide" : "")}>
+                        {st === 0 ? "Épuisé" : "Plus que " + st}
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
                 <p className="dsh-chef">{d.categorie}</p>
                 <p className="dsh-kit">{d.boutique ?? "SOUKEYNA"}</p>
