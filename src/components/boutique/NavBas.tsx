@@ -6,18 +6,20 @@ import { usePathname } from "next/navigation";
 import {
   House,
   Search,
-  ShoppingBag,
+  ShoppingCart,
   Package,
   User,
 } from "lucide-react";
 import LiquidTabBar, { type LiquidTab } from "@/components/ui/liquid-tab-bar";
 import { useCompteurPanier } from "@/components/boutique/BadgePanier";
 
-const ITEMS: (LiquidTab & { href: string })[] = [
+const ITEMS: (LiquidTab & { href: string; prefix?: string })[] = [
   { href: "/", label: "Accueil", icon: <House /> },
   { href: "/recherche", label: "Recherche", icon: <Search /> },
-  { href: "/panier", label: "Panier", icon: <ShoppingBag /> },
-  { href: "/commandes", label: "Commandes", icon: <Package /> },
+  { href: "/panier", label: "Panier", icon: <ShoppingCart /> },
+  // prefix "/commande" couvre /commandes, /commande/[ref] et /commander
+  // (checkout = même flux que les commandes)
+  { href: "/commandes", label: "Commandes", icon: <Package />, prefix: "/commande" },
   { href: "/compte", label: "Compte", icon: <User /> },
 ];
 
@@ -65,7 +67,9 @@ export function NavBas({ cartCount }: { cartCount: number }) {
   const index = Math.max(
     0,
     ITEMS.findIndex((it) =>
-      it.href === "/" ? pathname === "/" : pathname.startsWith(it.href),
+      it.href === "/"
+        ? pathname === "/"
+        : pathname.startsWith(it.prefix ?? it.href),
     ),
   );
 
