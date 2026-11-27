@@ -11,7 +11,10 @@ export function SelectionOrbit({ articles }: { articles: Dish[] }) {
       height="100svh"
       loop
       onOrder={(d) => {
-        if (d.slug) router.push(`/produit/${d.slug}`);
+        if (d.slug)
+          router.push(`/produit/${d.slug}`, {
+            transitionTypes: ["nav-forward"],
+          });
       }}
     />
   );

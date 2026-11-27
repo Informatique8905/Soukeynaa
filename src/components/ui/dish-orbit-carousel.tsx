@@ -685,10 +685,10 @@ export function DishOrbitCarousel({
                 }}>
                 {vtName && i === index ? (
                   <ViewTransition name={vtName} default="none" share="morph">
-                    <img src={d.image} alt="" width={245} height={245} draggable={false} />
+                    <img src={d.image} alt="" width={245} height={245} draggable={false} fetchPriority="high" decoding="async" />
                   </ViewTransition>
                 ) : (
-                  <img src={d.image} alt="" width={245} height={245} draggable={false} />
+                  <img src={d.image} alt="" width={245} height={245} draggable={false} loading={i === index ? "eager" : "lazy"} fetchPriority={i === index ? "high" : "low"} decoding="async" />
                 )}
               </div>
             )

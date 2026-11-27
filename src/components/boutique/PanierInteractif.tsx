@@ -2,6 +2,7 @@
 
 import { useOptimistic, useTransition } from "react";
 import Link from "next/link";
+import { ViewTransition } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { modifierQuantite, retirerLigne } from "@/app/(boutique)/panier/actions";
 import { fcfa } from "@/lib/format";
@@ -82,10 +83,12 @@ export function PanierInteractif({ lignes }: { lignes: LignePanier[] }) {
             <Link
               href={`/produit/${l.slug}`}
               transitionTypes={["nav-forward"]}
+              prefetch={true}
               className="size-24 shrink-0 overflow-hidden rounded-2xl bg-gris"
             >
               {l.image && (
-                /* eslint-disable-next-line @next/next/no-img-element */
+                <ViewTransition name={`produit-${l.produitId}`} default="none" share="morph">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={cloud(l.image, 200) ?? l.image}
                   alt={l.nom}
@@ -93,12 +96,14 @@ export function PanierInteractif({ lignes }: { lignes: LignePanier[] }) {
                   decoding="async"
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                 />
+                </ViewTransition>
               )}
             </Link>
             <div className="min-w-0 flex-1">
               <Link
                 href={`/produit/${l.slug}`}
                 transitionTypes={["nav-forward"]}
+                prefetch={true}
                 className="line-clamp-2 text-sm font-bold leading-snug text-noir hover:text-vert"
               >
                 {l.nom}
