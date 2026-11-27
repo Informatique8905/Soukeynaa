@@ -298,7 +298,8 @@ function carteBon(c: BonHtml, titreDoc: string): string {
 function cadreMail(
   intro: string,
   corps: string,
-  cta?: { url: string; label: string }
+  cta?: { url: string; label: string },
+  pied?: string
 ): string {
   const bouton = cta
     ? `<tr><td align="center" style="padding:20px 0 4px">
@@ -313,7 +314,7 @@ function cadreMail(
         <tr><td>${corps}</td></tr>
         ${bouton}
         <tr><td align="center" style="padding:18px 10px 0;font-size:11px;color:#999">
-          Merci de votre confiance. SOUKEYNA, Abidjan. Pour tout retour ou échange, contactez-nous par téléphone ou WhatsApp.
+          ${pied ?? "Merci de votre confiance. SOUKEYNA, Abidjan. Pour tout retour ou échange, contactez-nous par téléphone ou WhatsApp."}
         </td></tr>
       </table>
     </td></tr>
@@ -407,18 +408,45 @@ export async function envoyerBonAdmin(commandeId: number) {
   });
   if (!c) return;
   const site = (process.env.AUTH_URL ?? "").replace(/\/+$/, "");
+  const aLaLivraison = c.modePaiement === "livraison";
+  const tel = c.clientTelephone.replace(/\D/g, "");
+  const telWa = tel.startsWith("225") ? tel : `225${tel}`;
+
+  // Récap en un coup d'œil + actions directes (appel / WhatsApp client)
+  const panneau = `
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #eee;border-radius:16px;margin-bottom:14px">
+    <tr><td style="padding:16px 18px">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="vertical-align:top">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#3f0d1e">NOUVELLE COMMANDE</div>
+          <div style="font-size:17px;font-weight:800;color:#1a1a1a;padding-top:4px">${esc(c.clientNom)}</div>
+          <div style="font-size:13px;color:#777;padding-top:2px">${esc(c.communeNom)} · ${esc(c.clientTelephone)}</div>
+        </td>
+        <td align="right" style="vertical-align:top;white-space:nowrap">
+          <div style="font-size:19px;font-weight:800;color:#1e7b4f">${fcfa(c.total)}</div>
+          <div style="font-size:11px;font-weight:700;color:${aLaLivraison ? "#92400e" : "#15613d"};padding-top:2px">${aLaLivraison ? "à encaisser à la livraison" : "payée en ligne"}</div>
+        </td>
+      </tr></table>
+      <table cellpadding="0" cellspacing="0" style="margin-top:12px"><tr>
+        <td><a href="tel:${esc(tel)}" style="display:inline-block;background:#3f0d1e;color:#ffffff;padding:8px 16px;border-radius:999px;text-decoration:none;font-size:13px;font-weight:700">Appeler le client</a></td>
+        <td style="padding-left:8px"><a href="https://wa.me/${telWa}" style="display:inline-block;background:#1e7b4f;color:#ffffff;padding:8px 16px;border-radius:999px;text-decoration:none;font-size:13px;font-weight:700">WhatsApp</a></td>
+      </tr></table>
+    </td></tr>
+  </table>`;
+
   await notifier(
     `bon_admin:${c.reference}`,
     "alerte_admin_commande",
     admin,
-    `[SOUKEYNA] Nouvelle commande ${c.reference} — ${c.clientNom}`,
+    `[SOUKEYNA] Commande ${c.reference} — ${c.clientNom} — ${fcfa(c.total)}`,
     cadreMail(
-      `Une commande a été effectuée par <strong>${esc(c.clientNom)}</strong> (${esc(c.clientTelephone)}, ${esc(c.communeNom)}).${c.modePaiement === "livraison" ? " Paiement à la livraison." : " Paiement en ligne confirmé."}`,
-      carteBon(c, "BON DE COMMANDE"),
+      `Une commande a été effectuée par <strong>${esc(c.clientNom)}</strong>.`,
+      panneau + carteBon(c, "BON DE COMMANDE"),
       {
         url: `${site}/admin/commandes/${c.id}`,
-        label: "Voir la commande dans l'admin",
-      }
+        label: "Traiter la commande",
+      },
+      "Notification interne SOUKEYNA — cette commande attend votre traitement dans l'espace admin."
     ),
     c.id
   );
