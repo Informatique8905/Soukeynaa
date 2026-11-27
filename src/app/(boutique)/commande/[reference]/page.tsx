@@ -144,6 +144,7 @@ export default async function CommandePage({
       <div className="flex items-center justify-between print:hidden">
         <Link
           href="/commandes"
+          transitionTypes={["nav-back"]}
           aria-label="Retour à mes commandes"
           className="press group inline-grid size-10 place-items-center rounded-full bg-white text-noir ring-1 ring-black/10 transition hover:bg-vert-clair hover:text-vert"
         >

@@ -68,6 +68,7 @@ export default async function CommandesPage() {
               <li key={c.id} data-reveal>
                 <Link
                   href={`/commande/${c.reference}`}
+                  transitionTypes={["nav-forward"]}
                   className="lift press group flex items-center gap-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5"
                 >
                   <div className="min-w-0 flex-1">

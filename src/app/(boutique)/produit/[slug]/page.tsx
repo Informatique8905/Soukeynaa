@@ -51,12 +51,13 @@ export default async function ProduitPage({
         aria-label="Fil d'Ariane"
         className="mx-auto flex max-w-7xl items-center gap-1 px-4 pt-4 text-xs text-gris-fonce"
       >
-        <Link href="/" className="transition hover:text-vert">
+        <Link href="/" transitionTypes={["nav-back"]} className="transition hover:text-vert">
           Accueil
         </Link>
         <span aria-hidden="true">›</span>
         <Link
           href={`/categorie/${produit.categorie.slug}`}
+          transitionTypes={["nav-back"]}
           className="transition hover:text-vert"
         >
           {produit.categorie.nom}

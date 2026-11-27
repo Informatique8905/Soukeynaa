@@ -13,6 +13,7 @@ export function DealCard({ p, categorie }: { p: CarteProduit; categorie?: string
   return (
     <Link
       href={`/produit/${p.slug}`}
+      transitionTypes={["nav-forward"]}
       data-reveal="scale"
       className="cv-auto lift press group relative flex w-40 shrink-0 snap-start flex-col items-center overflow-hidden rounded-3xl bg-gradient-to-br from-vert to-vert-fonce p-3 pt-4 text-center text-white shadow-md shadow-vert/20 md:w-44"
     >

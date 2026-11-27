@@ -151,6 +151,7 @@ export default async function Accueil() {
           <Link
             key={c.slug}
             href={`/categorie/${c.slug}`}
+            transitionTypes={["nav-forward"]}
             data-reveal
             className="press shrink-0 snap-start rounded-full bg-white px-4 py-2.5 text-xs font-bold text-noir shadow-sm ring-1 ring-black/5 transition hover:text-vert hover:ring-vert/40"
           >
@@ -215,6 +216,7 @@ export default async function Accueil() {
               <Link
                 key={cat.slug}
                 href={`/categorie/${cat.slug}`}
+                transitionTypes={["nav-forward"]}
                 data-reveal
                 className="zoom-scroll lift press group relative h-44 w-36 shrink-0 snap-start overflow-hidden rounded-3xl bg-vert shadow-sm md:h-48 md:w-auto"
               >

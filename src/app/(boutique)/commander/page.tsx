@@ -63,6 +63,7 @@ export default async function CommanderPage() {
     <main className="mx-auto max-w-6xl px-4 py-6 md:py-10">
       <Link
         href="/panier"
+        transitionTypes={["nav-back"]}
         aria-label="Retour au panier"
         className="press group inline-grid size-11 place-items-center rounded-full bg-white text-noir ring-1 ring-black/5 transition hover:text-vert hover:ring-vert/40"
       >

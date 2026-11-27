@@ -25,6 +25,7 @@ export function ProductCard({ p }: { p: CarteProduit }) {
   return (
     <Link
       href={`/produit/${p.slug}`}
+      transitionTypes={["nav-forward"]}
       prefetch={true}
       data-reveal
       className="cv-auto lift press group block rounded-3xl bg-white p-2 shadow-sm ring-1 ring-black/5"

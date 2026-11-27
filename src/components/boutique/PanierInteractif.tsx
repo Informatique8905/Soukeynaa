@@ -81,6 +81,7 @@ export function PanierInteractif({ lignes }: { lignes: LignePanier[] }) {
           >
             <Link
               href={`/produit/${l.slug}`}
+              transitionTypes={["nav-forward"]}
               className="size-24 shrink-0 overflow-hidden rounded-2xl bg-gris"
             >
               {l.image && (
@@ -97,6 +98,7 @@ export function PanierInteractif({ lignes }: { lignes: LignePanier[] }) {
             <div className="min-w-0 flex-1">
               <Link
                 href={`/produit/${l.slug}`}
+                transitionTypes={["nav-forward"]}
                 className="line-clamp-2 text-sm font-bold leading-snug text-noir hover:text-vert"
               >
                 {l.nom}

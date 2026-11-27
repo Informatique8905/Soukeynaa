@@ -20,7 +20,7 @@ export function EnTetePage({
         <nav aria-label="Fil d'Ariane" data-reveal="left" className="flex items-center gap-1 text-xs text-gris-fonce">
           {ariane.map((a) => (
             <span key={a.href} className="flex items-center gap-1">
-              <Link href={a.href} className="capitalize transition hover:text-vert">
+              <Link href={a.href} transitionTypes={["nav-back"]} className="capitalize transition hover:text-vert">
                 {a.label}
               </Link>
               <span aria-hidden="true">›</span>

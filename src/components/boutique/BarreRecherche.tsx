@@ -126,6 +126,7 @@ export function BarreRecherche({
                 <Link
                   key={c.slug}
                   href={`/categorie/${c.slug}`}
+                  transitionTypes={["nav-forward"]}
                   onClick={() => setOuvert(false)}
                   className="flex items-center gap-2.5 rounded-xl px-2 py-2 text-sm font-semibold text-noir transition hover:bg-vert-clair hover:text-vert-fonce"
                 >
@@ -144,6 +145,7 @@ export function BarreRecherche({
                 <Link
                   key={p.slug}
                   href={`/produit/${p.slug}`}
+                  transitionTypes={["nav-forward"]}
                   onClick={() => setOuvert(false)}
                   className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 text-sm font-semibold text-noir transition hover:bg-vert-clair hover:text-vert-fonce"
                 >

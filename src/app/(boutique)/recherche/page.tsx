@@ -179,6 +179,7 @@ export default async function RecherchePage({
                   <Link
                     key={c.slug}
                     href={`/categorie/${c.slug}`}
+                    transitionTypes={["nav-forward"]}
                     className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-noir ring-1 ring-black/10 transition hover:bg-vert-clair hover:text-vert"
                   >
                     {c.nom}
