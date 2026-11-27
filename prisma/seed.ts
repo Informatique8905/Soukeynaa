@@ -16,10 +16,9 @@ const prisma = new PrismaClient({ adapter });
 
 // Communes et tarifs fournis par le propriétaire (CDC 11)
 const COMMUNES = [
-  { nom: "Cocody (Zone 1)", quartiersInclus: "Cocody (centre)", tarif: 1000 },
   {
-    nom: "Cocody (Zone 2)",
-    quartiersInclus: "II Plateaux, Palmeraie, Angré",
+    nom: "Cocody",
+    quartiersInclus: "Cocody, II Plateaux, Palmeraie, Angré",
     tarif: 1500,
   },
   { nom: "Plateau", quartiersInclus: "Plateau", tarif: 1500 },
