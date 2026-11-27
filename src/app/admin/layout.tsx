@@ -36,7 +36,7 @@ export default async function AdminLayout({
       commandesATraiter={commandesATraiter}
     >
       <NavProgress />
-      <ActualisationAuto secondes={20} />
+      <ActualisationAuto secondes={4} />
       <ViewTransition>{children}</ViewTransition>
     </AdminShell>
   );

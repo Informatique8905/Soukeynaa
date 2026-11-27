@@ -257,7 +257,7 @@ export default async function CommandesPage({
   return (
     <main className="mx-auto max-w-4xl px-4 py-6">
       {/* Statuts à jour sans rechargement manuel (commandes en cours) */}
-      <RafraichirAuto actif={actives.length > 0} ms={20000} />
+      <RafraichirAuto actif={actives.length > 0} ms={4000} />
       <div data-reveal="left">
         <h1 className="font-display text-2xl font-bold tracking-tight text-noir">Vos commandes</h1>
         <p className="mt-1 text-sm text-gris-fonce">

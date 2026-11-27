@@ -145,7 +145,7 @@ export default async function CommandePage({
           (webhook attendu), cadence normale tant que la commande évolue. */}
       <RafraichirAuto
         actif={!annulee && commande.statut !== "livree"}
-        ms={enVerification ? 5000 : 20000}
+        ms={enVerification ? 3000 : 4000}
       />
       <div className="flex items-center justify-between print:hidden">
         <Link
