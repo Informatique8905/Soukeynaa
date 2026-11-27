@@ -54,7 +54,8 @@ export default async function BoutiqueLayout({
     cart?.items.reduce((s, i) => s + i.quantite, 0) ?? 0;
   const tel = settings?.telephone || process.env.NEXT_PUBLIC_SHOP_PHONE || BOUTIQUE.tel;
   const wa = settings?.whatsapp || process.env.NEXT_PUBLIC_SHOP_WHATSAPP || BOUTIQUE.whatsapp;
-  const email = settings?.emailContact || BOUTIQUE.email;
+  // Email de contact public — constante (CDC 7.8 simplifié)
+  const email = BOUTIQUE.email;
   const annee = new Date().getFullYear();
 
   return (

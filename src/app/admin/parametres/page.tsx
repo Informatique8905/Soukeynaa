@@ -31,14 +31,6 @@ export default async function PageParametres() {
                 className={champ}
               />
             </Champ>
-            <Champ label="Email de contact">
-              <input
-                name="emailContact"
-                type="email"
-                defaultValue={settings.emailContact}
-                className={champ}
-              />
-            </Champ>
             <Champ label="Téléphone" aide="Affiché sur le site et pour les retours">
               <input
                 name="telephone"

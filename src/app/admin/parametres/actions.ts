@@ -28,7 +28,6 @@ export async function enregistrerParametres(formData: FormData) {
     nomBoutique: formData.get("nomBoutique"),
     telephone: formData.get("telephone") ?? "",
     whatsapp: formData.get("whatsapp") ?? "",
-    emailContact: formData.get("emailContact") ?? "",
     seuilStockFaible: Number(formData.get("seuilStockFaible") ?? 5),
     rapportEmailActif: formData.get("rapportEmailActif") === "on",
     rapportEmailDestinataire:
