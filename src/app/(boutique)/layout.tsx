@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ViewTransition } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ShoppingCart } from "lucide-react";
 import { auth } from "@/auth";
 import { getPrisma } from "@/lib/db";
 import { getCart } from "@/lib/cart";
@@ -101,9 +101,10 @@ export default async function BoutiqueLayout({
             <LienFavoris />
             <Link
               href="/panier"
-              className="press relative rounded-full bg-vert px-3.5 py-2.5 text-xs font-bold text-white shadow-md shadow-vert/25 hover:bg-vert-fonce"
+              aria-label="Panier"
+              className="press relative grid size-10 place-items-center rounded-full bg-vert text-white shadow-md shadow-vert/25 hover:bg-vert-fonce"
             >
-              Panier
+              <ShoppingCart className="size-4" aria-hidden />
               <BadgePanier
                 count={panierCount}
                 className="pop absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-noir px-1 text-[10px] font-bold text-white ring-2 ring-white"

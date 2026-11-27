@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, ViewTransition } from "react"  
 import Link from "next/link"
 import { gsap } from "gsap"
-import { ArrowLeft, Heart, Share2, Check, ChevronLeft, ChevronRight } from "lucide-react"
+import { ArrowLeft, Heart, Share2, Check, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react"
 import { hauteurViewport } from "@/lib/viewport"  
 import { ScrollTrigger } from "gsap/ScrollTrigger"  
   
@@ -303,7 +303,7 @@ const CSS =
   "@keyframes dsh-vp{from{opacity:0;transform:translateY(4px)}}" +  
   "@container (max-width:639px){" +
   // phone: colonne compacte bornée à la hauteur du stage — scroll interne si ça déborde
-  ".dsh-canvas{position:relative;left:auto;top:auto;width:100%;height:auto;max-height:100%;transform:none;display:flex;flex-direction:column;align-items:center;padding:10px 14px 14px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none}" +
+  ".dsh-canvas{position:relative;left:auto;top:auto;width:100%;height:auto;max-height:100%;transform:none;display:flex;flex-direction:column;align-items:center;padding:10px 14px 92px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none}" +
   ".dsh-canvas::-webkit-scrollbar{display:none}" +
   ".dsh-arc{width:200%;height:auto;left:-60%;top:-30px}" +
   ".dsh-top{position:relative;left:auto;right:auto;top:auto;width:100%;align-self:stretch;margin-bottom:4px;flex:none;order:-3}" +
@@ -358,6 +358,7 @@ const Icon = {
   check: <Check className="dsh-ico" aria-hidden="true" />,
   prev: <ChevronLeft className="dsh-ico" aria-hidden="true" />,
   next: <ChevronRight className="dsh-ico" aria-hidden="true" />,
+  panier: <ShoppingCart className="dsh-ico" aria-hidden="true" />,
 };
 export function DishOrbitCarousel({  
   dishes,  
@@ -819,7 +820,7 @@ export function DishOrbitCarousel({
                     <><span className="dsh-spin" aria-hidden="true" /> Ajout…</>
                   ) : ajoute === index ? (
                     <>{Icon.check} Ajouté au panier</>
-                  ) : "Ajouter au panier"}  
+                  ) : <>{Icon.panier} Ajouter au panier</>}  
                 </button>  
                 {addErr ? <p className="dsh-err">{addErr}</p> : null}
                 {ajoute === index ? (
