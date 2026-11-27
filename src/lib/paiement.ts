@@ -1,7 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { getPrisma } from "@/lib/db";
 import { libererStock, restituerStockCommande } from "@/lib/stock";
-import { envoyerBonCommande, alerterAdmin } from "@/lib/email";
+import { envoyerBonAdmin, envoyerBonCommande, alerterAdmin } from "@/lib/email";
 import type { Payment } from "@/generated/prisma/client";
 import { Prisma } from "@/generated/prisma/client";
 import type { StatutPaiement, MoyenPaiement } from "@/generated/prisma/enums";
@@ -277,6 +277,7 @@ export async function reconcilierTentative(
   }
   if (cible === "confirme") {
     envoyerBonCommande(paiement.commandeId).catch(() => {});
+    envoyerBonAdmin(paiement.commandeId).catch(() => {});
   } else if (cible === "a_verifier") {
     alerterAdmin(
       "alerte_admin_anomalie",

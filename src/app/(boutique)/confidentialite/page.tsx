@@ -7,7 +7,7 @@ export const metadata = { title: "Politique de confidentialité" };
 export default async function ConfidentialitePage() {
   const settings = await getSettings();
   const tel = settings.telephone || BOUTIQUE.tel;
-  const email = settings.emailContact;
+  const email = settings.emailContact || BOUTIQUE.email;
 
   return (
     <PageLegale titre="Politique de confidentialité">

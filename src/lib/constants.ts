@@ -130,6 +130,7 @@ export const BOUTIQUE = {
   horaires: "8h – 19h",
   tel: "07 87 87 07 93",
   whatsapp: "07 87 87 07 93",
+  email: "soukeynakids@outlook.com",
   tiktok: "https://www.tiktok.com/@soukeynakid",
   tiktokLabel: "@soukeynakid",
 } as const;

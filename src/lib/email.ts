@@ -1,6 +1,7 @@
 import { getPrisma } from "@/lib/db";
 import { jetonCommande } from "@/lib/ownership";
 import { fcfa, dateFr, dateHeureFr } from "./format";
+import { BOUTIQUE } from "@/lib/constants";
 
 // Envoi d'emails (CDC 12). Déduplication garantie par Notification.cleDedup
 // unique : deux appels concurrents → un seul email part (P2002 = déjà fait).
@@ -392,6 +393,35 @@ export async function envoyerBonCommande(
       c.id
     );
   }
+}
+
+// Copie du bon à la boutique : même document que le client, envoyé dès
+// qu'une commande devient ferme — à la livraison à la création, en ligne
+// après paiement confirmé (décision métier, CDC 12.4).
+export async function envoyerBonAdmin(commandeId: number) {
+  const admin = process.env.ADMIN_EMAIL || BOUTIQUE.email;
+  const prisma = getPrisma();
+  const c = await prisma.order.findUnique({
+    where: { id: commandeId },
+    include: { lignes: true },
+  });
+  if (!c) return;
+  const site = (process.env.AUTH_URL ?? "").replace(/\/+$/, "");
+  await notifier(
+    `bon_admin:${c.reference}`,
+    "alerte_admin_commande",
+    admin,
+    `[SOUKEYNA] Bon de commande ${c.reference}`,
+    cadreMail(
+      `Nouvelle commande <strong>${esc(c.reference)}</strong> — ${esc(c.clientNom)}, ${esc(c.communeNom)}.`,
+      carteBon(c, "BON DE COMMANDE"),
+      {
+        url: `${site}/admin/commandes/${c.id}`,
+        label: "Voir la commande dans l'admin",
+      }
+    ),
+    c.id
+  );
 }
 
 // Pas d'emails de changement de statut au client (préparation, expédition,

@@ -8,9 +8,8 @@ import { auth } from "@/auth";
 import { getCart } from "@/lib/cart";
 import { prixEffectif } from "@/lib/pricing";
 import { checkoutSchema } from "@/lib/validation";
-import { alerterAdmin, envoyerBonCommande } from "@/lib/email";
+import { envoyerBonAdmin, envoyerBonCommande } from "@/lib/email";
 import { initierTentative } from "@/lib/paiement";
-import { fcfa } from "@/lib/format";
 import { autorise, ipClient } from "@/lib/ratelimit";
 import { signerIdsCommandes, verifierIdsCommandes, COOKIE_COMMANDES } from "@/lib/ownership";
 
@@ -232,22 +231,10 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
   // fire-and-forget serait tué avant la fin du fetch SMTP).
   after(() => envoyerBonCommande(commandeCree.id).catch(() => {}));
 
-  // À la livraison : alerte admin immédiate (non bloquant)
+  // À la livraison : la commande est ferme dès la création — l'admin
+  // reçoit le même bon de commande que le client (non bloquant).
   if (aLaLivraison) {
-    const c = await prisma.order.findUnique({
-      where: { reference },
-      select: { id: true, total: true, communeNom: true, clientNom: true },
-    });
-    if (c) {
-      after(() =>
-        alerterAdmin(
-          "alerte_admin_commande",
-          `Nouvelle commande à la livraison ${reference}`,
-          `<p>${c.clientNom}, ${c.communeNom}, ${fcfa(c.total)} à encaisser à la livraison.</p>`,
-          c.id
-        ).catch(() => {})
-      );
-    }
+    after(() => envoyerBonAdmin(commandeCree.id).catch(() => {}));
   }
 
   if (aLaLivraison) {

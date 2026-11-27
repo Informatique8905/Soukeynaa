@@ -6,7 +6,7 @@ import {
   journaliser,
   appliquerTransition,
 } from "@/lib/paiement";
-import { envoyerBonCommande, alerterAdmin } from "@/lib/email";
+import { envoyerBonAdmin, envoyerBonCommande, alerterAdmin } from "@/lib/email";
 import type { StatutPaiement, MoyenPaiement } from "@/generated/prisma/enums";
 
 // Mapping statuts Jèko → statuts internes (doc : pending | success | error)
@@ -165,12 +165,7 @@ export async function POST(req: Request) {
   if (statutFinal === "confirme") {
     after(async () => {
       await envoyerBonCommande(paiement.commandeId).catch(() => {});
-      await alerterAdmin(
-        "alerte_admin_commande",
-        `Nouvelle commande payée ${paiement.referenceCommande}`,
-        `<p>La commande <strong>${paiement.referenceCommande}</strong> vient d'être payée (${paiement.montant} FCFA).</p>`,
-        paiement.commandeId
-      ).catch(() => {});
+      await envoyerBonAdmin(paiement.commandeId).catch(() => {});
     });
   } else if (statutFinal === "a_verifier") {
     after(() =>

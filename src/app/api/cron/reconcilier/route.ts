@@ -5,7 +5,7 @@ import {
   statutJekoReel,
   appliquerTransition,
 } from "@/lib/paiement";
-import { envoyerBonCommande, alerterAdmin } from "@/lib/email";
+import { envoyerBonAdmin, envoyerBonCommande, alerterAdmin } from "@/lib/email";
 
 // Réconciliation (CDC 10.11) : Jèko n'envoie PAS de webhook pour les
 // paiements échoués — on interroge GET /payment_requests/{id} pour chaque
@@ -64,7 +64,10 @@ export async function GET(req: Request) {
       if (appliquee) {
         resolus.push(p.referenceCommande);
         if (final === "confirme") {
-          after(() => envoyerBonCommande(p.commandeId).catch(() => {}));
+          after(async () => {
+            await envoyerBonCommande(p.commandeId).catch(() => {});
+            await envoyerBonAdmin(p.commandeId).catch(() => {});
+          });
         } else if (final === "a_verifier") {
           signales.push(p.commande.reference);
         }

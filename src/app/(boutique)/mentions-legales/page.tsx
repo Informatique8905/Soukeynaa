@@ -7,7 +7,7 @@ export const metadata = { title: "Mentions légales" };
 export default async function MentionsLegalesPage() {
   const settings = await getSettings();
   const tel = settings.telephone || BOUTIQUE.tel;
-  const email = settings.emailContact;
+  const email = settings.emailContact || BOUTIQUE.email;
 
   return (
     <PageLegale titre="Mentions légales">

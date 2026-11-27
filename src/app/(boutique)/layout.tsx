@@ -31,6 +31,14 @@ const LIENS_INFOS = [
   { href: "/mentions-legales", label: "Mentions légales" },
 ];
 
+const LOGOS_PAIEMENT = [
+  { src: "/paiements/wave.png", alt: "Wave" },
+  { src: "/paiements/orange.png", alt: "Orange Money" },
+  { src: "/paiements/mtn.png", alt: "MTN Mobile Money" },
+  { src: "/paiements/moov.png", alt: "Moov Money" },
+  { src: "/paiements/djamo.png", alt: "Djamo / Carte" },
+];
+
 export default async function BoutiqueLayout({
   children,
 }: {
@@ -46,7 +54,7 @@ export default async function BoutiqueLayout({
     cart?.items.reduce((s, i) => s + i.quantite, 0) ?? 0;
   const tel = settings?.telephone || process.env.NEXT_PUBLIC_SHOP_PHONE || BOUTIQUE.tel;
   const wa = settings?.whatsapp || process.env.NEXT_PUBLIC_SHOP_WHATSAPP || BOUTIQUE.whatsapp;
-  const email = settings?.emailContact || "";
+  const email = settings?.emailContact || BOUTIQUE.email;
   const annee = new Date().getFullYear();
 
   return (
@@ -205,6 +213,22 @@ export default async function BoutiqueLayout({
                 ligne sécurisé via Jèko (Wave, Orange Money, MTN, Moov, carte)
                 ou à la livraison.
               </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {LOGOS_PAIEMENT.map((l) => (
+                  <span
+                    key={l.src}
+                    className="inline-flex items-center rounded-lg bg-white px-1.5 py-1"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={l.src}
+                      alt={l.alt}
+                      loading="lazy"
+                      className="h-5 w-auto object-contain"
+                    />
+                  </span>
+                ))}
+              </div>
             </div>
           </details>
 
@@ -287,6 +311,22 @@ export default async function BoutiqueLayout({
               ligne sécurisé via Jèko (Wave, Orange Money, MTN, Moov, carte)
               ou à la livraison.
             </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {LOGOS_PAIEMENT.map((l) => (
+                <span
+                  key={l.src}
+                  className="inline-flex items-center rounded-lg bg-white px-1.5 py-1"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={l.src}
+                    alt={l.alt}
+                    loading="lazy"
+                    className="h-5 w-auto object-contain"
+                  />
+                </span>
+              ))}
+            </div>
             <ul className="mt-3 space-y-1.5 text-xs font-semibold">
               {LIENS_INFOS.map((l) => (
                 <li key={l.href}>
