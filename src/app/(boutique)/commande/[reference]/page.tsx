@@ -11,6 +11,7 @@ import { TrajetLivraison } from "@/components/motion/TrajetLivraison";
 import { SuccesAnime } from "@/components/motion/SuccesAnime";
 import { CopierReference } from "@/components/boutique/CopierReference";
 import { ArrowLeft } from "lucide-react";
+import { fcfa } from "@/lib/format";
 
 const ETAPES_EN_LIGNE = ["en_attente_paiement", "payee", "en_preparation", "expediee", "livree"] as const;
 const LABELS_EN_LIGNE = ["Commandée", "Payée", "Préparation", "En route", "Livrée"];
@@ -206,6 +207,40 @@ export default async function CommandePage({
           </section>
 
           {bonVisible && <BonCommande c={commande} />}
+
+          {/* Recap avant paiement : tant que le bon complet n'est pas visible,
+              le client revoit quand meme ce qu'il s'apprete a payer. */}
+          {proprietaire && !bonVisible && !annulee && (
+            <section data-reveal className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 print:hidden">
+              <h2 className="text-sm font-extrabold text-noir">Votre commande</h2>
+              <ul className="mt-2 divide-y divide-black/5">
+                {commande.lignes.map((l, i) => (
+                  <li key={i} className="flex items-baseline justify-between gap-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-noir">{l.nom}</p>
+                      <p className="text-xs text-gris-fonce">
+                        {l.varianteLabel ? `${l.varianteLabel} · ` : ""}
+                        {l.quantite} × {fcfa(l.prixUnitaire)}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-sm font-bold tabular-nums text-noir">
+                      {fcfa(l.total)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-1 space-y-1 border-t border-black/5 pt-3 text-sm">
+                <div className="flex justify-between text-gris-fonce">
+                  <span>Livraison à {commande.communeNom}</span>
+                  <span className="tabular-nums">{fcfa(commande.fraisLivraison)}</span>
+                </div>
+                <div className="flex justify-between text-base font-extrabold text-noir">
+                  <span>Total à payer</span>
+                  <span className="tabular-nums text-vert">{fcfa(commande.total)}</span>
+                </div>
+              </div>
+            </section>
+          )}
 
           {payable && (
             <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 print:hidden">
