@@ -314,7 +314,7 @@ const CSS =
   ".dsh-head{position:relative;left:auto;top:auto;width:100%;height:112px;margin-top:0;flex:none;order:-1}" +
   ".dsh-hd{text-align:center;transform:scale(.74);transform-origin:50% 0}" +
   ".dsh-acts{position:relative;left:auto;top:auto;margin-top:2px;flex:none}" +
-  ".dsh-card{position:relative;left:auto;top:auto;width:100%;max-width:420px;margin-top:10px;padding:12px 14px 14px;flex:none}" +
+  ".dsh-card{position:relative;left:auto;top:auto;width:100%;max-width:420px;margin-top:10px;padding:12px 14px 14px;flex:none;order:3}" +
   ".dsh-strip{order:2}" +
   ".dsh-arrow{width:40px;height:40px}" +
   ".dsh-opt{min-width:40px;min-height:34px}" +
