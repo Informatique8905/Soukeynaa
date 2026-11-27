@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { fcfa } from "@/lib/format";
+import { AutoRefresh } from "@/components/AutoRefresh";
 
 // Moyens activés sur le compte Jèko — l'API exige l'opérateur à l'initiation
 const MOYENS = [
@@ -124,22 +125,9 @@ export function BoutonPayer({
   );
 }
 
-/** Recharge les données serveur à intervalle tant que `actif` (attente webhook)
- * ou tant que la commande n'est pas terminée. En pause quand l'onglet est
- * masqué ; refresh immédiat au retour sur l'onglet. */
+/** Recharge les données serveur quand les commandes du client changent
+ * (sonde /api/etat), tant que `actif` — attente webhook ou commande non
+ * terminée. En pause quand l'onglet est masqué. */
 export function RafraichirAuto({ actif, ms = 5000 }: { actif: boolean; ms?: number }) {
-  const router = useRouter();
-  useEffect(() => {
-    if (!actif) return;
-    const rafraichir = () => {
-      if (document.visibilityState === "visible") router.refresh();
-    };
-    const t = window.setInterval(rafraichir, ms);
-    document.addEventListener("visibilitychange", rafraichir);
-    return () => {
-      clearInterval(t);
-      document.removeEventListener("visibilitychange", rafraichir);
-    };
-  }, [actif, ms, router]);
-  return null;
+  return <AutoRefresh scope="commandes" actif={actif} ms={ms} />;
 }
