@@ -14,7 +14,7 @@ import {
   bouton,
   champ,
 } from "@/components/admin/ui";
-import { Download } from "lucide-react";
+import { Download, FileSpreadsheet, FileText } from "lucide-react";
 
 const MOYEN_LABELS: Record<string, string> = {
   wave: "Wave",
@@ -104,11 +104,25 @@ export default async function RapportsPage({
           </Champ>
           <button className={bouton("primaire")}>Générer</button>
           <a
-            href={`/admin/rapports/export?debut=${debut.toISOString().slice(0, 10)}&fin=${fin.toISOString().slice(0, 10)}`}
+            href={`/admin/rapports/export?format=xlsx&debut=${debut.toISOString().slice(0, 10)}&fin=${fin.toISOString().slice(0, 10)}`}
             className={bouton("secondaire")}
           >
+            <FileSpreadsheet />
+            Excel
+          </a>
+          <a
+            href={`/admin/rapports/export?format=pdf&debut=${debut.toISOString().slice(0, 10)}&fin=${fin.toISOString().slice(0, 10)}`}
+            className={bouton("secondaire")}
+          >
+            <FileText />
+            PDF
+          </a>
+          <a
+            href={`/admin/rapports/export?format=csv&debut=${debut.toISOString().slice(0, 10)}&fin=${fin.toISOString().slice(0, 10)}`}
+            className={`${bouton("fantome")} text-xs`}
+          >
             <Download />
-            Exporter CSV
+            CSV
           </a>
         </form>
       </Panneau>

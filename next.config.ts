@@ -41,6 +41,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // pdfkit/fontkit utilise des decorators que Turbopack ne compile pas —
+  // chargé côté Node sans bundling (route admin d'export PDF).
+  serverExternalPackages: ["pdfkit"],
   experimental: {
     // Cache client du routeur : re-navigations et retours instantanés.
     // revalidatePath côté serveur invalide les entrées sensibles (panier…).
