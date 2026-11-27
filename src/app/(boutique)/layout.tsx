@@ -12,6 +12,8 @@ import { RetourHaut } from "@/components/boutique/RetourHaut";
 import { LienFavoris } from "@/components/boutique/LienFavoris";
 import { BadgePanier } from "@/components/boutique/BadgePanier";
 import { EnTete } from "@/components/boutique/EnTete";
+import { TikTokIcon } from "@/components/boutique/TikTokIcon";
+import { BOUTIQUE } from "@/lib/constants";
 
 const AVANTAGES = [
   "Livraison dans tout Abidjan",
@@ -19,6 +21,14 @@ const AVANTAGES = [
   "Wave · Orange Money · MTN · Moov",
   "Paiement en ligne sécurisé",
   "Retours & échanges faciles",
+];
+
+const LIENS_INFOS = [
+  { href: "/commandes", label: "Suivre ma commande" },
+  { href: "/livraison-retours", label: "Livraison & retours" },
+  { href: "/cgv", label: "Conditions générales de vente" },
+  { href: "/confidentialite", label: "Politique de confidentialité" },
+  { href: "/mentions-legales", label: "Mentions légales" },
 ];
 
 export default async function BoutiqueLayout({
@@ -34,8 +44,10 @@ export default async function BoutiqueLayout({
   // Badge : simple somme des quantités, sans enrichir chaque ligne
   const panierCount =
     cart?.items.reduce((s, i) => s + i.quantite, 0) ?? 0;
-  const tel = settings?.telephone || process.env.NEXT_PUBLIC_SHOP_PHONE;
-  const wa = settings?.whatsapp || process.env.NEXT_PUBLIC_SHOP_WHATSAPP;
+  const tel = settings?.telephone || process.env.NEXT_PUBLIC_SHOP_PHONE || BOUTIQUE.tel;
+  const wa = settings?.whatsapp || process.env.NEXT_PUBLIC_SHOP_WHATSAPP || BOUTIQUE.whatsapp;
+  const email = settings?.emailContact || "";
+  const annee = new Date().getFullYear();
 
   return (
     <div className="flex min-h-screen flex-col bg-blanc-casse">
@@ -136,9 +148,38 @@ export default async function BoutiqueLayout({
             <p className="opacity-60">
               L&apos;élégance ivoirienne, livrée chez vous.
             </p>
+            <a
+              href={BOUTIQUE.tiktok}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="TikTok SOUKEYNA"
+              className="press ml-auto grid size-9 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20"
+            >
+              <TikTokIcon className="size-4" />
+            </a>
           </div>
 
           <details className="group mt-3 border-t border-white/10">
+            <summary className="flex cursor-pointer list-none items-center justify-between py-3 font-semibold [&::-webkit-details-marker]:hidden">
+              La boutique
+              <ChevronDown className="size-4 opacity-60 transition group-open:rotate-180" />
+            </summary>
+            <div className="space-y-1 pb-3 opacity-80">
+              <p>{BOUTIQUE.adresse}</p>
+              <p>Ouvert · {BOUTIQUE.horaires}</p>
+              <a
+                href={BOUTIQUE.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 pt-1 font-semibold underline underline-offset-2"
+              >
+                <TikTokIcon className="size-3.5" />
+                TikTok {BOUTIQUE.tiktokLabel}
+              </a>
+            </div>
+          </details>
+
+          <details className="group border-t border-white/10">
             <summary className="flex cursor-pointer list-none items-center justify-between py-3 font-semibold [&::-webkit-details-marker]:hidden">
               Contact &amp; retours
               <ChevronDown className="size-4 opacity-60 transition group-open:rotate-180" />
@@ -146,6 +187,7 @@ export default async function BoutiqueLayout({
             <div className="space-y-1 pb-3 opacity-80">
               {tel && <p>Tél : {tel}</p>}
               {wa && <p>WhatsApp : {wa}</p>}
+              {email && <p>Email : {email}</p>}
               <p className="opacity-70">
                 Retours/échanges : par appel ou message (CDC 9.7).
               </p>
@@ -160,24 +202,35 @@ export default async function BoutiqueLayout({
             <div className="pb-3 opacity-80">
               <p>
                 Abidjan et environs, tarif fixe selon la commune. Paiement en
-                ligne (Wave, Orange Money, MTN, Moov, carte) ou à la livraison.
+                ligne sécurisé via Jèko (Wave, Orange Money, MTN, Moov, carte)
+                ou à la livraison.
               </p>
-              <Link
-                href="/commandes"
-                className="mt-2 inline-block rounded-full bg-white/10 px-3 py-1.5 font-semibold"
-              >
-                Suivre ma commande
-              </Link>
             </div>
           </details>
 
+          <details className="group border-t border-white/10">
+            <summary className="flex cursor-pointer list-none items-center justify-between py-3 font-semibold [&::-webkit-details-marker]:hidden">
+              Informations
+              <ChevronDown className="size-4 opacity-60 transition group-open:rotate-180" />
+            </summary>
+            <ul className="space-y-1.5 pb-3 font-semibold">
+              {LIENS_INFOS.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} className="opacity-80 hover:opacity-100">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+
           <p className="border-t border-white/10 pt-3 text-center text-[11px] opacity-50">
-            © SOUKEYNA, Abidjan, Côte d&apos;Ivoire
+            © {annee} SOUKEYNA, Abidjan, Côte d&apos;Ivoire
           </p>
         </div>
 
-        {/* Desktop : grille 3 colonnes */}
-        <div className="relative mx-auto hidden max-w-7xl gap-8 px-4 py-12 text-sm md:grid md:grid-cols-3">
+        {/* Desktop : grille 4 colonnes + barre légale */}
+        <div className="relative mx-auto hidden max-w-7xl gap-8 px-4 py-12 text-sm md:grid md:grid-cols-4">
           <div data-reveal>
             <span className="inline-block rounded-xl bg-white px-3 py-1.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -191,11 +244,37 @@ export default async function BoutiqueLayout({
               L&apos;élégance ivoirienne, livrée chez vous à Abidjan, Côte
               d&apos;Ivoire.
             </p>
+            <a
+              href={BOUTIQUE.tiktok}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="TikTok SOUKEYNA"
+              className="press mt-3 inline-grid size-9 place-items-center rounded-full bg-white/10 transition hover:bg-white/20"
+            >
+              <TikTokIcon className="size-4" />
+            </a>
+          </div>
+          <div data-reveal>
+            <p className="font-semibold">La boutique</p>
+            <p className="mt-2 opacity-70">{BOUTIQUE.adresse}</p>
+            <p className="mt-1.5 text-xs opacity-70">
+              Ouvert · {BOUTIQUE.horaires}
+            </p>
+            <a
+              href={BOUTIQUE.tiktok}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold opacity-80 transition hover:opacity-100 hover:text-dore"
+            >
+              <TikTokIcon className="size-3.5" />
+              TikTok {BOUTIQUE.tiktokLabel}
+            </a>
           </div>
           <div data-reveal>
             <p className="font-semibold">Contact & retours</p>
             {tel && <p className="mt-2">Tél : {tel}</p>}
             {wa && <p>WhatsApp : {wa}</p>}
+            {email && <p>Email : {email}</p>}
             <p className="mt-2 text-xs opacity-70">
               Pour tout retour ou échange, contactez-nous par appel ou message
               (CDC 9.7).
@@ -204,17 +283,27 @@ export default async function BoutiqueLayout({
           <div data-reveal>
             <p className="font-semibold">Livraison & paiement</p>
             <p className="mt-2 opacity-70">
-              Abidjan et environs, tarif fixe selon la commune. Payez en ligne
-              (Wave, Orange Money, MTN, Moov, carte) ou à la livraison.
+              Abidjan et environs, tarif fixe selon la commune. Paiement en
+              ligne sécurisé via Jèko (Wave, Orange Money, MTN, Moov, carte)
+              ou à la livraison.
             </p>
-            <Link
-              href="/commandes"
-              className="mt-2 inline-block rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold transition hover:bg-white/20"
-            >
-              Suivre ma commande
-            </Link>
+            <ul className="mt-3 space-y-1.5 text-xs font-semibold">
+              {LIENS_INFOS.map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    className="opacity-80 transition hover:opacity-100 hover:text-dore"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
+        <p className="relative hidden border-t border-white/10 px-4 py-4 text-center text-xs opacity-50 md:block">
+          © {annee} SOUKEYNA — Paiement en ligne sécurisé via Jèko
+        </p>
       </footer>
     </div>
   );

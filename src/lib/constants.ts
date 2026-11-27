@@ -122,3 +122,14 @@ export const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY ?? "FCFA";
 export const STOCK_RESERVATION_MINUTES = Number(
   process.env.STOCK_RESERVATION_MINUTES ?? 30
 );
+
+/** Coordonnées publiques de la boutique — CDC 7.8 / 18.1 */
+export const BOUTIQUE = {
+  adresse:
+    "Riviera Attoban, non loin de la pharmacie St Bernard, en face de la Sococe — Abidjan",
+  horaires: "8h – 19h",
+  tel: "07 87 87 07 93",
+  whatsapp: "07 87 87 07 93",
+  tiktok: "https://www.tiktok.com/@soukeynakid",
+  tiktokLabel: "@soukeynakid",
+} as const;
