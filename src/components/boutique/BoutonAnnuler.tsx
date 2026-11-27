@@ -53,7 +53,7 @@ export function BoutonAnnuler({
 
   if (confirmer) {
     return (
-      <div className="page-in rounded-2xl bg-red-50 p-3 text-center">
+      <div className="page-in w-full rounded-2xl bg-red-50 p-3 text-center">
         <p className="text-sm font-semibold text-red-700">
           {cible === "tentative"
             ? "Abandonner ce paiement ? Vous pourrez en choisir un autre."

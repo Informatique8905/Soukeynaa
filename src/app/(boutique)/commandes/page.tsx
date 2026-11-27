@@ -70,6 +70,9 @@ function CarteCommande({
   const annulable = attentePaiement && !aVerifier;
   const reservationActive =
     attentePaiement && c.reservationExpireLe.getTime() > maintenant;
+  // Payable maintenant : réservation valide et aucune tentative ouverte
+  const aPayer =
+    reservationActive && !aVerifier && !tentativeEnCours;
   const heureLimite = c.reservationExpireLe.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
@@ -187,7 +190,20 @@ function CarteCommande({
         </span>
       </Link>
       {annulable && (
-        <div className="border-t border-black/5 px-4 py-1">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 border-t border-black/5 px-4 py-1.5">
+          {aPayer || tentativeEnCours ? (
+            <Link
+              href={`/commande/${c.reference}`}
+              transitionTypes={["nav-forward"]}
+              className="press py-1 text-xs font-bold text-vert hover:text-vert-fonce"
+            >
+              {tentativeEnCours
+                ? "Reprendre le paiement →"
+                : "Finaliser le paiement →"}
+            </Link>
+          ) : (
+            <span />
+          )}
           <BoutonAnnuler commandeId={c.id} cible="commande" />
         </div>
       )}
@@ -195,8 +211,19 @@ function CarteCommande({
   );
 }
 
-export default async function CommandesPage() {
-  const [session, store] = await Promise.all([auth(), cookies()]);
+const PAR_PAGE = 20;
+
+export default async function CommandesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const [{ page: pageParam }, session, store] = await Promise.all([
+    searchParams,
+    auth(),
+    cookies(),
+  ]);
+  const page = Math.max(1, Number(pageParam) || 1);
   const userId = session?.user?.id ? Number(session.user.id) : null;
   // Commandes invité passées depuis ce navigateur (cookie signé, CDC 14.5) :
   // la commande apparaît ici juste après le checkout, sans compte requis.
@@ -209,17 +236,21 @@ export default async function CommandesPage() {
             ? { OR: [{ clientUserId: userId }, { id: { in: idsInvites } }] }
             : { id: { in: idsInvites } },
           orderBy: { createdAt: "desc" },
-          take: 20,
+          skip: (page - 1) * PAR_PAGE,
+          take: PAR_PAGE + 1, // +1 pour détecter la page suivante
           select: SELECT,
         })
       : [];
 
+  const suite = commandes.length > PAR_PAGE;
+  const visibles = commandes.slice(0, PAR_PAGE);
+
   // En cours d'abord, historique (livrées/annulées) en bas de page
   const maintenant = new Date().getTime();
-  const actives = commandes.filter(
+  const actives = visibles.filter(
     (c) => c.statut !== "livree" && c.statut !== "annulee"
   );
-  const terminees = commandes.filter(
+  const terminees = visibles.filter(
     (c) => c.statut === "livree" || c.statut === "annulee"
   );
 
@@ -242,7 +273,14 @@ export default async function CommandesPage() {
         <RechercheCommande />
       </div>
 
-      {commandes.length > 0 ? (
+      {visibles.length === 0 && page > 1 ? (
+        <EtatVide
+          dessin="colis"
+          titre="Plus de commandes ici"
+          texte="Cette page dépasse votre historique de commandes."
+          action={{ href: "/commandes", label: "Revenir à mes commandes" }}
+        />
+      ) : visibles.length > 0 ? (
         <>
           {!session?.user && (
             <p
@@ -278,6 +316,32 @@ export default async function CommandesPage() {
                 ))}
               </ul>
             </>
+          )}
+          {(page > 1 || suite) && (
+            <nav
+              data-reveal
+              aria-label="Pagination des commandes"
+              className="mt-6 flex items-center justify-between"
+            >
+              {page > 1 ? (
+                <Link
+                  href={page === 2 ? "/commandes" : `/commandes?page=${page - 1}`}
+                  className="press rounded-full bg-white px-4 py-2 text-xs font-bold text-noir shadow-sm ring-1 ring-black/10 hover:bg-vert-clair hover:text-vert"
+                >
+                  ← Plus récentes
+                </Link>
+              ) : (
+                <span />
+              )}
+              {suite && (
+                <Link
+                  href={`/commandes?page=${page + 1}`}
+                  className="press rounded-full bg-white px-4 py-2 text-xs font-bold text-noir shadow-sm ring-1 ring-black/10 hover:bg-vert-clair hover:text-vert"
+                >
+                  Plus anciennes →
+                </Link>
+              )}
+            </nav>
           )}
         </>
       ) : session?.user ? (
