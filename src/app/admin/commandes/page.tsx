@@ -13,6 +13,7 @@ import {
   lien,
 } from "@/components/admin/ui";
 import { ORDER_STATUS_LABELS } from "@/lib/constants";
+import { LigneCliquable } from "@/components/admin/LigneCliquable";
 
 const FILTRES = [
   "",
@@ -139,7 +140,7 @@ export default async function PageCommandes({
               </thead>
               <tbody>
                 {commandes.map((c) => (
-                  <tr key={c.id}>
+                  <LigneCliquable key={c.id} href={`/admin/commandes/${c.id}`}>
                     <td>
                       {aTraiter(c.statut) && (
                         <span
@@ -171,7 +172,7 @@ export default async function PageCommandes({
                         {c.modePaiement === "livraison" && <ModeLivraison />}
                       </div>
                     </td>
-                  </tr>
+                  </LigneCliquable>
                 ))}
               </tbody>
             </table>
