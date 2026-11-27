@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Fragment } from "react";
 import { getPrisma } from "@/lib/db";
 import { dateHeureFr } from "@/lib/format";
 import { creerPromotion, basculerPromotion } from "./actions";
@@ -12,7 +14,27 @@ import {
   champ,
 } from "@/components/admin/ui";
 
-export default async function PagePromotions() {
+const FILTRES = [
+  "",
+  "en_cours",
+  "programmee",
+  "terminee",
+  "arretee",
+] as const;
+
+const ETAT_LABELS: Record<string, string> = {
+  en_cours: "En cours",
+  programmee: "Programmées",
+  terminee: "Terminées",
+  arretee: "Arrêtées",
+};
+
+export default async function PagePromotions({
+  searchParams,
+}: {
+  searchParams: Promise<{ etat?: string }>;
+}) {
+  const { etat } = await searchParams;
   const prisma = getPrisma();
   const [promotions, produits, categories] = await Promise.all([
     prisma.promotion.findMany({ orderBy: { createdAt: "desc" } }),
@@ -30,10 +52,33 @@ export default async function PagePromotions() {
 
   type Promo = (typeof promotions)[number];
 
-  const etat = (p: Promo) => {
-    if (!p.active) return <Pastille ton="rouge">Arrêtée</Pastille>;
-    if (p.debut > now) return <Pastille ton="bleu">Programmée</Pastille>;
-    if (p.fin < now) return <Pastille ton="gris">Terminée</Pastille>;
+  // État calculé d'une promotion — un seul point de vérité pour
+  // la pastille affichée, le filtre et le tri « à traiter ».
+  const etatDe = (p: Promo) => {
+    if (!p.active) return "arretee";
+    if (p.debut > now) return "programmee";
+    if (p.fin < now) return "terminee";
+    return "en_cours";
+  };
+
+  // Terminée mais encore marquée active = à arrêter (sinon elle
+  // reste comptée « active » côté métier). Remontée en tête,
+  // surlignée en vert comme les commandes à traiter.
+  const aArreter = (p: Promo) => etatDe(p) === "terminee";
+  const nbAArreter = promotions.filter(aArreter).length;
+
+  const liste = etat
+    ? promotions.filter((p) => etatDe(p) === etat)
+    : promotions;
+  liste.sort((a, b) => Number(aArreter(b)) - Number(aArreter(a)));
+  const iPremiereAJour = liste.findIndex((p) => !aArreter(p));
+  const aDeuxGroupes = iPremiereAJour > 0 && liste.length > iPremiereAJour;
+
+  const etatPill = (p: Promo) => {
+    const e = etatDe(p);
+    if (e === "arretee") return <Pastille ton="rouge">Arrêtée</Pastille>;
+    if (e === "programmee") return <Pastille ton="bleu">Programmée</Pastille>;
+    if (e === "terminee") return <Pastille ton="gris">Terminée</Pastille>;
     return <Pastille ton="vert">En cours</Pastille>;
   };
 
@@ -65,6 +110,31 @@ export default async function PagePromotions() {
         titre="Promotions"
         description="Soldes, réductions ponctuelles et ventes flash, sans codes promo (CDC 6.4)."
       />
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        {nbAArreter > 0 && (
+          <Pastille ton="vert" className="h-9 px-3.5 text-xs font-semibold">
+            {nbAArreter} à arrêter
+          </Pastille>
+        )}
+        {FILTRES.map((e) => {
+          const actif = etat === e || (!etat && !e);
+          return (
+            <Link
+              key={e}
+              href={e ? `/admin/promotions?etat=${e}` : "/admin/promotions"}
+              aria-current={actif ? "page" : undefined}
+              className={`inline-flex h-9 items-center rounded-lg border px-3.5 text-xs font-medium transition-colors ${
+                actif
+                  ? "border-vert bg-vert text-white shadow-sm"
+                  : "border-border bg-white text-muted-foreground hover:border-vert/40 hover:text-foreground"
+              }`}
+            >
+              {e ? ETAT_LABELS[e] : "Toutes"}
+            </Link>
+          );
+        })}
+      </div>
 
       <Panneau titre="Nouvelle promotion" description="Les champs marqués * sont obligatoires">
         <form action={creerPromotion} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -144,28 +214,37 @@ export default async function PagePromotions() {
 
       {/* Mobile : cartes */}
       <div className="space-y-3 md:hidden">
-        {promotions.map((p) => (
-          <CarteListe key={p.id}>
-            <div className="flex items-start justify-between gap-3">
-              <p className="min-w-0 truncate font-semibold">{p.nom}</p>
-              {etat(p)}
-            </div>
-            <p className="mt-1 text-sm">
-              <span className="font-semibold text-vert tabular-nums">{reduction(p)}</span>
-              <span className="text-muted-foreground"> · {portee(p)}</span>
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-              Du {dateHeureFr(p.debut)} au {dateHeureFr(p.fin)}
-            </p>
-            <div className="mt-3 flex justify-end border-t border-border pt-3">{bascule(p)}</div>
-          </CarteListe>
+        {liste.map((p, i) => (
+          <div key={p.id}>
+            {aDeuxGroupes && i === iPremiereAJour && (
+              <p className="pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                À jour
+              </p>
+            )}
+            <CarteListe
+              className={aArreter(p) ? "border-vert/30 bg-vert-clair/50" : ""}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="min-w-0 truncate font-semibold">{p.nom}</p>
+                {etatPill(p)}
+              </div>
+              <p className="mt-1 text-sm">
+                <span className="font-semibold text-vert tabular-nums">{reduction(p)}</span>
+                <span className="text-muted-foreground"> · {portee(p)}</span>
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                Du {dateHeureFr(p.debut)} au {dateHeureFr(p.fin)}
+              </p>
+              <div className="mt-3 flex justify-end border-t border-border pt-3">{bascule(p)}</div>
+            </CarteListe>
+          </div>
         ))}
-        {promotions.length === 0 && <CarteListe className="p-0">{vide}</CarteListe>}
+        {liste.length === 0 && <CarteListe className="p-0">{vide}</CarteListe>}
       </div>
 
       {/* Desktop : tableau */}
       <Panneau corps="p-0" className="hidden md:block">
-        {promotions.length === 0 ? (
+        {liste.length === 0 ? (
           vide
         ) : (
           <div className="overflow-x-auto">
@@ -181,20 +260,27 @@ export default async function PagePromotions() {
                 </tr>
               </thead>
               <tbody>
-                {promotions.map((p) => (
-                  <tr key={p.id}>
-                    <td className="font-medium">{p.nom}</td>
-                    <td className="num font-semibold text-vert">{reduction(p)}</td>
-                    <td className="text-muted-foreground">{portee(p)}</td>
-                    <td className="text-xs text-muted-foreground tabular-nums">
-                      {dateHeureFr(p.debut)}
-                      <span className="block">au {dateHeureFr(p.fin)}</span>
-                    </td>
-                    <td>{etat(p)}</td>
-                    <td>
-                      <div className="flex justify-end">{bascule(p)}</div>
-                    </td>
-                  </tr>
+                {liste.map((p, i) => (
+                  <Fragment key={p.id}>
+                    {aDeuxGroupes && i === iPremiereAJour && (
+                      <tr aria-hidden className="sep-groupe">
+                        <td colSpan={10}>À jour</td>
+                      </tr>
+                    )}
+                    <tr className={aArreter(p) ? "non-traitee" : undefined}>
+                      <td className="font-medium">{p.nom}</td>
+                      <td className="num font-semibold text-vert">{reduction(p)}</td>
+                      <td className="text-muted-foreground">{portee(p)}</td>
+                      <td className="text-xs text-muted-foreground tabular-nums">
+                        {dateHeureFr(p.debut)}
+                        <span className="block">au {dateHeureFr(p.fin)}</span>
+                      </td>
+                      <td>{etatPill(p)}</td>
+                      <td>
+                        <div className="flex justify-end">{bascule(p)}</div>
+                      </td>
+                    </tr>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

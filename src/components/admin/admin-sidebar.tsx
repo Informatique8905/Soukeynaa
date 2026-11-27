@@ -70,10 +70,12 @@ export function AdminSidebar({
   utilisateur,
   initiales,
   alertesPaiements,
+  commandesATraiter,
 }: {
   utilisateur: string;
   initiales: string;
   alertesPaiements: number;
+  commandesATraiter: number;
 }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
@@ -107,7 +109,11 @@ export function AdminSidebar({
             <SidebarMenu>
               {section.liens.map((item) => {
                 const compteur =
-                  item.href === "/admin/paiements" ? alertesPaiements : 0;
+                  item.href === "/admin/paiements"
+                    ? alertesPaiements
+                    : item.href === "/admin/commandes"
+                      ? commandesATraiter
+                      : 0;
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
@@ -121,7 +127,7 @@ export function AdminSidebar({
                         {compteur > 0 && (
                           <span
                             className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-white tabular-nums"
-                            aria-label={`${compteur} à vérifier`}
+                            aria-label={`${compteur} à traiter`}
                           >
                             {compteur > 99 ? "99+" : compteur}
                           </span>

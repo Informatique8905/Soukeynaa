@@ -18,11 +18,13 @@ export function AdminShell({
   utilisateur,
   initiales,
   alertesPaiements,
+  commandesATraiter,
   children,
 }: {
   utilisateur: string;
   initiales: string;
   alertesPaiements: number;
+  commandesATraiter: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -37,6 +39,7 @@ export function AdminShell({
         utilisateur={utilisateur}
         initiales={initiales}
         alertesPaiements={alertesPaiements}
+        commandesATraiter={commandesATraiter}
       />
       <SidebarInset>
         <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-white/90 px-4 backdrop-blur-md print:hidden sm:px-6 lg:px-8">
@@ -59,6 +62,19 @@ export function AdminShell({
             </Link>
           </nav>
           <div className="ml-auto flex items-center gap-2">
+            {commandesATraiter > 0 && (
+              <Link
+                href="/admin/commandes"
+                className="inline-flex h-8 items-center gap-2 rounded-lg border border-vert/25 bg-vert-clair px-3 text-xs font-semibold text-vert-fonce transition-colors hover:bg-vert-clair/70"
+              >
+                <span aria-hidden className="size-1.5 rounded-full bg-vert" />
+                <span className="sm:hidden">{commandesATraiter}</span>
+                <span className="hidden sm:inline">
+                  {commandesATraiter} commande
+                  {commandesATraiter > 1 ? "s" : ""} à traiter
+                </span>
+              </Link>
+            )}
             {alertesPaiements > 0 && (
               <Link
                 href="/admin/paiements"

@@ -13,9 +13,12 @@ export default async function AdminLayout({
   const session = await requireAdmin();
   const prisma = getPrisma();
 
-  const alertesPaiements = await prisma.payment.count({
-    where: { statut: "a_verifier" },
-  });
+  const [alertesPaiements, commandesATraiter] = await Promise.all([
+    prisma.payment.count({ where: { statut: "a_verifier" } }),
+    prisma.order.count({
+      where: { statut: { in: ["en_attente_paiement", "payee", "en_preparation"] } },
+    }),
+  ]);
 
   const utilisateur = session.user?.name ?? session.user?.email ?? "Admin";
   const initiales = utilisateur
@@ -30,6 +33,7 @@ export default async function AdminLayout({
       utilisateur={utilisateur}
       initiales={initiales || "A"}
       alertesPaiements={alertesPaiements}
+      commandesATraiter={commandesATraiter}
     >
       <NavProgress />
       <ActualisationAuto secondes={20} />
