@@ -5,6 +5,7 @@ import { getPrisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 import { logAudit } from "@/lib/audit";
 import { restituerStockCommande } from "@/lib/stock";
+import { signalerChangement } from "@/lib/events";
 import { envoyerBonCommande, envoyerDelaiLivraison } from "@/lib/email";
 import type { StatutCommande } from "@/generated/prisma/enums";
 import { noteInterneSchema } from "@/lib/validation";
@@ -63,6 +64,7 @@ export async function changerStatutCommande(
     if (nouveau === "annulee") await restituerStockCommande(tx, id);
     return commande;
   });
+  signalerChangement({ commandeId: id });
 
   await logAudit({
     action: "commande.statut",
@@ -101,6 +103,7 @@ export async function definirDelaiLivraison(
     where: { id },
     data: { delaiLivraison: valeur },
   });
+  signalerChangement({ commandeId: id });
   await logAudit({
     action: "commande.delai_livraison",
     entiteType: "Order",

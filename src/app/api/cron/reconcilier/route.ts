@@ -1,5 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { getPrisma } from "@/lib/db";
+import { signalerChangement } from "@/lib/events";
 import {
   journaliser,
   statutJekoReel,
@@ -86,6 +87,7 @@ export async function GET(req: Request) {
         "Réconciliation : pas de retour du prestataire dans le délai"
       );
       signales.push(p.commande.reference);
+      signalerChangement({ commandeId: p.commandeId });
     }
   }
 

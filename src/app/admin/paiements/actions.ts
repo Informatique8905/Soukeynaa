@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { getPrisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 import { logAudit } from "@/lib/audit";
+import { signalerChangement } from "@/lib/events";
 import { envoyerBonAdmin, envoyerBonCommande } from "@/lib/email";
 
 // Résolution manuelle d'un paiement `a_verifier` après contrôle sur le
@@ -61,6 +62,7 @@ export async function resoudrePaiement(
 
     return paiement;
   });
+  signalerChangement({ commandeId: paiement.commandeId });
 
   // Bon de commande au client quand la confirmation est manuelle (CDC 12.2)
   if (resolution === "confirme") {

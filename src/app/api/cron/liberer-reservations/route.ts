@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPrisma } from "@/lib/db";
+import { signalerChangement } from "@/lib/events";
 import { restituerStockCommande } from "@/lib/stock";
 
 // Tâche planifiée (CDC 5.8, 10.11) : commandes dont la réservation de stock
@@ -45,6 +46,7 @@ export async function GET(req: Request) {
       });
     });
     traitees.push(c.reference);
+    signalerChangement({ commandeId: c.id });
   }
   return NextResponse.json({ ok: true, liberees: traitees });
 }

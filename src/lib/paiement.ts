@@ -1,6 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { getPrisma } from "@/lib/db";
 import { libererStock, restituerStockCommande } from "@/lib/stock";
+import { signalerChangement, signalerChangementDiffere } from "@/lib/events";
 import { envoyerBonAdmin, envoyerBonCommande, alerterAdmin } from "@/lib/email";
 import type { Payment } from "@/generated/prisma/client";
 import { Prisma } from "@/generated/prisma/client";
@@ -114,6 +115,8 @@ export async function appliquerTransition(
     });
   }
   await journaliser(tx, paiement.id, "transition", `→ ${statutFinal}`);
+  // Différé : la transaction englobante n'est pas encore commitée
+  signalerChangementDiffere({ commandeId: paiement.commandeId });
   return true;
 }
 
@@ -430,6 +433,7 @@ export async function initierTentative(params: {
     throw e;
   }
   await journaliser(prisma, paiement.id, "initiation", "Tentative créée");
+  signalerChangement({ commandeId: commande.id });
 
   const reponse = await initierPaiementJeko({
     paiement,
@@ -618,5 +622,6 @@ export async function annulerCommandeClient(
     }
     throw e;
   }
+  signalerChangement({ commandeId });
   return { ok: true };
 }

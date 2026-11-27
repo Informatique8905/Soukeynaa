@@ -10,6 +10,7 @@ import { prixEffectif } from "@/lib/pricing";
 import { checkoutSchema } from "@/lib/validation";
 import { envoyerBonAdmin, envoyerBonCommande } from "@/lib/email";
 import { initierTentative } from "@/lib/paiement";
+import { signalerChangement } from "@/lib/events";
 import { autorise, ipClient } from "@/lib/ratelimit";
 import { signerIdsCommandes, verifierIdsCommandes, COOKIE_COMMANDES } from "@/lib/ownership";
 
@@ -207,6 +208,8 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
   }
 
   const reference = commandeCree.reference;
+  // Nouvelle commande → flux SSE : admin et client s'actualisent en <1 s
+  signalerChangement({ commandeId: commandeCree.id, clientUserId: userId });
 
   // Cookie panier invité : on le garde (panier recréé au prochain ajout)
   const store = await cookies();
