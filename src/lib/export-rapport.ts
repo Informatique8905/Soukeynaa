@@ -100,7 +100,7 @@ export async function construireXlsx(d: DonneesRapport): Promise<Buffer> {
   for (const c of d.commandes) {
     const r = wcmd.addRow({
       reference: c.reference,
-      date: c.createdAt.toISOString().slice(0, 10),
+      date: c.createdAt,
       client: c.clientNom,
       tel: c.clientTelephone,
       commune: c.communeNom,
@@ -113,6 +113,7 @@ export async function construireXlsx(d: DonneesRapport): Promise<Buffer> {
     });
     for (const key of ["sousTotal", "livraison", "total"])
       r.getCell(key).numFmt = NUMFMT_FCFA;
+    r.getCell("date").numFmt = "DD/MM/YYYY";
   }
   wcmd.autoFilter = {
     from: { row: 1, column: 1 },
@@ -240,18 +241,8 @@ const MARGE = 46;
 const LARGEUR = 595.28 - 2 * MARGE; // A4
 const FCFA_PDF = (v: number) => `${v.toLocaleString("fr-FR")} FCFA`;
 
-function piedDePage(doc: PDFKit.PDFDocument, titre: string) {
-  const bas = 812;
-  doc
-    .fontSize(7.5)
-    .fillColor("#999999")
-    .text(`SOUKEYNA · ${titre} · généré le ${dateHeureFr(new Date())}`, MARGE, bas, {
-      width: LARGEUR,
-      align: "center",
-    });
-}
-
-function entetePdf(doc: PDFKit.PDFDocument, d: DonneesRapport) {
+// En-tête de page : bandeau bordeaux + titre + période
+function entetePdf(doc: PDFKit.PDFDocument, d: DonneesRapport, suite = false) {
   doc.rect(0, 0, 595.28, 86).fill("#3f0d1e");
   doc
     .fillColor("#ffffff")
@@ -266,7 +257,7 @@ function entetePdf(doc: PDFKit.PDFDocument, d: DonneesRapport) {
     .fontSize(9.5)
     .fillColor("#ffffff")
     .text(
-      `${dateFr(d.periode.debut)} → ${dateFr(d.periode.fin)}`,
+      `${dateFr(d.periode.debut)} → ${dateFr(d.periode.fin)}${suite ? " (suite)" : ""}`,
       MARGE,
       30,
       { width: LARGEUR, align: "right" }
@@ -274,28 +265,33 @@ function entetePdf(doc: PDFKit.PDFDocument, d: DonneesRapport) {
   doc.y = 108;
 }
 
-// Cadre-titre de section
+// Titre de section avec trait bordeaux
 function sectionTitre(doc: PDFKit.PDFDocument, texte: string, y: number): number {
   doc
     .fontSize(12)
     .font("Helvetica-Bold")
     .fillColor("#3f0d1e")
     .text(texte, MARGE, y);
-  return y + 18;
+  doc
+    .moveTo(MARGE, y + 14)
+    .lineTo(MARGE + 26, y + 14)
+    .lineWidth(1.5)
+    .strokeColor("#c9a227")
+    .stroke();
+  return y + 22;
 }
 
-// Tableau simple : en-tête fond clair, lignes alternées, totaux en gras
-function tableau(
-  doc: PDFKit.PDFDocument,
-  cols: { label: string; width: number; num?: boolean }[],
-  lignes: (string | number)[][],
-  y: number
-): number {
-  const hLigne = 18;
-  // en-tête
-  doc.rect(MARGE, y, LARGEUR, hLigne).fill("#f6f4ef");
+interface ColPdf {
+  label: string;
+  width: number;
+  num?: boolean;
+}
+
+function enteteTableau(doc: PDFKit.PDFDocument, cols: ColPdf[], y: number) {
+  const h = 18;
+  doc.rect(MARGE, y, LARGEUR, h).fill("#3f0d1e");
   let x = MARGE;
-  doc.font("Helvetica-Bold").fontSize(8.5).fillColor("#3f0d1e");
+  doc.font("Helvetica-Bold").fontSize(8.5).fillColor("#ffffff");
   for (const c of cols) {
     doc.text(c.label, x + 5, y + 5, {
       width: c.width - 10,
@@ -303,42 +299,77 @@ function tableau(
     });
     x += c.width;
   }
-  y += hLigne;
+}
+
+// Tableau paginé : répète l'en-tête à chaque saut de page
+function tableau(
+  doc: PDFKit.PDFDocument,
+  d: DonneesRapport,
+  cols: ColPdf[],
+  lignes: (string | number)[][],
+  y: number
+): number {
+  const h = 17;
+  const nouvPage = () => {
+    doc.addPage();
+    entetePdf(doc, d, true);
+    y = 102;
+    enteteTableau(doc, cols, y);
+    y += h;
+  };
+  enteteTableau(doc, cols, y);
+  y += h;
   doc.font("Helvetica").fontSize(9);
   lignes.forEach((l, i) => {
-    if (y + hLigne > 780) {
-      piedDePage(doc, "");
-      doc.addPage();
-      y = 60;
-    }
-    if (i % 2 === 1) doc.rect(MARGE, y, LARGEUR, hLigne).fill("#fafaf8");
+    if (y + h > 790) nouvPage();
+    if (i % 2 === 0) doc.rect(MARGE, y, LARGEUR, h).fill("#faf9f6");
     let x = MARGE;
     l.forEach((v, j) => {
       const c = cols[j];
-      doc
-        .fillColor("#333333")
-        .text(
-          typeof v === "number" ? (c.num ? FCFA_PDF(v) : String(v)) : v,
-          x + 5,
-          y + 5,
-          { width: c.width - 10, align: c.num ? "right" : "left" }
-        );
+      doc.fillColor("#333333").text(
+        typeof v === "number" ? (c.num ? FCFA_PDF(v) : String(v)) : v,
+        x + 5,
+        y + 4.5,
+        { width: c.width - 10, align: c.num ? "right" : "left", lineBreak: false }
+      );
       x += c.width;
     });
-    y += hLigne;
+    y += h;
   });
   doc
     .moveTo(MARGE, y)
     .lineTo(MARGE + LARGEUR, y)
-    .strokeColor("#dddddd")
+    .lineWidth(0.5)
+    .strokeColor("#cccccc")
     .stroke();
-  return y + 8;
+  return y + 14;
+}
+
+function piedDePage(doc: PDFKit.PDFDocument, page: number, total: number) {
+  const bas = 812;
+  doc
+    .moveTo(MARGE, bas - 8)
+    .lineTo(MARGE + LARGEUR, bas - 8)
+    .lineWidth(0.5)
+    .strokeColor("#e5e5e5")
+    .stroke();
+  doc
+    .fontSize(7.5)
+    .font("Helvetica")
+    .fillColor("#999999")
+    .text(
+      `SOUKEYNA · Rapport d'activité · généré le ${dateHeureFr(new Date())} — page ${page}/${total}`,
+      MARGE,
+      bas,
+      { width: LARGEUR, align: "center" }
+    );
 }
 
 export async function construirePdf(d: DonneesRapport): Promise<Buffer> {
   const doc = new PDFDocument({
     size: "A4",
     margins: { top: 40, bottom: 40, left: MARGE, right: MARGE },
+    bufferPages: true,
     info: {
       Title: `Rapport SOUKEYNA ${dateFr(d.periode.debut)} – ${dateFr(d.periode.fin)}`,
       Author: "SOUKEYNA",
@@ -380,6 +411,7 @@ export async function construirePdf(d: DonneesRapport): Promise<Buffer> {
   y = sectionTitre(doc, "Détail par jour", y);
   y = tableau(
     doc,
+    d,
     [
       { label: "Jour", width: LARGEUR * 0.4 },
       { label: "Commandes", width: LARGEUR * 0.3, num: true },
@@ -389,10 +421,10 @@ export async function construirePdf(d: DonneesRapport): Promise<Buffer> {
     y
   );
 
-  if (y > 660) { doc.addPage(); piedDePage(doc, ""); y = 60; }
   y = sectionTitre(doc, "Produits les plus vendus", y);
   y = tableau(
     doc,
+    d,
     [
       { label: "Produit", width: LARGEUR * 0.55 },
       { label: "Qté", width: LARGEUR * 0.15, num: true },
@@ -402,10 +434,10 @@ export async function construirePdf(d: DonneesRapport): Promise<Buffer> {
     y
   );
 
-  if (y > 660) { doc.addPage(); piedDePage(doc, ""); y = 60; }
   y = sectionTitre(doc, "Livraisons par commune", y);
   y = tableau(
     doc,
+    d,
     [
       { label: "Commune", width: LARGEUR * 0.4 },
       { label: "Commandes", width: LARGEUR * 0.3, num: true },
@@ -415,10 +447,10 @@ export async function construirePdf(d: DonneesRapport): Promise<Buffer> {
     y
   );
 
-  if (y > 660) { doc.addPage(); piedDePage(doc, ""); y = 60; }
   y = sectionTitre(doc, "Paiements par moyen", y);
   y = tableau(
     doc,
+    d,
     [
       { label: "Moyen", width: LARGEUR * 0.4 },
       { label: "Nombre", width: LARGEUR * 0.3, num: true },
@@ -432,48 +464,49 @@ export async function construirePdf(d: DonneesRapport): Promise<Buffer> {
     y
   );
 
-  if (y > 660) { doc.addPage(); piedDePage(doc, ""); y = 60; }
   y = sectionTitre(doc, `Stock (au ${dateFr(new Date())})`, y);
-  const lignesStock: (string | number)[][] = [
-    ["Articles suivis", d.stock.articles],
-    ["Valeur du stock", d.stock.valeurStock],
-    ["Ruptures", d.stock.ruptures.length],
-    [`Stock faible (≤ ${d.seuilStock})`, d.stock.faibles.length],
-  ];
   y = tableau(
     doc,
+    d,
     [
       { label: "Indicateur", width: LARGEUR * 0.6 },
       { label: "Valeur", width: LARGEUR * 0.4, num: true },
     ],
-    lignesStock.map(([a, b]) => [
-      a as string,
-      typeof b === "number" && a === "Valeur du stock" ? b : String(b),
-    ]),
+    [
+      ["Articles suivis", d.stock.articles],
+      ["Valeur du stock", d.stock.valeurStock],
+      ["Ruptures", d.stock.ruptures.length],
+      [`Stock faible (seuil ${d.seuilStock})`, d.stock.faibles.length],
+    ],
     y
   );
   if (d.stock.ruptures.length > 0) {
+    if (y > 760) { doc.addPage(); entetePdf(doc, d, true); y = 102; }
     doc
       .fontSize(8)
       .fillColor("#b45309")
       .text(
         `Ruptures : ${d.stock.ruptures
-          .slice(0, 12)
           .map((r) => r.nom + (r.variante !== "—" ? ` (${r.variante})` : ""))
-          .join(", ")}${d.stock.ruptures.length > 12 ? "…" : ""}`,
+          .join(", ")}`,
         MARGE,
-        y + 4,
+        y,
         { width: LARGEUR }
       );
-    y = doc.y + 8;
+    y = doc.y + 10;
   }
 
   // Commandes détaillées en dernière section (longueur variable)
   doc.addPage();
-  y = 60;
-  y = sectionTitre(doc, `Commandes payées de la période (${d.commandes.length})`, y);
+  entetePdf(doc, d, true);
+  y = sectionTitre(
+    doc,
+    `Commandes payées de la période (${d.commandes.length})`,
+    108
+  );
   tableau(
     doc,
+    d,
     [
       { label: "Réf.", width: LARGEUR * 0.17 },
       { label: "Date", width: LARGEUR * 0.11 },
@@ -493,7 +526,12 @@ export async function construirePdf(d: DonneesRapport): Promise<Buffer> {
     y
   );
 
-  piedDePage(doc, "rapport d'activité");
+  // Numérotation de toutes les pages (bufferPages)
+  const total = doc.bufferedPageRange().count;
+  for (let i = 0; i < total; i++) {
+    doc.switchToPage(i);
+    piedDePage(doc, i + 1, total);
+  }
   doc.end();
   return pret;
 }
