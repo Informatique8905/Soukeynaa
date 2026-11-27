@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { verifierIdsCommandes, COOKIE_COMMANDES } from "@/lib/ownership";
 import { reconcilierTentative } from "@/lib/paiement";
 import { BoutonPayer, RafraichirAuto } from "@/components/boutique/BoutonPayer";
+import { BoutonAnnuler } from "@/components/boutique/BoutonAnnuler";
 import { BonCommande } from "@/components/boutique/BonCommande";
 import { TrajetLivraison } from "@/components/motion/TrajetLivraison";
 import { SuccesAnime } from "@/components/motion/SuccesAnime";
@@ -277,6 +278,9 @@ export default async function CommandePage({
                 Quitté sans payer ? Reprenez la session — la page se met à
                 jour automatiquement.
               </p>
+              <div className="mt-2 border-t border-black/5 pt-1">
+                <BoutonAnnuler commandeId={commande.id} cible="tentative" />
+              </div>
             </section>
           )}
 
@@ -287,6 +291,12 @@ export default async function CommandePage({
                 automatiquement.
               </p>
             </section>
+          )}
+
+          {proprietaire && enAttente && !tentativeAVerifier && (
+            <div className="print:hidden">
+              <BoutonAnnuler commandeId={commande.id} cible="commande" />
+            </div>
           )}
 
           <Link

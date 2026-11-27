@@ -1,6 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { getPrisma } from "@/lib/db";
-import { libererStock } from "@/lib/stock";
+import { libererStock, restituerStockCommande } from "@/lib/stock";
 import { envoyerBonCommande, alerterAdmin } from "@/lib/email";
 import type { Payment } from "@/generated/prisma/client";
 import { Prisma } from "@/generated/prisma/client";
@@ -8,14 +8,16 @@ import type { StatutPaiement, MoyenPaiement } from "@/generated/prisma/enums";
 
 type Db = Prisma.TransactionClient | ReturnType<typeof getPrisma>;
 
-// Transitions autorisées (CDC 10.4) — hors de cette liste = rejet + journal
+// Transitions autorisées (CDC 10.4) — hors de cette liste = rejet + journal.
+// Les statuts soldés n'acceptent que « a_verifier » : un succès reçu après
+// échec/annulation/expiration est une anomalie à revue admin (CDC 10.12).
 const TRANSITIONS: Record<string, StatutPaiement[]> = {
   en_attente: ["confirme", "echoue", "annule", "expire", "a_verifier"],
   a_verifier: ["confirme", "echoue", "annule"],
   confirme: [], // terminal : jamais réécrit (anti-double-webhook)
-  echoue: [],
-  annule: [],
-  expire: [],
+  echoue: ["a_verifier"],
+  annule: ["a_verifier"],
+  expire: ["a_verifier"],
 };
 
 export function transitionAutorisee(
@@ -222,7 +224,8 @@ export async function statutJekoReel(
 // si l'API est injoignable ou si la tentative n'a pas d'id Jèko.
 export async function reconcilierTentative(
   paiement: Payment,
-  commandeStatut: string
+  commandeStatut: string,
+  forcer = false
 ): Promise<StatutPaiement> {
   if (paiement.statut !== "en_attente" || !paiement.transactionJeko) {
     return paiement.statut;
@@ -230,12 +233,17 @@ export async function reconcilierTentative(
   const prisma = getPrisma();
   // Throttle : la page de suivi se rafraîchit toutes les 5 s — on borne
   // l'interrogation de l'API Jèko à une fois par 30 s par tentative.
+  // `forcer` le contourne pour une action explicite du client (annulation).
   const derniereVerif = await prisma.paymentEvent.findFirst({
     where: { paymentId: paiement.id, type: "reconciliation" },
     orderBy: { at: "desc" },
     select: { at: true },
   });
-  if (derniereVerif && derniereVerif.at > new Date(Date.now() - 30_000)) {
+  if (
+    !forcer &&
+    derniereVerif &&
+    derniereVerif.at > new Date(Date.now() - 30_000)
+  ) {
     return paiement.statut;
   }
   const reel = await statutJekoReel(paiement.transactionJeko);
@@ -462,4 +470,152 @@ export async function initierTentative(params: {
     url: reponse.url,
   });
   return { ok: true, url: reponse.url };
+}
+
+// ===== Annulation par le client (suivi de commande) =====
+// Deux niveaux : abandonner la tentative en cours (la commande reste
+// payable, un autre moyen peut être choisi) ou annuler toute la commande
+// tant qu'elle n'est pas payée (statut en_attente_paiement uniquement,
+// stock restitué — une commande payée/livrée ne revient jamais en arrière).
+
+export class ConflitCommande extends Error {}
+
+export type ResultatAnnulation =
+  | { ok: true }
+  | { ok: false; erreur: string; code: number };
+
+const VERIFIER = "Un paiement est en cours de vérification — contactez la boutique";
+
+// La tentative `en_attente` peut être déjà soldée chez Jèko (pas de webhook
+// d'échec, CDC 10.11) : réconciliation FORCÉE avant toute annulation, sinon
+// on risque d'annuler un paiement en fait réussi.
+async function verifierTentativeAvantAnnulation(
+  tentative: Payment,
+  commandeStatut: string
+): Promise<ResultatAnnulation | null> {
+  const resolu = await reconcilierTentative(tentative, commandeStatut, true);
+  if (resolu === "confirme") {
+    return { ok: false, erreur: "Cette commande est déjà payée", code: 409 };
+  }
+  if (resolu === "a_verifier") {
+    return { ok: false, erreur: VERIFIER, code: 409 };
+  }
+  return null;
+}
+
+/** Annule la tentative de paiement en cours — la commande reste payable. */
+export async function annulerTentativeClient(
+  commandeId: number
+): Promise<ResultatAnnulation> {
+  const prisma = getPrisma();
+  const commande = await prisma.order.findUnique({
+    where: { id: commandeId },
+    include: {
+      paiements: { where: { statut: { in: ["en_attente", "a_verifier"] } } },
+    },
+  });
+  if (!commande) {
+    return { ok: false, erreur: "Commande introuvable", code: 404 };
+  }
+  if (commande.statut !== "en_attente_paiement") {
+    return { ok: false, erreur: "Aucun paiement en cours à annuler", code: 409 };
+  }
+  if (commande.paiements.some((p) => p.statut === "a_verifier")) {
+    return { ok: false, erreur: VERIFIER, code: 409 };
+  }
+  const tentative = commande.paiements.find((p) => p.statut === "en_attente");
+  if (!tentative) {
+    return { ok: false, erreur: "Aucun paiement en cours à annuler", code: 409 };
+  }
+  const refuse = await verifierTentativeAvantAnnulation(
+    tentative,
+    commande.statut
+  );
+  if (refuse) return refuse;
+
+  // Transition conditionnelle (en_attente → annule) : si un webhook a
+  // confirmé entre-temps, count = 0 et on n'écrase rien (CDC 10.10).
+  const appliquee = await prisma.$transaction(async (tx) => {
+    await journaliser(tx, tentative.id, "annulation", "Abandonnée par le client");
+    return appliquerTransition(tx, tentative, "annule");
+  });
+  if (!appliquee) {
+    return {
+      ok: false,
+      erreur: "Le paiement a changé d'état entre-temps — rechargez la page",
+      code: 409,
+    };
+  }
+  return { ok: true };
+}
+
+/** Annule toute la commande (impayée) : tentative soldée + stock restitué. */
+export async function annulerCommandeClient(
+  commandeId: number
+): Promise<ResultatAnnulation> {
+  const prisma = getPrisma();
+  const commande = await prisma.order.findUnique({
+    where: { id: commandeId },
+    include: {
+      paiements: { where: { statut: { in: ["en_attente", "a_verifier"] } } },
+    },
+  });
+  if (!commande) {
+    return { ok: false, erreur: "Commande introuvable", code: 404 };
+  }
+  if (commande.statut !== "en_attente_paiement") {
+    return {
+      ok: false,
+      erreur: "Cette commande ne peut plus être annulée — contactez la boutique",
+      code: 410,
+    };
+  }
+  if (commande.paiements.some((p) => p.statut === "a_verifier")) {
+    return { ok: false, erreur: VERIFIER, code: 409 };
+  }
+  const tentative = commande.paiements.find((p) => p.statut === "en_attente");
+  if (tentative) {
+    const refuse = await verifierTentativeAvantAnnulation(
+      tentative,
+      commande.statut
+    );
+    if (refuse) return refuse;
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Transition conditionnelle : si la commande a été payée entre-temps,
+      // count = 0 → rollback, rien n'est annulé (CDC 10.10).
+      const r = await tx.order.updateMany({
+        where: { id: commande.id, statut: "en_attente_paiement" },
+        data: { statut: "annulee", statutPaiement: "annule" },
+      });
+      if (r.count === 0) throw new ConflitCommande();
+      // Solde la tentative ouverte — si Jèko la confirme plus tard, le
+      // webhook la passera « a_verifier » (CDC 10.12).
+      const soldes = await tx.payment.updateMany({
+        where: { commandeId: commande.id, statut: "en_attente" },
+        data: { statut: "annule" },
+      });
+      if (tentative && soldes.count > 0) {
+        await journaliser(
+          tx,
+          tentative.id,
+          "annulation",
+          "Commande annulée par le client"
+        );
+      }
+      await restituerStockCommande(tx, commande.id);
+    });
+  } catch (e) {
+    if (e instanceof ConflitCommande) {
+      return {
+        ok: false,
+        erreur: "La commande a changé d'état entre-temps — rechargez la page",
+        code: 409,
+      };
+    }
+    throw e;
+  }
+  return { ok: true };
 }

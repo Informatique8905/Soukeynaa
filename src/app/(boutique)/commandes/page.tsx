@@ -8,6 +8,7 @@ import { cloud } from "@/lib/image";
 import { ORDER_STATUS_LABELS, ORDER_BADGE_VARIANT } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { RechercheCommande } from "@/components/boutique/RechercheCommande";
+import { BoutonAnnuler } from "@/components/boutique/BoutonAnnuler";
 import { verifierIdsCommandes, COOKIE_COMMANDES } from "@/lib/ownership";
 
 export const metadata = { title: "Mes commandes" };
@@ -33,6 +34,12 @@ export default async function CommandesPage() {
             total: true,
             statut: true,
             createdAt: true,
+            // Tentatives actives : « a_verifier » bloque l'annulation
+            // (argent possiblement reçu — revue admin, CDC 10.12)
+            paiements: {
+              where: { statut: { in: ["en_attente", "a_verifier"] } },
+              select: { statut: true },
+            },
             lignes: {
               take: 3,
               select: {
@@ -81,12 +88,22 @@ export default async function CommandesPage() {
             </p>
           )}
           <ul className="mt-5 space-y-3">
-            {commandes.map((c) => (
-              <li key={c.id} data-reveal>
+            {commandes.map((c) => {
+              // Annulable par le client : commande impayée en ligne, sans
+              // paiement en revue admin (CDC 10.12).
+              const annulable =
+                c.statut === "en_attente_paiement" &&
+                !c.paiements.some((p) => p.statut === "a_verifier");
+              return (
+              <li
+                key={c.id}
+                data-reveal
+                className="rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
+              >
                 <Link
                   href={`/commande/${c.reference}`}
                   transitionTypes={["nav-forward"]}
-                  className="lift press group flex items-center gap-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5"
+                  className="lift press group flex items-center gap-4 p-4"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
@@ -143,8 +160,14 @@ export default async function CommandesPage() {
                   </div>
                   <span className="shrink-0 text-gris-fonce transition-transform group-hover:translate-x-1 group-hover:text-vert">→</span>
                 </Link>
+                {annulable && (
+                  <div className="border-t border-black/5 px-4 py-1">
+                    <BoutonAnnuler commandeId={c.id} cible="commande" />
+                  </div>
+                )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         </>
       ) : session?.user ? (

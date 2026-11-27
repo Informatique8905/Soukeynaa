@@ -88,8 +88,39 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  // 4. Idempotence (CDC 10.10) : statut terminal → ignoré silencieusement
+  // 4. Idempotence (CDC 10.10) : statut terminal → ignoré silencieusement.
+  // Exception CDC 10.12 : un SUCCÈS reçu pour une tentative déjà soldée
+  // (annulée par le client, expirée ou échouée) signifie de l'argent
+  // possiblement encaissé — la tentative passe « a_verifier », l'admin
+  // est alerté et tranche (remboursement ou régularisation).
   if (!transitionAutorisee(paiement.statut, statutCible)) {
+    if (
+      statutCible === "confirme" &&
+      ["echoue", "annule", "expire"].includes(paiement.statut)
+    ) {
+      const appliquee = await prisma.$transaction(async (tx) => {
+        await journaliser(tx, paiement.id, "webhook_recu", "", event);
+        await journaliser(
+          tx,
+          paiement.id,
+          "anomalie",
+          `Succès reçu alors que la tentative est ${paiement.statut} (CDC 10.12)`
+        );
+        return appliquerTransition(tx, paiement, "a_verifier", {
+          transactionJeko,
+          moyen,
+        });
+      });
+      if (appliquee) {
+        alerterAdmin(
+          "alerte_admin_anomalie",
+          `Paiement à vérifier ${paiement.referenceCommande}`,
+          `<p>Paiement confirmé par l'agrégateur alors que la tentative de la commande <strong>${paiement.referenceCommande}</strong> était ${paiement.statut}. Revue admin requise (CDC 10.12).</p>`,
+          paiement.commandeId
+        ).catch(() => {});
+      }
+      return NextResponse.json({ ok: true });
+    }
     await journaliser(
       prisma,
       paiement.id,
