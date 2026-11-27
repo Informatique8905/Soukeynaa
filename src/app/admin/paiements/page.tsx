@@ -45,7 +45,7 @@ export default async function PagePaiements() {
     <div className="flex flex-col gap-6">
       <EnTetePage
         titre="Paiements"
-        description={`${paiements.length} paiement${paiements.length > 1 ? "s" : ""} affiché${paiements.length > 1 ? "s" : ""} (100 derniers)`}
+        description="Suivi des tentatives de paiement en ligne"
       />
 
       {aVerifier.length > 0 && (
@@ -58,21 +58,32 @@ export default async function PagePaiements() {
           <ul className="divide-y divide-amber-200/60">
             {aVerifier.map((p) => (
               <li key={p.id} className="bg-white px-5 py-4">
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <Link href={`/admin/commandes/${p.commandeId}`} className={lien}>
-                    {p.referenceCommande}
-                  </Link>
-                  <span className="text-sm">{p.commande.clientNom}</span>
-                  <span className="text-sm tabular-nums">
-                    <strong>{fcfa(p.montant)}</strong>
-                    <span className="text-muted-foreground">
-                      {" "}(attendu : {fcfa(p.commande.total)})
-                    </span>
-                  </span>
+                <div className="flex items-center gap-3">
+                  <AvatarClient nom={p.commande.clientNom} graine={p.id} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">
+                      {p.commande.clientNom}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      <Link
+                        href={`/admin/commandes/${p.commandeId}`}
+                        className={lien}
+                      >
+                        {p.referenceCommande}
+                      </Link>{" "}
+                      · txn : {p.transactionJeko ?? "—"} ·{" "}
+                      {dateHeureFr(p.createdAt)}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="font-semibold tabular-nums">
+                      {fcfa(p.montant)}
+                    </p>
+                    <p className="text-xs text-muted-foreground tabular-nums">
+                      attendu : {fcfa(p.commande.total)}
+                    </p>
+                  </div>
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Transaction : {p.transactionJeko ?? "—"} · {dateHeureFr(p.createdAt)}
-                </p>
                 <form className="mt-3 flex flex-wrap items-center gap-2">
                   <input
                     name="motif"
