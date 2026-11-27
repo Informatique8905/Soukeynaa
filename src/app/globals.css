@@ -688,6 +688,22 @@ html[data-header-cache] .pilules-sticky {
 .admin-table tbody tr.non-traitee:hover {
   background: rgb(227 240 233 / 0.9);
 }
+/* Accent latéral vert — repère visuel des lignes à traiter */
+.admin-table tbody tr.non-traitee td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-vert);
+}
+
+/* Séparateur de groupe : ligne fine « déjà traitées » */
+.admin-table tbody tr.sep-groupe td {
+  border-top: none;
+  padding: 0.4rem 1rem;
+  background: #fafbf9;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
 
 .admin-table .num {
   text-align: right;

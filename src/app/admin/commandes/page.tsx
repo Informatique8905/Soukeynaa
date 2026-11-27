@@ -48,6 +48,10 @@ export default async function PageCommandes({
   commandes.sort(
     (a, b) => Number(aTraiter(b.statut)) - Number(aTraiter(a.statut)),
   );
+  // Frontière entre les deux groupes — sert à insérer un séparateur.
+  const iPremiereTraitee = commandes.findIndex((c) => !aTraiter(c.statut));
+  const aDeuxGroupes =
+    iPremiereTraitee > 0 && commandes.length > iPremiereTraitee;
 
   const vide = (
     <Vide titre="Aucune commande">
@@ -89,8 +93,14 @@ export default async function PageCommandes({
 
       {/* Mobile : cartes */}
       <div className="space-y-3 md:hidden">
-        {commandes.map((c) => (
-          <Link key={c.id} href={`/admin/commandes/${c.id}`} className="block">
+        {commandes.map((c, i) => (
+          <div key={c.id}>
+            {aDeuxGroupes && i === iPremiereTraitee && (
+              <p className="pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Déjà traitées
+              </p>
+            )}
+          <Link href={`/admin/commandes/${c.id}`} className="block">
             <CarteListe
               className={`transition-colors active:bg-muted/40 ${aTraiter(c.statut) ? "border-vert/30 bg-vert-clair/50" : ""}`}
             >
@@ -118,6 +128,7 @@ export default async function PageCommandes({
               </div>
             </CarteListe>
           </Link>
+          </div>
         ))}
         {commandes.length === 0 && <CarteListe className="p-0">{vide}</CarteListe>}
       </div>
@@ -156,9 +167,10 @@ export default async function PageCommandes({
                 </tr>
               </thead>
               <tbody>
-                {commandes.map((c) => (
+                {commandes.map((c, i) => (
                   <LigneCliquable
                     key={c.id}
+                    apresSep={aDeuxGroupes && i === iPremiereTraitee}
                     href={`/admin/commandes/${c.id}`}
                     className={`group focus-visible:outline-none ${aTraiter(c.statut) ? "non-traitee focus-visible:bg-vert-clair" : "focus-visible:bg-muted/50"}`}
                   >
