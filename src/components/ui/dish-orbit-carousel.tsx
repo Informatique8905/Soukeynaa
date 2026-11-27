@@ -157,6 +157,30 @@ const SWING = 50 // degrees the plate travels round the orbit's pivot
 const ITEM = 118 // thumbnail pitch in canvas px  
 const VISIBLE = 4  
   
+// Couleurs dérivées de l'accent du produit : la pastille de prix épouse
+// le montant et prend la teinte de l'article (pastel = toujours lisible).
+function canaux(couleur: string): [number, number, number] | null {
+  const hex = couleur.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    let h = hex[1];
+    if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+    const n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  const m = couleur.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+function teinter(couleur: string, alpha: number): string {
+  const c = canaux(couleur);
+  return c ? `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${alpha})` : couleur;
+}
+function assombrir(couleur: string, f = 0.62): string {
+  const c = canaux(couleur);
+  return c
+    ? `rgb(${Math.round(c[0] * f)}, ${Math.round(c[1] * f)}, ${Math.round(c[2] * f)})`
+    : couleur;
+}
+
 const FONT = "dsh-face"  
   
 const CSS =  
@@ -214,11 +238,10 @@ const CSS =
   ".dsh-root:not([data-ready]) .dsh-orbit[aria-hidden=true]," +
   ".dsh-root:not([data-ready]) .dsh-hd[aria-hidden=true]," +
   ".dsh-root:not([data-ready]) .dsh-body[aria-hidden=true]{visibility:hidden}" +  
-  ".dsh-rate{position:relative;height:56px;margin:0 0 10px 6px}" +  
-  ".dsh-badge{position:absolute;left:0;top:0;width:46px;height:62px;border-radius:10px}" +  
-  ".dsh-badge svg{position:absolute;left:17px;bottom:9px;width:12px;height:12px;fill:var(--color-foreground);opacity:.8}" +  
-  ".dsh-num{position:absolute;left:10px;top:4px;font-size:30px;font-weight:700;letter-spacing:-.04em;line-height:1;white-space:nowrap}" +
-  ".dsh-num small{font-size:12px;font-weight:600;letter-spacing:0;margin-left:3px}" +  
+  ".dsh-rate{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;min-height:44px;margin:0 0 12px 6px}" +  
+  ".dsh-badge{display:inline-flex;align-items:baseline;gap:4px;padding:8px 14px;border-radius:14px}" +  
+  ".dsh-num{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1;white-space:nowrap}" +
+  ".dsh-num small{font-size:11px;font-weight:600;letter-spacing:0;margin-left:3px;opacity:.75}" +  
   ".dsh-chef{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:0}" +  
   ".dsh-kit{font-size:10.5px;color:var(--color-muted-foreground);margin:3px 0 12px}" +  
   ".dsh-desc{font-size:12.5px;line-height:1.38;margin:0;min-height:52px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}" +  
@@ -248,7 +271,7 @@ const CSS =
   ".dsh-sw{width:22px;height:22px;border-radius:99px;box-shadow:0 0 0 1px color-mix(in oklab,var(--color-foreground) 30%,transparent);transition:transform .2s,box-shadow .2s}" +  
   ".dsh-sw[aria-current]{box-shadow:0 0 0 2px var(--color-foreground);transform:scale(1.08)}" +  
   ".dsh-barre{font-size:11px;text-decoration:line-through;opacity:.55;margin:0 0 10px}" +
-  ".dsh-save{position:absolute;left:12px;top:38px;display:flex;align-items:baseline;gap:7px;font-size:11px}" +
+  ".dsh-save{display:flex;align-items:baseline;gap:7px;font-size:11px}" +
   ".dsh-save s{opacity:.5}" +
   ".dsh-save b{color:#1e7b4f;font-weight:700;white-space:nowrap}" +
   ".dsh-chips{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 10px}" +
@@ -699,10 +722,15 @@ export function DishOrbitCarousel({
             {dishes.map((d, i) => (  
               <div key={i} ref={(el) => { bodies.current[i] = el }} className="dsh-body" aria-hidden={i !== index}>  
                 <div className="dsh-rate">  
-                  <div className="dsh-badge" style={{ background: d.accent }}>  
-  
-                  </div>  
-                  <span className="dsh-num" aria-label={"Prix " + d.prix + " FCFA"}>{d.prix.toLocaleString("fr-FR")}<small>FCFA</small></span>
+                  <span
+                    className="dsh-badge"
+                    style={{
+                      background: teinter(d.accent, 0.16),
+                      boxShadow: "inset 0 0 0 1.5px " + teinter(d.accent, 0.45),
+                    }}
+                  >
+                    <span className="dsh-num" style={{ color: assombrir(d.accent) }} aria-label={"Prix " + d.prix + " FCFA"}>{d.prix.toLocaleString("fr-FR")}<small>FCFA</small></span>
+                  </span>
                   {d.prixBarre != null && d.prixBarre > d.prix && (
                     <span className="dsh-save">
                       <s>{d.prixBarre.toLocaleString("fr-FR")} F</s>
