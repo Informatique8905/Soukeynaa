@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { getPrisma } from "@/lib/db";
@@ -6,7 +6,7 @@ import {
   annulerTentativeClient,
   annulerCommandeClient,
 } from "@/lib/paiement";
-import { alerterAdmin, notifierStatutCommande } from "@/lib/email";
+import { alerterAdmin } from "@/lib/email";
 import { autorise, ipClient } from "@/lib/ratelimit";
 import { verifierIdsCommandes, COOKIE_COMMANDES } from "@/lib/ownership";
 
@@ -69,15 +69,16 @@ export async function POST(req: Request) {
   }
 
   if (cible === "commande") {
-    // Email de confirmation au client (dédupliqué) + alerte admin —
-    // la réservation de stock vient d'être libérée.
-    notifierStatutCommande(commandeId).catch(() => {});
-    alerterAdmin(
-      "alerte_admin_commande",
-      `Commande annulée par le client ${commande.reference}`,
-      `<p>La commande <strong>${commande.reference}</strong> a été annulée par le client avant paiement. Le stock réservé a été restitué.</p>`,
-      commandeId
-    ).catch(() => {});
+    // Alerte admin — la réservation de stock vient d'être libérée.
+    // Pas d'email client : seul le délai de livraison notifie.
+    after(async () => {
+      await alerterAdmin(
+        "alerte_admin_commande",
+        `Commande annulée par le client ${commande.reference}`,
+        `<p>La commande <strong>${commande.reference}</strong> a été annulée par le client avant paiement. Le stock réservé a été restitué.</p>`,
+        commandeId
+      ).catch(() => {});
+    });
   }
 
   return NextResponse.json({ ok: true });

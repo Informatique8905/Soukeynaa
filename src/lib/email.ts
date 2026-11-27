@@ -331,13 +331,17 @@ function lienCommande(c: { id: number; reference: string }): string {
   )}&jeton=${jetonCommande(c.id)}`;
 }
 
-export async function envoyerBonCommande(commandeId: number) {
+export async function envoyerBonCommande(
+  commandeId: number,
+  opts?: { manuel?: boolean }
+) {
   const prisma = getPrisma();
   const c = await prisma.order.findUnique({
     where: { id: commandeId },
     include: { lignes: true },
   });
-  if (!c || c.bonEnvoyeLe || !c.clientEmail) return;
+  if (!c || !c.clientEmail) return;
+  if (c.bonEnvoyeLe && !opts?.manuel) return;
 
   const enAttentePaiement =
     c.modePaiement !== "livraison" && c.statutPaiement !== "confirme";
@@ -363,7 +367,9 @@ export async function envoyerBonCommande(commandeId: number) {
   );
 
   const envoye = await notifier(
-    `bon_commande:${c.reference}`,
+    opts?.manuel
+      ? `bonrenvoi:${c.reference}:${Date.now()}`
+      : `bon_commande:${c.reference}`,
     "bon_commande",
     c.clientEmail,
     `Votre bon de commande ${c.reference}`,
@@ -388,76 +394,9 @@ export async function envoyerBonCommande(commandeId: number) {
   }
 }
 
-// Bon de livraison — envoyé quand l'admin valide la commande (passage en
-// préparation) : même référence, créneau de livraison inclus s'il est
-// renseigné. Dédoublonné par (statut, délai) : un nouvel état renvoie le
-// bon, un double appel non.
-export async function envoyerBonCommandeMaj(commandeId: number): Promise<boolean> {
-  const prisma = getPrisma();
-  const c = await prisma.order.findUnique({
-    where: { id: commandeId },
-    include: { lignes: true },
-  });
-  if (!c || !c.clientEmail) return false;
-  const lien = lienCommande(c);
-  const ok = !!(await notifier(
-    `bonmaj:${c.reference}:${c.statut}:${(c.delaiLivraison ?? "").trim().toLowerCase()}`,
-    "bon_commande",
-    c.clientEmail,
-    `Commande ${c.reference} validée`,
-    cadreMail(
-      `Bonjour <strong>${esc(c.clientNom)}</strong>,<br/>
-       votre commande est <strong>validée</strong> et passe en préparation.
-       Voici votre ${c.delaiLivraison ? "bon de livraison" : "bon de commande"} mis à jour :`,
-      carteBon(c, c.delaiLivraison ? "BON DE LIVRAISON" : "BON DE COMMANDE"),
-      { url: lien, label: "Voir mon bon de commande" }
-    ),
-    c.id
-  ));
-  if (!ok) {
-    await signalerEchecEmail(
-      `echec_email_maj:${c.reference}:${c.statut}`,
-      `Email client non envoyé (commande ${c.reference})`,
-      `L'email destiné à <strong>${esc(c.clientEmail)}</strong> n'a pas pu partir.`,
-      c.id
-    );
-  }
-  return ok;
-}
-
-// Notification de changement de statut (CDC 12.3)
-export async function notifierStatutCommande(commandeId: number) {
-  const prisma = getPrisma();
-  const c = await prisma.order.findUnique({ where: { id: commandeId } });
-  if (!c || !c.clientEmail) return;
-  const STATUTS: Record<
-    string,
-    { libelle: string; type: Parameters<typeof notifier>[1] }
-  > = {
-    en_preparation: { libelle: "en préparation", type: "delai_livraison" },
-    expediee: { libelle: "en cours de livraison", type: "expediee" },
-    livree: { libelle: "livrée", type: "livree" },
-    annulee: { libelle: "annulée", type: "annulation" },
-  };
-  const info = STATUTS[c.statut];
-  if (!info) return;
-  await notifier(
-    `statut:${c.reference}:${c.statut}`,
-    info.type,
-    c.clientEmail,
-    `Commande ${c.reference} ${info.libelle}`,
-    cadreMail(
-      `Bonjour <strong>${esc(c.clientNom)}</strong>,<br/>
-       votre commande <strong>${esc(c.reference)}</strong> est <strong>${info.libelle}</strong>.`,
-      "",
-      {
-        url: lienCommande(c),
-        label: "Suivre ma commande / voir le bon",
-      }
-    ),
-    c.id
-  );
-}
+// Pas d'emails de changement de statut au client (préparation, expédition,
+// livraison, annulation) — décision métier : seul le délai de livraison
+// notifie le client, avec le bon de commande joint (envoyerDelaiLivraison).
 
 // Alertes admin (CDC 12.4) — commande payée ou anomalie de paiement
 export async function alerterAdmin(

@@ -5,11 +5,7 @@ import { getPrisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 import { logAudit } from "@/lib/audit";
 import { restituerStockCommande } from "@/lib/stock";
-import {
-  notifierStatutCommande,
-  envoyerDelaiLivraison,
-  envoyerBonCommandeMaj,
-} from "@/lib/email";
+import { envoyerBonCommande, envoyerDelaiLivraison } from "@/lib/email";
 import type { StatutCommande } from "@/generated/prisma/enums";
 import { noteInterneSchema } from "@/lib/validation";
 
@@ -75,16 +71,19 @@ export async function changerStatutCommande(
     avant: { statut: result.statut },
     apres: { statut: nouveau },
   });
-  // Email au client (dédupliqué, CDC 12.3). À la validation (passage en
-  // préparation), le client reçoit le bon de commande mis à jour — délai
-  // inclus s'il a été renseigné — plutôt qu'un simple avis de statut.
-  if (nouveau === "en_preparation") {
-    await envoyerBonCommandeMaj(id).catch(() => false);
-  } else {
-    notifierStatutCommande(id).catch(() => {});
-  }
+  // Pas d'email de statut au client — seul le délai de livraison notifie
+  // (definirDelaiLivraison → envoyerDelaiLivraison, bon de commande joint).
   revalidatePath(`/admin/commandes/${id}`);
   revalidatePath("/admin/commandes");
+}
+
+// Renvoi manuel du bon de commande depuis la fiche (clé horodatée →
+// repart toujours, même si le premier envoi a réussi mais n'a pas été
+// reçu : spam, adresse corrigée, etc.)
+export async function renvoyerBonCommandeAdmin(id: number) {
+  await requireAdmin();
+  await envoyerBonCommande(id, { manuel: true }).catch(() => {});
+  revalidatePath(`/admin/commandes/${id}`);
 }
 
 export async function definirDelaiLivraison(
