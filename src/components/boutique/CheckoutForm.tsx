@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, MapPin } from "lucide-react";
 import { creerCommande } from "@/app/(boutique)/commander/actions";
 import { fcfa } from "@/lib/format";
 import { Compteur } from "@/components/motion/Compteur";
@@ -115,6 +115,8 @@ export function CheckoutForm({
     telephone: string;
     adresse: string;
     communeId: number | null;
+    /** Adresses enregistrées du compte — sélecteur rapide quand il y en a plusieurs. */
+    adresses?: { communeId: number; detail: string }[];
   };
 }) {
   const [communeId, setCommuneId] = useState<number | null>(
@@ -130,7 +132,14 @@ export function CheckoutForm({
     adresse: defauts.adresse,
   });
   const [erreur, setErreur] = useState("");
-  const [touche, setTouche] = useState<Record<string, boolean>>({});
+  // Marque comme « touchés » les champs pré-remplis ET valides : le client
+  // voit les coches vertes dès l'arrivée, sans faux rouge sur un champ vide.
+  const [touche, setTouche] = useState<Record<string, boolean>>({
+    nom: defauts.nom.trim().length >= 2,
+    telephone: defauts.telephone.replace(/\D/g, "").length >= 8,
+    email: /^\S+@\S+\.\S+$/.test(defauts.email),
+    adresse: defauts.adresse.trim().length >= 5,
+  });
   const [pending, start] = useTransition();
 
   const floute = (k: string) => () => setTouche((t) => ({ ...t, [k]: true }));
@@ -269,6 +278,42 @@ export function CheckoutForm({
         className={`rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 ${listeOuverte ? "relative z-30" : ""}`}
       >
         <TitreEtape n={2} titre="Où livrer ?" fait={livraisonOk} />
+        {(defauts.adresses?.length ?? 0) > 1 && (
+          <div className="mb-3">
+            <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gris-fonce">
+              <MapPin className="size-3.5 text-vert" aria-hidden />
+              Mes adresses enregistrées
+            </p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Adresses enregistrées">
+              {defauts.adresses!.map((a, i) => {
+                const nomCommune =
+                  communes.find((c) => c.id === a.communeId)?.nom ??
+                  `Commune ${a.communeId}`;
+                const actif =
+                  a.communeId === communeId && a.detail === infos.adresse;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-pressed={actif}
+                    onClick={() => {
+                      setCommuneId(a.communeId);
+                      setInfos((x) => ({ ...x, adresse: a.detail }));
+                      setTouche((t) => ({ ...t, adresse: true }));
+                    }}
+                    className={`press max-w-full truncate rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
+                      actif
+                        ? "border-vert bg-vert-clair text-vert"
+                        : "border-black/10 bg-blanc-casse text-noir hover:border-vert/40"
+                    }`}
+                  >
+                    {nomCommune} · {a.detail}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="relative">
           <button
             type="button"

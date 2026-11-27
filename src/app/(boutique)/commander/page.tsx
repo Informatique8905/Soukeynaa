@@ -28,22 +28,32 @@ export default async function CommanderPage() {
     telephone: string;
     adresse: string;
     communeId: number | null;
-  } = { nom: "", email: "", telephone: "", adresse: "", communeId: null };
+    adresses: { communeId: number; detail: string }[];
+  } = {
+    nom: "",
+    email: "",
+    telephone: "",
+    adresse: "",
+    communeId: null,
+    adresses: [],
+  };
   if (session?.user?.id) {
     const user = await prisma.user.findUnique({
       where: { id: Number(session.user.id) },
     });
     const adresses =
       (user?.adresses as { communeId: number; detail: string }[] | null) ?? [];
-    const premiere = adresses.find((a) =>
+    const adressesValides = adresses.filter((a) =>
       communes.some((c) => c.id === a.communeId)
     );
+    const premiere = adressesValides[0];
     defauts = {
       nom: user?.nom ?? "",
       email: user?.email ?? "",
       telephone: user?.telephone ?? "",
       adresse: premiere?.detail ?? "",
       communeId: premiere?.communeId ?? null,
+      adresses: adressesValides,
     };
   }
 
