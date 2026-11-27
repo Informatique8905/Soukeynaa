@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPrisma } from "@/lib/db";
 import { fcfa, dateFr } from "@/lib/format";
+import { ArrowUpRight } from "lucide-react";
 import {
   CarteListe,
   EnTetePage,
@@ -8,11 +9,11 @@ import {
   Panneau,
   Pastille,
   StatutCommande,
+  StatutCommandeLigne,
   StatutPaiement,
   Vide,
-  lien,
 } from "@/components/admin/ui";
-import { ORDER_STATUS_LABELS } from "@/lib/constants";
+import { ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/constants";
 import { LigneCliquable } from "@/components/admin/LigneCliquable";
 
 const FILTRES = [
@@ -28,6 +29,27 @@ const FILTRES = [
 // ambre dans la liste et comptées dans la pastille « à traiter ».
 const A_TRAITER = ["en_attente_paiement", "payee", "en_preparation"] as const;
 const aTraiter = (statut: string) => (A_TRAITER as readonly string[]).includes(statut);
+
+// Avatar pastelle déterministe (cycle par id) — style « Payment History »
+const AVATARS = [
+  "bg-vert-clair text-vert-fonce",
+  "bg-dore-clair text-bordeaux",
+  "bg-sky-50 text-sky-800",
+  "bg-red-50 text-red-700",
+  "bg-amber-50 text-amber-800",
+] as const;
+
+const initiales = (nom: string) =>
+  nom
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((m) => m[0])
+    .join("")
+    .toUpperCase();
+
+const heureFr = (d: Date) =>
+  d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
 export default async function PageCommandes({
   searchParams,
@@ -55,7 +77,7 @@ export default async function PageCommandes({
     <div className="flex flex-col gap-6">
       <EnTetePage
         titre="Commandes"
-        description={`${commandes.length} commande${commandes.length > 1 ? "s" : ""} affichée${commandes.length > 1 ? "s" : ""} (100 dernières)`}
+        description="Gestion et suivi de toutes les commandes"
       />
 
       <div className="flex flex-wrap items-center gap-1.5">
@@ -120,58 +142,79 @@ export default async function PageCommandes({
         {commandes.length === 0 && <CarteListe className="p-0">{vide}</CarteListe>}
       </div>
 
-      {/* Desktop : tableau */}
-      <Panneau corps="p-0" className="hidden md:block">
+      {/* Desktop : tableau « Payment History » — panneau blanc, lignes aérées */}
+      <Panneau
+        titre="Historique des commandes"
+        description={`Les ${commandes.length} commande${commandes.length > 1 ? "s" : ""} les plus récentes`}
+        actions={
+          <Link
+            href="/admin/rapports"
+            aria-label="Ouvrir les rapports"
+            className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-vert/40 hover:text-foreground"
+          >
+            <ArrowUpRight className="size-4" aria-hidden />
+          </Link>
+        }
+        corps="p-0"
+        className="hidden md:block"
+      >
         {commandes.length === 0 ? (
-          vide
+          <div className="p-5">{vide}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Référence</th>
-                  <th>Date</th>
                   <th>Client</th>
-                  <th>Commune</th>
-                  <th className="num">Total</th>
+                  <th>Date</th>
+                  <th>Heure</th>
                   <th>Statut</th>
-                  <th>Paiement</th>
+                  <th className="num">Montant</th>
                 </tr>
               </thead>
               <tbody>
                 {commandes.map((c) => (
                   <LigneCliquable key={c.id} href={`/admin/commandes/${c.id}`}>
                     <td>
-                      {aTraiter(c.statut) && (
-                        <span
-                          aria-label="À traiter"
-                          className="mr-1.5 inline-block size-2 rounded-full bg-amber-500 align-middle"
-                        />
-                      )}
-                      <Link href={`/admin/commandes/${c.id}`} className={lien}>
-                        {c.reference}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap text-muted-foreground tabular-nums">
-                      {dateFr(c.createdAt)}
-                    </td>
-                    <td>
-                      <span className="font-medium">{c.clientNom}</span>
-                      <span className="block text-xs text-muted-foreground">
-                        {c.clientTelephone}
-                      </span>
-                    </td>
-                    <td className="text-muted-foreground">{c.communeNom}</td>
-                    <td className="num font-semibold">{fcfa(c.total)}</td>
-                    <td>
-                      <StatutCommande statut={c.statut} />
-                    </td>
-                    <td>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <StatutPaiement statut={c.statutPaiement} />
-                        {c.modePaiement === "livraison" && <ModeLivraison />}
+                      <div className="flex items-center gap-3">
+                        <span className="relative shrink-0">
+                          <span
+                            aria-hidden
+                            className={`grid size-10 place-items-center rounded-full text-xs font-bold ${AVATARS[c.id % AVATARS.length]}`}
+                          >
+                            {initiales(c.clientNom)}
+                          </span>
+                          {aTraiter(c.statut) && (
+                            <span
+                              aria-label="À traiter"
+                              className="absolute -left-0.5 -top-0.5 size-2.5 rounded-full bg-amber-500 ring-2 ring-white"
+                            />
+                          )}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold">
+                            {c.clientNom}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {c.reference} · {c.communeNom}
+                          </span>
+                        </span>
                       </div>
                     </td>
+                    <td className="whitespace-nowrap tabular-nums">
+                      {dateFr(c.createdAt)}
+                    </td>
+                    <td className="whitespace-nowrap text-muted-foreground tabular-nums">
+                      {heureFr(c.createdAt)}
+                    </td>
+                    <td>
+                      <StatutCommandeLigne statut={c.statut} />
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        {PAYMENT_STATUS_LABELS[c.statutPaiement]}
+                        {c.modePaiement === "livraison" ? " · à la livraison" : ""}
+                      </span>
+                    </td>
+                    <td className="num font-semibold">{fcfa(c.total)}</td>
                   </LigneCliquable>
                 ))}
               </tbody>

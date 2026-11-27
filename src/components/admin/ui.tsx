@@ -374,6 +374,42 @@ const TON_PRODUIT: Record<ProductStatus, Ton> = {
   desactive: "rouge",
 };
 
+/** Statut en texte nu — point coloré + libellé, sans pastille
+ * (style « Payment History »). */
+export function StatutLigne({
+  ton,
+  children,
+}: {
+  ton: Ton;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-medium text-foreground">
+      <span
+        aria-hidden
+        className={cn("size-2 rounded-full", TONS[ton].point)}
+      />
+      {children}
+    </span>
+  );
+}
+
+export function StatutCommandeLigne({ statut }: { statut: string }) {
+  return (
+    <StatutLigne ton={TON_COMMANDE[statut as OrderStatus] ?? "neutre"}>
+      {ORDER_STATUS_LABELS[statut as OrderStatus] ?? statut}
+    </StatutLigne>
+  );
+}
+
+export function StatutPaiementLigne({ statut }: { statut: string }) {
+  return (
+    <StatutLigne ton={TON_PAIEMENT[statut as PaymentStatus] ?? "neutre"}>
+      {PAYMENT_STATUS_LABELS[statut as PaymentStatus] ?? statut}
+    </StatutLigne>
+  );
+}
+
 export function StatutCommande({ statut }: { statut: string }) {
   return (
     <Pastille ton={TON_COMMANDE[statut as OrderStatus] ?? "neutre"}>
