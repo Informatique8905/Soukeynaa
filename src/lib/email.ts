@@ -411,9 +411,9 @@ export async function envoyerBonAdmin(commandeId: number) {
     `bon_admin:${c.reference}`,
     "alerte_admin_commande",
     admin,
-    `[SOUKEYNA] Bon de commande ${c.reference}`,
+    `[SOUKEYNA] Nouvelle commande ${c.reference} — ${c.clientNom}`,
     cadreMail(
-      `Nouvelle commande <strong>${esc(c.reference)}</strong> — ${esc(c.clientNom)}, ${esc(c.communeNom)}.`,
+      `Une commande a été effectuée par <strong>${esc(c.clientNom)}</strong> (${esc(c.clientTelephone)}, ${esc(c.communeNom)}).${c.modePaiement === "livraison" ? " Paiement à la livraison." : " Paiement en ligne confirmé."}`,
       carteBon(c, "BON DE COMMANDE"),
       {
         url: `${site}/admin/commandes/${c.id}`,
