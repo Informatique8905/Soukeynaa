@@ -1,16 +1,13 @@
 import Link from "next/link";
 import { getPrisma } from "@/lib/db";
 import { fcfa, dateFr } from "@/lib/format";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ChevronRight } from "lucide-react";
 import {
   CarteListe,
   EnTetePage,
-  ModeLivraison,
   Panneau,
   Pastille,
-  StatutCommande,
   StatutCommandeLigne,
-  StatutPaiement,
   Vide,
 } from "@/components/admin/ui";
 import { ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/constants";
@@ -110,31 +107,40 @@ export default async function PageCommandes({
         {commandes.map((c) => (
           <Link key={c.id} href={`/admin/commandes/${c.id}`} className="block">
             <CarteListe className="transition-colors active:bg-muted/40">
-              <div className="flex items-start justify-between gap-3">
-                <p className="flex min-w-0 items-center gap-1.5 truncate font-semibold text-vert">
+              <div className="flex items-center gap-3">
+                <span className="relative shrink-0">
+                  <span
+                    aria-hidden
+                    className={`grid size-10 place-items-center rounded-full text-xs font-bold ${AVATARS[c.id % AVATARS.length]}`}
+                  >
+                    {initiales(c.clientNom)}
+                  </span>
                   {aTraiter(c.statut) && (
                     <span
                       aria-label="À traiter"
-                      className="size-2 shrink-0 rounded-full bg-amber-500"
+                      className="absolute -left-0.5 -top-0.5 size-2.5 rounded-full bg-amber-500 ring-2 ring-white"
                     />
                   )}
-                  <span className="truncate">{c.reference}</span>
-                </p>
-                <p className="shrink-0 font-semibold tabular-nums">
-                  {fcfa(c.total)}
-                </p>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{c.clientNom}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {c.reference} · {c.communeNom}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-semibold tabular-nums">{fcfa(c.total)}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                    {dateFr(c.createdAt)} · {heureFr(c.createdAt)}
+                  </p>
+                </div>
               </div>
-              <p className="mt-1 truncate text-sm">
-                {c.clientNom}
-                <span className="text-muted-foreground"> · {c.clientTelephone}</span>
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {c.communeNom} · {dateFr(c.createdAt)}
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <StatutCommande statut={c.statut} />
-                <StatutPaiement statut={c.statutPaiement} />
-                {c.modePaiement === "livraison" && <ModeLivraison />}
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+                <StatutCommandeLigne statut={c.statut} />
+                <span className="text-xs text-muted-foreground">
+                  {PAYMENT_STATUS_LABELS[c.statutPaiement]}
+                  {c.modePaiement === "livraison" ? " · à la livraison" : ""}
+                </span>
               </div>
             </CarteListe>
           </Link>
@@ -170,11 +176,18 @@ export default async function PageCommandes({
                   <th>Heure</th>
                   <th>Statut</th>
                   <th className="num">Montant</th>
+                  <th className="w-12">
+                    <span className="sr-only">Ouvrir</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {commandes.map((c) => (
-                  <LigneCliquable key={c.id} href={`/admin/commandes/${c.id}`}>
+                  <LigneCliquable
+                    key={c.id}
+                    href={`/admin/commandes/${c.id}`}
+                    className="group focus-visible:bg-muted/50 focus-visible:outline-none"
+                  >
                     <td>
                       <div className="flex items-center gap-3">
                         <span className="relative shrink-0">
@@ -215,6 +228,12 @@ export default async function PageCommandes({
                       </span>
                     </td>
                     <td className="num font-semibold">{fcfa(c.total)}</td>
+                    <td className="w-12">
+                      <ChevronRight
+                        aria-hidden
+                        className="ml-auto size-4 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-vert"
+                      />
+                    </td>
                   </LigneCliquable>
                 ))}
               </tbody>
