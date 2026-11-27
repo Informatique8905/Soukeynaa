@@ -35,6 +35,11 @@ export const metadata: Metadata = {
   },
   description:
     "Boutique en ligne SOUKEYNA : vêtements, chaussures, sacs et accessoires à Abidjan. Livraison dans toutes les communes.",
+  appleWebApp: {
+    capable: true,
+    title: "SOUKEYNA",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
