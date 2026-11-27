@@ -53,7 +53,9 @@ async function main() {
       nomBoutique: "SOUKEYNA",
       telephone: process.env.NEXT_PUBLIC_SHOP_PHONE ?? "",
       whatsapp: process.env.NEXT_PUBLIC_SHOP_WHATSAPP ?? "",
-      emailContact: process.env.ADMIN_EMAIL ?? "soukeynakids@outlook.com",
+      // Email PUBLIC de contact — ne pas utiliser ADMIN_EMAIL (celui des
+      // alertes internes) : les deux rôles sont distincts.
+      emailContact: "soukeynakids@outlook.com",
     },
   });
   console.log("Paramètres boutique (SOUKEYNA) initialisés");
