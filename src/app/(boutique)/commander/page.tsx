@@ -20,16 +20,30 @@ export default async function CommanderPage() {
     orderBy: { ordre: "asc" },
   });
 
-  // Pré-remplissage si connecté (CDC 8.3)
-  let defauts = { nom: "", email: "", telephone: "" };
+  // Pré-remplissage si connecté (CDC 8.3) : coordonnées + première adresse
+  // enregistrée (sauvegardée dans /compte ou mémorisée au checkout).
+  let defauts: {
+    nom: string;
+    email: string;
+    telephone: string;
+    adresse: string;
+    communeId: number | null;
+  } = { nom: "", email: "", telephone: "", adresse: "", communeId: null };
   if (session?.user?.id) {
     const user = await prisma.user.findUnique({
       where: { id: Number(session.user.id) },
     });
+    const adresses =
+      (user?.adresses as { communeId: number; detail: string }[] | null) ?? [];
+    const premiere = adresses.find((a) =>
+      communes.some((c) => c.id === a.communeId)
+    );
     defauts = {
       nom: user?.nom ?? "",
       email: user?.email ?? "",
       telephone: user?.telephone ?? "",
+      adresse: premiere?.detail ?? "",
+      communeId: premiere?.communeId ?? null,
     };
   }
 

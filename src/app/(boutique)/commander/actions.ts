@@ -155,6 +155,43 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
 
       // 4. Panier vidé dans la même transaction
       await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+      // 5. Mémoriser l'adresse (et le téléphone si le compte n'en a pas) pour
+      // pré-remplir la prochaine commande — pas de doublon d'adresse
+      if (userId) {
+        const u = await tx.user.findUnique({
+          where: { id: userId },
+          select: { adresses: true, telephone: true },
+        });
+        const enregistrees =
+          (u?.adresses as { communeId: number; detail: string }[] | null) ?? [];
+        const dejaEnregistree = enregistrees.some(
+          (a) =>
+            a.communeId === livraison.communeId &&
+            a.detail.trim().toLowerCase() ===
+              livraison.adresse.trim().toLowerCase()
+        );
+        const telephoneManquant = !u?.telephone?.trim();
+        if (!dejaEnregistree || telephoneManquant) {
+          await tx.user.update({
+            where: { id: userId },
+            data: {
+              ...(dejaEnregistree
+                ? {}
+                : {
+                    adresses: [
+                      ...enregistrees,
+                      {
+                        communeId: livraison.communeId,
+                        detail: livraison.adresse,
+                      },
+                    ],
+                  }),
+              ...(telephoneManquant ? { telephone: client.telephone } : {}),
+            },
+          });
+        }
+      }
       return { reference: ref, id: cree.id };
     });
   } catch (e) {

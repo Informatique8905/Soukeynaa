@@ -109,15 +109,25 @@ export function CheckoutForm({
 }: {
   communes: Commune[];
   sousTotal: number;
-  defauts: { nom: string; email: string; telephone: string };
+  defauts: {
+    nom: string;
+    email: string;
+    telephone: string;
+    adresse: string;
+    communeId: number | null;
+  };
 }) {
-  const [communeId, setCommuneId] = useState<number | null>(null);
+  const [communeId, setCommuneId] = useState<number | null>(
+    defauts.communeId
+  );
   const [listeOuverte, setListeOuverte] = useState(false);
   const [mode, setMode] = useState<Mode>("en_ligne");
   const [moyen, setMoyen] = useState<Moyen>("wave");
   const [infos, setInfos] = useState({
-    ...defauts,
-    adresse: "",
+    nom: defauts.nom,
+    email: defauts.email,
+    telephone: defauts.telephone,
+    adresse: defauts.adresse,
   });
   const [erreur, setErreur] = useState("");
   const [touche, setTouche] = useState<Record<string, boolean>>({});
