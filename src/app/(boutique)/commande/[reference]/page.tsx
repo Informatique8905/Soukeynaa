@@ -10,6 +10,7 @@ import { BonCommande } from "@/components/boutique/BonCommande";
 import { TrajetLivraison } from "@/components/motion/TrajetLivraison";
 import { SuccesAnime } from "@/components/motion/SuccesAnime";
 import { CopierReference } from "@/components/boutique/CopierReference";
+import { ArrowLeft } from "lucide-react";
 
 const ETAPES_EN_LIGNE = ["en_attente_paiement", "payee", "en_preparation", "expediee", "livree"] as const;
 const LABELS_EN_LIGNE = ["Commandée", "Payée", "Préparation", "En route", "Livrée"];
@@ -142,9 +143,10 @@ export default async function CommandePage({
       <div className="flex items-center justify-between print:hidden">
         <Link
           href="/commandes"
-          className="press inline-flex items-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-noir ring-1 ring-black/10 hover:bg-vert-clair"
+          aria-label="Retour à mes commandes"
+          className="press group inline-grid size-10 place-items-center rounded-full bg-white text-noir ring-1 ring-black/10 transition hover:bg-vert-clair hover:text-vert"
         >
-          ← Mes commandes
+          <ArrowLeft className="size-5 transition-transform group-hover:-translate-x-0.5" aria-hidden />
         </Link>
         <CopierReference reference={commande.reference} />
       </div>

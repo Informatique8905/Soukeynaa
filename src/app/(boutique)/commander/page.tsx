@@ -63,12 +63,10 @@ export default async function CommanderPage() {
     <main className="mx-auto max-w-6xl px-4 py-6 md:py-10">
       <Link
         href="/panier"
-        className="press group inline-flex items-center gap-2 rounded-full bg-white py-1.5 pl-1.5 pr-4 text-xs font-semibold text-noir ring-1 ring-black/5 transition hover:text-vert hover:ring-vert/40"
+        aria-label="Retour au panier"
+        className="press group inline-grid size-11 place-items-center rounded-full bg-white text-noir ring-1 ring-black/5 transition hover:text-vert hover:ring-vert/40"
       >
-        <span className="grid size-7 place-items-center rounded-full bg-gris transition group-hover:bg-vert-clair">
-          <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
-        </span>
-        Retour au panier
+        <ArrowLeft className="size-5 transition-transform group-hover:-translate-x-0.5" aria-hidden />
       </Link>
       <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-noir md:text-3xl">
         Finaliser la commande
