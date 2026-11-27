@@ -112,8 +112,14 @@ export default async function Accueil() {
         <p className="text-sm text-gris-fonce">
           {prenom ? `Bonjour, ${prenom}` : "Bienvenue"}
         </p>
-        <h1 className="text-2xl font-extrabold tracking-tight text-noir">
-          {prenom ? "Heureux de vous revoir" : "Chez SOUKEYNA"}
+        <h1 className="font-display text-[2rem] leading-tight font-bold tracking-tight text-noir">
+          {prenom ? (
+            "Heureux de vous revoir"
+          ) : (
+            <>
+              Chez <span className="text-bordeaux">SOUKEYNA</span>
+            </>
+          )}
         </h1>
       </div>
 

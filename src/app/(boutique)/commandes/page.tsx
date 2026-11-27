@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { EtatVide } from "@/components/motion/EtatVide";
 import { auth } from "@/auth";
 import { getPrisma } from "@/lib/db";
@@ -7,35 +8,43 @@ import { cloud } from "@/lib/image";
 import { ORDER_STATUS_LABELS, ORDER_BADGE_VARIANT } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { RechercheCommande } from "@/components/boutique/RechercheCommande";
+import { verifierIdsCommandes, COOKIE_COMMANDES } from "@/lib/ownership";
 
 export const metadata = { title: "Mes commandes" };
 
 export default async function CommandesPage() {
-  const session = await auth();
+  const [session, store] = await Promise.all([auth(), cookies()]);
+  const userId = session?.user?.id ? Number(session.user.id) : null;
+  // Commandes invité passées depuis ce navigateur (cookie signé, CDC 14.5) :
+  // la commande apparaît ici juste après le checkout, sans compte requis.
+  const idsInvites = verifierIdsCommandes(store.get(COOKIE_COMMANDES)?.value);
 
-  const commandes = session?.user?.id
-    ? await getPrisma().order.findMany({
-        where: { clientUserId: Number(session.user.id) },
-        orderBy: { createdAt: "desc" },
-        take: 20,
-        select: {
-          id: true,
-          reference: true,
-          total: true,
-          statut: true,
-          createdAt: true,
-          lignes: {
-            take: 3,
-            select: {
-              nom: true,
-              quantite: true,
-              produit: { select: { images: true } },
+  const commandes =
+    userId !== null || idsInvites.length > 0
+      ? await getPrisma().order.findMany({
+          where: userId
+            ? { OR: [{ clientUserId: userId }, { id: { in: idsInvites } }] }
+            : { id: { in: idsInvites } },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          select: {
+            id: true,
+            reference: true,
+            total: true,
+            statut: true,
+            createdAt: true,
+            lignes: {
+              take: 3,
+              select: {
+                nom: true,
+                quantite: true,
+                produit: { select: { images: true } },
+              },
             },
+            _count: { select: { lignes: true } },
           },
-          _count: { select: { lignes: true } },
-        },
-      })
-    : [];
+        })
+      : [];
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-6">
@@ -54,15 +63,23 @@ export default async function CommandesPage() {
         <RechercheCommande />
       </div>
 
-      {session?.user ? (
-        commandes.length === 0 ? (
-          <EtatVide
-            dessin="colis"
-            titre="Aucune commande pour le moment"
-            texte="Vos futures commandes apparaîtront ici, avec leur suivi."
-            action={{ href: "/", label: "Découvrir la boutique" }}
-          />
-        ) : (
+      {commandes.length > 0 ? (
+        <>
+          {!session?.user && (
+            <p
+              data-reveal
+              className="mt-4 rounded-2xl bg-vert-clair px-4 py-3 text-xs font-medium text-vert-fonce"
+            >
+              Commandes passées sur cet appareil —{" "}
+              <Link
+                href="/connexion?callbackUrl=/commandes"
+                className="font-bold underline"
+              >
+                connectez-vous
+              </Link>{" "}
+              pour les retrouver sur tous vos appareils.
+            </p>
+          )}
           <ul className="mt-5 space-y-3">
             {commandes.map((c) => (
               <li key={c.id} data-reveal>
@@ -129,7 +146,14 @@ export default async function CommandesPage() {
               </li>
             ))}
           </ul>
-        )
+        </>
+      ) : session?.user ? (
+        <EtatVide
+          dessin="colis"
+          titre="Aucune commande pour le moment"
+          texte="Vos futures commandes apparaîtront ici, avec leur suivi."
+          action={{ href: "/", label: "Découvrir la boutique" }}
+        />
       ) : (
         <EtatVide
           dessin="colis"
