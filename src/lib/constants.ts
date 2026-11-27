@@ -107,6 +107,13 @@ export const PAYMENT_METHODS = [
   "carte",
 ] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  wave: "Wave",
+  orange_money: "Orange Money",
+  mtn_momo: "MTN Mobile Money",
+  moov_money: "Moov Money",
+  carte: "Carte bancaire",
+};
 
 /** Devise — FCFA */
 export const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY ?? "FCFA";

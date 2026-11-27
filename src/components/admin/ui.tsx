@@ -192,6 +192,40 @@ export function Vide({
   );
 }
 
+/* ---------- Avatar client (listes) ---------- */
+
+const AVATARS = [
+  "bg-vert-clair text-vert-fonce",
+  "bg-dore-clair text-bordeaux",
+  "bg-sky-50 text-sky-800",
+  "bg-red-50 text-red-700",
+  "bg-amber-50 text-amber-800",
+] as const;
+
+const initiales = (nom: string) =>
+  nom
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((m) => m[0])
+    .join("")
+    .toUpperCase();
+
+/** Avatar pastelle déterministe — la teinte cycle selon la graine (id). */
+export function AvatarClient({ nom, graine }: { nom: string; graine: number }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "grid size-10 shrink-0 place-items-center rounded-full text-xs font-bold",
+        AVATARS[graine % AVATARS.length],
+      )}
+    >
+      {initiales(nom)}
+    </span>
+  );
+}
+
 /** Carte de liste mobile (les tableaux sont réservés au desktop) */
 export function CarteListe({
   children,

@@ -11,6 +11,14 @@ export function dateFr(d: Date | string | null | undefined): string {
   });
 }
 
+export function heureFr(d: Date | string | null | undefined): string {
+  if (!d) return "—";
+  return new Date(d).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function dateHeureFr(d: Date | string | null | undefined): string {
   if (!d) return "—";
   return new Date(d).toLocaleString("fr-FR", {

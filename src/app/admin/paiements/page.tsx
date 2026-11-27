@@ -1,17 +1,25 @@
 import Link from "next/link";
 import { getPrisma } from "@/lib/db";
-import { fcfa, dateHeureFr } from "@/lib/format";
+import { fcfa, dateFr, heureFr, dateHeureFr } from "@/lib/format";
 import { resoudrePaiement } from "./actions";
+import { ChevronRight } from "lucide-react";
 import {
+  AvatarClient,
   CarteListe,
   EnTetePage,
   Panneau,
-  StatutPaiement,
+  StatutPaiementLigne,
   Vide,
   bouton,
   champ,
   lien,
 } from "@/components/admin/ui";
+import { PAYMENT_METHOD_LABELS } from "@/lib/constants";
+import { LigneCliquable } from "@/components/admin/LigneCliquable";
+
+// Tentatives non soldees — surlignees en vert comme les commandes a traiter
+const NON_SOLDES = ["en_attente", "a_verifier"] as const;
+const nonSolde = (statut: string) => (NON_SOLDES as readonly string[]).includes(statut);
 
 export default async function PagePaiements() {
   const prisma = getPrisma();
@@ -95,69 +103,111 @@ export default async function PagePaiements() {
       {/* Mobile : cartes */}
       <div className="space-y-3 md:hidden">
         {paiements.map((p) => (
-          <CarteListe key={p.id}>
-            <div className="flex items-start justify-between gap-3">
-              <Link href={`/admin/commandes/${p.commandeId}`} className={`${lien} truncate`}>
-                {p.commande.reference}
-              </Link>
-              <StatutPaiement statut={p.statut} />
-            </div>
-            <p className="mt-1 truncate text-sm">{p.commande.clientNom}</p>
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                {p.moyen ?? "—"} · {dateHeureFr(p.createdAt)}
-              </p>
-              <p className="text-sm font-semibold tabular-nums">{fcfa(p.montant)}</p>
-            </div>
-            {p.transactionJeko && (
-              <p className="mt-1 truncate text-[11px] text-muted-foreground">
-                txn : {p.transactionJeko}
-              </p>
-            )}
-          </CarteListe>
+          <Link
+            key={p.id}
+            href={`/admin/commandes/${p.commandeId}`}
+            className="block"
+          >
+            <CarteListe
+              className={`transition-colors active:bg-muted/40 ${nonSolde(p.statut) ? "border-vert/30 bg-vert-clair/50" : ""}`}
+            >
+              <div className="flex items-center gap-3">
+                <AvatarClient nom={p.commande.clientNom} graine={p.id} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{p.commande.clientNom}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {p.commande.reference} ·{' '}
+                    {p.moyen ? PAYMENT_METHOD_LABELS[p.moyen] : '—'}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-semibold tabular-nums">{fcfa(p.montant)}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                    {dateFr(p.createdAt)} · {heureFr(p.createdAt)}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+                <StatutPaiementLigne statut={p.statut} />
+                {p.transactionJeko && (
+                  <span className="truncate text-xs text-muted-foreground">
+                    txn : {p.transactionJeko}
+                  </span>
+                )}
+              </div>
+            </CarteListe>
+          </Link>
         ))}
         {paiements.length === 0 && <CarteListe className="p-0">{vide}</CarteListe>}
       </div>
 
-      {/* Desktop : tableau */}
-      <Panneau corps="p-0" className="hidden md:block">
+      {/* Desktop : tableau « Payment History » */}
+      <Panneau
+        titre="Historique des paiements"
+        description={`Les ${paiements.length} tentative${paiements.length > 1 ? 's' : ''} les plus récentes`}
+        corps="p-0"
+        className="hidden md:block"
+      >
         {paiements.length === 0 ? (
-          vide
+          <div className="p-5">{vide}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Commande</th>
                   <th>Client</th>
-                  <th>Moyen</th>
-                  <th className="num">Montant</th>
-                  <th>Statut</th>
                   <th>Date</th>
-                  <th>Transaction</th>
+                  <th>Heure</th>
+                  <th>Statut</th>
+                  <th className="num">Montant</th>
+                  <th className="w-12">
+                    <span className="sr-only">Ouvrir</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {paiements.map((p) => (
-                  <tr key={p.id}>
+                  <LigneCliquable
+                    key={p.id}
+                    href={`/admin/commandes/${p.commandeId}`}
+                    className={`group focus-visible:outline-none ${nonSolde(p.statut) ? 'non-traitee focus-visible:bg-vert-clair' : 'focus-visible:bg-muted/50'}`}
+                  >
                     <td>
-                      <Link href={`/admin/commandes/${p.commandeId}`} className={lien}>
-                        {p.commande.reference}
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <AvatarClient nom={p.commande.clientNom} graine={p.id} />
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold">
+                            {p.commande.clientNom}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {p.commande.reference} ·{' '}
+                            {p.moyen ? PAYMENT_METHOD_LABELS[p.moyen] : '—'}
+                          </span>
+                        </span>
+                      </div>
                     </td>
-                    <td className="font-medium">{p.commande.clientNom}</td>
-                    <td className="text-muted-foreground">{p.moyen ?? "—"}</td>
+                    <td className="whitespace-nowrap tabular-nums">
+                      {dateFr(p.createdAt)}
+                    </td>
+                    <td className="whitespace-nowrap text-muted-foreground tabular-nums">
+                      {heureFr(p.createdAt)}
+                    </td>
+                    <td>
+                      <StatutPaiementLigne statut={p.statut} />
+                      {p.transactionJeko && (
+                        <span className="mt-0.5 block max-w-44 truncate text-xs text-muted-foreground">
+                          txn : {p.transactionJeko}
+                        </span>
+                      )}
+                    </td>
                     <td className="num font-semibold">{fcfa(p.montant)}</td>
-                    <td>
-                      <StatutPaiement statut={p.statut} />
+                    <td className="w-12">
+                      <ChevronRight
+                        aria-hidden
+                        className="ml-auto size-4 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-vert"
+                      />
                     </td>
-                    <td className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
-                      {dateHeureFr(p.createdAt)}
-                    </td>
-                    <td className="max-w-44 truncate font-mono text-xs text-muted-foreground">
-                      {p.transactionJeko ?? "—"}
-                    </td>
-                  </tr>
+                  </LigneCliquable>
                 ))}
               </tbody>
             </table>

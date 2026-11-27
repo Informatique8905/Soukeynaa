@@ -680,6 +680,15 @@ html[data-header-cache] .pilules-sticky {
   background: #fafbf9;
 }
 
+/* Élément en attente de traitement : teinte verte discrète (au lieu du
+   point orange) — redevient blanche une fois traité. */
+.admin-table tbody tr.non-traitee {
+  background: rgb(227 240 233 / 0.55);
+}
+.admin-table tbody tr.non-traitee:hover {
+  background: rgb(227 240 233 / 0.9);
+}
+
 .admin-table .num {
   text-align: right;
   font-variant-numeric: tabular-nums;

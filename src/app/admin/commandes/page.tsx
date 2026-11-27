@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { getPrisma } from "@/lib/db";
-import { fcfa, dateFr } from "@/lib/format";
+import { fcfa, dateFr, heureFr } from "@/lib/format";
 import { ArrowUpRight, ChevronRight } from "lucide-react";
 import {
+  AvatarClient,
   CarteListe,
   EnTetePage,
   Panneau,
@@ -22,31 +23,10 @@ const FILTRES = [
   "annulee",
 ] as const;
 
-// Commandes qui attendent une action de l'admin — démarquées d'un point
-// ambre dans la liste et comptées dans la pastille « à traiter ».
+// Commandes qui attendent une action de l'admin — listées en premier,
+// surlignées en vert et comptées dans la pastille « à traiter ».
 const A_TRAITER = ["en_attente_paiement", "payee", "en_preparation"] as const;
 const aTraiter = (statut: string) => (A_TRAITER as readonly string[]).includes(statut);
-
-// Avatar pastelle déterministe (cycle par id) — style « Payment History »
-const AVATARS = [
-  "bg-vert-clair text-vert-fonce",
-  "bg-dore-clair text-bordeaux",
-  "bg-sky-50 text-sky-800",
-  "bg-red-50 text-red-700",
-  "bg-amber-50 text-amber-800",
-] as const;
-
-const initiales = (nom: string) =>
-  nom
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((m) => m[0])
-    .join("")
-    .toUpperCase();
-
-const heureFr = (d: Date) =>
-  d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
 export default async function PageCommandes({
   searchParams,
@@ -59,10 +39,15 @@ export default async function PageCommandes({
     prisma.order.findMany({
       where: statut ? { statut: statut as never } : undefined,
       orderBy: { createdAt: "desc" },
-      take: 100,
+      take: 200,
     }),
     prisma.order.count({ where: { statut: { in: [...A_TRAITER] } } }),
   ]);
+  // Les commandes à traiter remontent en tête ; les traitées descendent
+  // (tri stable : l'ordre chronologique est conservé dans chaque groupe).
+  commandes.sort(
+    (a, b) => Number(aTraiter(b.statut)) - Number(aTraiter(a.statut)),
+  );
 
   const vide = (
     <Vide titre="Aucune commande">
@@ -79,7 +64,7 @@ export default async function PageCommandes({
 
       <div className="flex flex-wrap items-center gap-1.5">
         {nbATraiter > 0 && (
-          <Pastille ton="ambre" className="h-9 px-3.5 text-xs font-semibold">
+          <Pastille ton="vert" className="h-9 px-3.5 text-xs font-semibold">
             {nbATraiter} à traiter
           </Pastille>
         )}
@@ -106,22 +91,11 @@ export default async function PageCommandes({
       <div className="space-y-3 md:hidden">
         {commandes.map((c) => (
           <Link key={c.id} href={`/admin/commandes/${c.id}`} className="block">
-            <CarteListe className="transition-colors active:bg-muted/40">
+            <CarteListe
+              className={`transition-colors active:bg-muted/40 ${aTraiter(c.statut) ? "border-vert/30 bg-vert-clair/50" : ""}`}
+            >
               <div className="flex items-center gap-3">
-                <span className="relative shrink-0">
-                  <span
-                    aria-hidden
-                    className={`grid size-10 place-items-center rounded-full text-xs font-bold ${AVATARS[c.id % AVATARS.length]}`}
-                  >
-                    {initiales(c.clientNom)}
-                  </span>
-                  {aTraiter(c.statut) && (
-                    <span
-                      aria-label="À traiter"
-                      className="absolute -left-0.5 -top-0.5 size-2.5 rounded-full bg-amber-500 ring-2 ring-white"
-                    />
-                  )}
-                </span>
+                <AvatarClient nom={c.clientNom} graine={c.id} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{c.clientNom}</p>
                   <p className="truncate text-xs text-muted-foreground">
@@ -186,24 +160,11 @@ export default async function PageCommandes({
                   <LigneCliquable
                     key={c.id}
                     href={`/admin/commandes/${c.id}`}
-                    className="group focus-visible:bg-muted/50 focus-visible:outline-none"
+                    className={`group focus-visible:outline-none ${aTraiter(c.statut) ? "non-traitee focus-visible:bg-vert-clair" : "focus-visible:bg-muted/50"}`}
                   >
                     <td>
                       <div className="flex items-center gap-3">
-                        <span className="relative shrink-0">
-                          <span
-                            aria-hidden
-                            className={`grid size-10 place-items-center rounded-full text-xs font-bold ${AVATARS[c.id % AVATARS.length]}`}
-                          >
-                            {initiales(c.clientNom)}
-                          </span>
-                          {aTraiter(c.statut) && (
-                            <span
-                              aria-label="À traiter"
-                              className="absolute -left-0.5 -top-0.5 size-2.5 rounded-full bg-amber-500 ring-2 ring-white"
-                            />
-                          )}
-                        </span>
+                        <AvatarClient nom={c.clientNom} graine={c.id} />
                         <span className="min-w-0">
                           <span className="block truncate font-semibold">
                             {c.clientNom}
