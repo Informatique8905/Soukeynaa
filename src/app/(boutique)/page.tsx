@@ -216,7 +216,7 @@ export default async function Accueil() {
       {/* Catégories en cartes illustrées */}
       {cartesCategories.length > 0 && (
         <section className="mt-8">
-          <h2 data-reveal="left" className="text-lg font-extrabold text-noir">Nos catégories</h2>
+          <h2 data-reveal="left" className="font-display text-xl font-bold text-noir">Nos catégories</h2>
           <div className="no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible xl:grid-cols-8">
             {cartesCategories.map((cat) => (
               <Link
@@ -253,7 +253,7 @@ export default async function Accueil() {
         <section id="offres" className="mt-10 scroll-mt-20">
           <div data-reveal="left" className="flex items-baseline justify-between">
             <div>
-              <h2 className="text-lg font-extrabold text-noir">
+              <h2 className="font-display text-xl font-bold text-noir">
                 Offres du moment
               </h2>
               <p className="mt-0.5 text-xs text-gris-fonce">
@@ -280,7 +280,7 @@ export default async function Accueil() {
         <section className="mt-10">
           <div data-reveal="left" className="flex items-baseline justify-between">
             <div>
-              <h2 className="text-lg font-extrabold text-noir">
+              <h2 className="font-display text-xl font-bold text-noir">
                 Fraîchement arrivés
               </h2>
               <p className="mt-0.5 text-xs text-gris-fonce">

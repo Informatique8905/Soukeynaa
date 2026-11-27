@@ -49,7 +49,7 @@ export default async function CommandesPage() {
   return (
     <main className="mx-auto max-w-4xl px-4 py-6">
       <div data-reveal="left">
-        <h1 className="text-2xl font-extrabold tracking-tight text-noir">Vos commandes</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-noir">Vos commandes</h1>
         <p className="mt-1 text-sm text-gris-fonce">
           Suivi en temps réel, de la commande à la livraison
         </p>

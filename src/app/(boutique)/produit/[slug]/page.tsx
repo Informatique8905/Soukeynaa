@@ -84,7 +84,7 @@ export default async function ProduitPage({
 
       {similaires.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 pb-10">
-          <h2 className="text-lg font-extrabold tracking-tight text-noir">
+          <h2 className="font-display text-xl font-bold tracking-tight text-noir">
             Dans la mê catégorie
           </h2>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

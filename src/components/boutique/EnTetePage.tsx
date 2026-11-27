@@ -33,7 +33,7 @@ export function EnTetePage({
         <span aria-hidden className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-vert/10 blur-2xl" />
         <div className="relative flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-extrabold tracking-tight text-noir md:text-3xl">{titre}</h1>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-noir md:text-3xl">{titre}</h1>
             {sousTitre && <p className="mt-1 text-sm text-gris-fonce">{sousTitre}</p>}
           </div>
           {typeof compteur === "number" && (

@@ -11,7 +11,7 @@ export default async function PanierPage() {
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 md:py-10">
       <div data-reveal="left" className="flex items-end justify-between">
-        <h1 className="text-2xl font-extrabold tracking-tight text-noir md:text-3xl">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-noir md:text-3xl">
           Votre panier
         </h1>
         {nb > 0 && (

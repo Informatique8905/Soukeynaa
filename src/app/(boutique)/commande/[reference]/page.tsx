@@ -158,7 +158,7 @@ export default async function CommandePage({
           {!annulee && (
             <div data-reveal className="pt-1 text-center">
               <SuccesAnime ton={confirmee ? "vert" : "ambre"} />
-              <h1 className="mt-3 text-[22px] font-extrabold tracking-tight text-noir">
+              <h1 className="mt-3 font-display text-[24px] font-bold tracking-tight text-noir">
                 {confirmee ? "Commande confirmée" : "Commande enregistrée"}
               </h1>
               <p className="mt-1 text-sm text-gris-fonce">

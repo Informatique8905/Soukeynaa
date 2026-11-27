@@ -69,7 +69,7 @@ export default async function CommanderPage() {
       >
         <ArrowLeft className="size-5 transition-transform group-hover:-translate-x-0.5" aria-hidden />
       </Link>
-      <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-noir md:text-3xl">
+      <h1 className="mt-3 font-display text-2xl font-bold tracking-tight text-noir md:text-3xl">
         Finaliser la commande
       </h1>
       <p className="mt-1 flex items-center gap-1.5 text-sm text-gris-fonce">

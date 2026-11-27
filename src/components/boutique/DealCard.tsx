@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ViewTransition } from "react";
 import { fcfa } from "@/lib/format";
 import { cloud } from "@/lib/image";
 import type { CarteProduit } from "./ProductCard";
@@ -14,6 +15,7 @@ export function DealCard({ p, categorie }: { p: CarteProduit; categorie?: string
     <Link
       href={`/produit/${p.slug}`}
       transitionTypes={["nav-forward"]}
+      prefetch={true}
       data-reveal="scale"
       className="cv-auto lift press group relative flex w-40 shrink-0 snap-start flex-col items-center overflow-hidden rounded-3xl bg-gradient-to-br from-vert to-vert-fonce p-3 pt-4 text-center text-white shadow-md shadow-vert/20 md:w-44"
     >
@@ -25,7 +27,8 @@ export function DealCard({ p, categorie }: { p: CarteProduit; categorie?: string
       )}
       <div className="zoom-scroll relative mt-3 h-20 w-20 overflow-hidden rounded-full bg-white/20 ring-[3px] ring-white/30 transition-transform duration-500 group-hover:-rotate-3 group-hover:scale-105">
         {p.image ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
+          <ViewTransition name={p.id !== undefined ? `produit-${p.id}` : undefined} default="none" share="morph">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={cloud(p.image, 300) ?? p.image}
             alt={p.nom}
@@ -33,6 +36,7 @@ export function DealCard({ p, categorie }: { p: CarteProduit; categorie?: string
             decoding="async"
             className="h-full w-full object-cover"
           />
+          </ViewTransition>
         ) : (
           <div className="flex h-full items-center justify-center text-white/50">
             

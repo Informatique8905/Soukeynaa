@@ -72,7 +72,7 @@ export default async function CategoriePage({
           <section key={g.label ?? "unique"}>
             {g.label && (
               <h2
-                className={`${i === 0 ? "mt-5" : "mt-9"} text-lg font-extrabold tracking-tight text-noir`}
+                className={`${i === 0 ? "mt-5" : "mt-9"} font-display text-xl font-bold tracking-tight text-noir`}
               >
                 {g.label}
                 <span className="ml-2 text-sm font-semibold text-gris-fonce">

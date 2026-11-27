@@ -81,7 +81,7 @@ export default async function RecherchePage({
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6">
-      <h1 data-reveal="left" className="text-2xl font-extrabold tracking-tight text-noir">
+      <h1 data-reveal="left" className="font-display text-2xl font-bold tracking-tight text-noir">
         Recherche
       </h1>
 
