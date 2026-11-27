@@ -124,13 +124,22 @@ export function BoutonPayer({
   );
 }
 
-/** Recharge les données serveur à intervalle tant que `actif` (attente webhook). */
+/** Recharge les données serveur à intervalle tant que `actif` (attente webhook)
+ * ou tant que la commande n'est pas terminée. En pause quand l'onglet est
+ * masqué ; refresh immédiat au retour sur l'onglet. */
 export function RafraichirAuto({ actif, ms = 5000 }: { actif: boolean; ms?: number }) {
   const router = useRouter();
   useEffect(() => {
     if (!actif) return;
-    const t = window.setInterval(() => router.refresh(), ms);
-    return () => clearInterval(t);
+    const rafraichir = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    const t = window.setInterval(rafraichir, ms);
+    document.addEventListener("visibilitychange", rafraichir);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", rafraichir);
+    };
   }, [actif, ms, router]);
   return null;
 }

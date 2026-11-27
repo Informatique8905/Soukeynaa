@@ -141,7 +141,12 @@ export default async function CommandePage({
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 md:py-10">
-      <RafraichirAuto actif={enVerification} />
+      {/* Actualisation automatique : rapide en vérification de paiement
+          (webhook attendu), cadence normale tant que la commande évolue. */}
+      <RafraichirAuto
+        actif={!annulee && commande.statut !== "livree"}
+        ms={enVerification ? 5000 : 20000}
+      />
       <div className="flex items-center justify-between print:hidden">
         <Link
           href="/commandes"
