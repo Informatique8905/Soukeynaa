@@ -35,6 +35,7 @@ export default async function AdminDashboard() {
     aPreparer,
     paiementsAVerifier,
     ruptures,
+    emailsEnErreur,
     commandes8Semaines,
     enCours,
     journal,
@@ -57,6 +58,7 @@ export default async function AdminDashboard() {
         ],
       },
     }),
+    prisma.notification.count({ where: { statut: "erreur" } }),
     prisma.order.findMany({
       where: { createdAt: { gte: premierLundi } },
       select: { createdAt: true, statutPaiement: true },
@@ -121,6 +123,7 @@ export default async function AdminDashboard() {
       aPreparer,
       paiementsAVerifier,
       ruptures,
+      emailsEnErreur,
     },
     ventes: semaines.map(({ semaine, commandes, payees }) => ({
       semaine,

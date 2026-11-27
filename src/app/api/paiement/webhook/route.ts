@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getPrisma } from "@/lib/db";
 import {
   signatureValide,
@@ -112,12 +112,14 @@ export async function POST(req: Request) {
         });
       });
       if (appliquee) {
-        alerterAdmin(
-          "alerte_admin_anomalie",
-          `Paiement à vérifier ${paiement.referenceCommande}`,
-          `<p>Paiement confirmé par l'agrégateur alors que la tentative de la commande <strong>${paiement.referenceCommande}</strong> était ${paiement.statut}. Revue admin requise (CDC 10.12).</p>`,
-          paiement.commandeId
-        ).catch(() => {});
+        after(() =>
+          alerterAdmin(
+            "alerte_admin_anomalie",
+            `Paiement à vérifier ${paiement.referenceCommande}`,
+            `<p>Paiement confirmé par l'agrégateur alors que la tentative de la commande <strong>${paiement.referenceCommande}</strong> était ${paiement.statut}. Revue admin requise (CDC 10.12).</p>`,
+            paiement.commandeId
+          ).catch(() => {})
+        );
       }
       return NextResponse.json({ ok: true });
     }
@@ -158,21 +160,27 @@ export async function POST(req: Request) {
   if (!appliquee) return NextResponse.json({ ok: true });
 
   // Effets post-transaction (emails dédupliqués, non bloquants)
+  // after() garantit l'aboutissement des envois en serverless : un
+  // fire-and-forget peut être tué avant la fin du fetch SMTP.
   if (statutFinal === "confirme") {
-    envoyerBonCommande(paiement.commandeId).catch(() => {});
-    alerterAdmin(
-      "alerte_admin_commande",
-      `Nouvelle commande payée ${paiement.referenceCommande}`,
-      `<p>La commande <strong>${paiement.referenceCommande}</strong> vient d'être payée (${paiement.montant} FCFA).</p>`,
-      paiement.commandeId
-    ).catch(() => {});
+    after(async () => {
+      await envoyerBonCommande(paiement.commandeId).catch(() => {});
+      await alerterAdmin(
+        "alerte_admin_commande",
+        `Nouvelle commande payée ${paiement.referenceCommande}`,
+        `<p>La commande <strong>${paiement.referenceCommande}</strong> vient d'être payée (${paiement.montant} FCFA).</p>`,
+        paiement.commandeId
+      ).catch(() => {});
+    });
   } else if (statutFinal === "a_verifier") {
-    alerterAdmin(
-      "alerte_admin_anomalie",
-      `Anomalie paiement ${paiement.referenceCommande}`,
-      `<p>Montant divergent sur la commande <strong>${paiement.referenceCommande}</strong>. Revue admin requise (CDC 10.8).</p>`,
-      paiement.commandeId
-    ).catch(() => {});
+    after(() =>
+      alerterAdmin(
+        "alerte_admin_anomalie",
+        `Anomalie paiement ${paiement.referenceCommande}`,
+        `<p>Montant divergent sur la commande <strong>${paiement.referenceCommande}</strong>. Revue admin requise (CDC 10.8).</p>`,
+        paiement.commandeId
+      ).catch(() => {})
+    );
   }
 
   return NextResponse.json({ ok: true });

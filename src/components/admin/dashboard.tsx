@@ -30,6 +30,7 @@ export type DonneesDashboard = {
     aPreparer: number;
     paiementsAVerifier: number;
     ruptures: number;
+    emailsEnErreur: number;
   };
   ventes: { semaine: string; commandes: number; payees: number }[];
   enCours: {
@@ -100,7 +101,7 @@ export function DashboardAdmin({
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <Indicateur
           label="Chiffre d'affaires du jour"
           valeur={fcfa(stats.caJour)}
@@ -134,6 +135,16 @@ export function DashboardAdmin({
           ton={stats.ruptures > 0 ? "danger" : "neutre"}
           note="Produits publiés sans stock"
           action={<LienAction href="/admin/produits">Gérer le stock</LienAction>}
+        />
+        <Indicateur
+          label="Emails non envoyés"
+          valeur={stats.emailsEnErreur}
+          ton={stats.emailsEnErreur > 0 ? "danger" : "neutre"}
+          note={
+            stats.emailsEnErreur > 0
+              ? "Clients sans bon de commande — expéditeur à vérifier"
+              : "Tous les emails sont partis"
+          }
         />
       </div>
 

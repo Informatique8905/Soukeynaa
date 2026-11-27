@@ -5,6 +5,7 @@ import { fcfa, dateHeureFr } from "@/lib/format";
 import {
   changerStatutCommande,
   enregistrerNoteInterne,
+  renvoyerBonCommandeAdmin,
 } from "../actions";
 import type { StatutCommande as StatutCmd } from "@/generated/prisma/enums";
 import { DelaiLivraisonForm } from "@/components/admin/DelaiLivraisonForm";
@@ -67,6 +68,19 @@ export default async function DetailCommande({
   });
   if (!commande) notFound();
 
+  const notifBon = await prisma.notification.findFirst({
+    where: {
+      commandeId: commande.id,
+      OR: [
+        { cleDedup: { startsWith: "bon_commande:" } },
+        { cleDedup: { startsWith: "bonmaj:" } },
+        { cleDedup: { startsWith: "bonrenvoi:" } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+    select: { statut: true, erreur: true, envoyeLe: true },
+  });
+
   const livraison = commande.modePaiement === "livraison";
   const actions = (livraison ? SUIVANT_LIVRAISON : SUIVANT_EN_LIGNE)[
     commande.statut
@@ -126,6 +140,31 @@ export default async function DetailCommande({
           <p className="mt-0.5 text-sm text-muted-foreground">
             {commande.clientEmail || "Pas d'email"}
           </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            {commande.bonEnvoyeLe || notifBon?.statut === "envoye" ? (
+              <Pastille ton="vert">
+                Bon envoyé{" "}
+                {commande.bonEnvoyeLe
+                  ? `le ${dateHeureFr(commande.bonEnvoyeLe)}`
+                  : notifBon?.envoyeLe
+                    ? `le ${dateHeureFr(notifBon.envoyeLe)}`
+                    : ""}
+              </Pastille>
+            ) : notifBon?.statut === "erreur" ? (
+              <Pastille ton="rouge">
+                Bon non envoyé{notifBon.erreur ? ` — ${notifBon.erreur}` : ""}
+              </Pastille>
+            ) : (
+              <Pastille ton="ambre">Bon non envoyé</Pastille>
+            )}
+            {commande.clientEmail && (
+              <form action={renvoyerBonCommandeAdmin.bind(null, commande.id)}>
+                <button className={lien} type="submit">
+                  Renvoyer le bon
+                </button>
+              </form>
+            )}
+          </div>
         </Panneau>
         <Panneau titre="Livraison">
           <p className="font-semibold">

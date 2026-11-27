@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getPrisma } from "@/lib/db";
 import {
   journaliser,
@@ -64,7 +64,7 @@ export async function GET(req: Request) {
       if (appliquee) {
         resolus.push(p.referenceCommande);
         if (final === "confirme") {
-          envoyerBonCommande(p.commandeId).catch(() => {});
+          after(() => envoyerBonCommande(p.commandeId).catch(() => {}));
         } else if (final === "a_verifier") {
           signales.push(p.commande.reference);
         }
@@ -92,11 +92,13 @@ export async function GET(req: Request) {
   });
 
   if (signales.length > 0) {
-    alerterAdmin(
-      "alerte_admin_anomalie",
-      `${signales.length} paiement(s) à vérifier`,
-      `<p>Paiements nécessitant une revue : ${signales.join(", ")} (CDC 10.11).</p>`
-    ).catch(() => {});
+    after(() =>
+      alerterAdmin(
+        "alerte_admin_anomalie",
+        `${signales.length} paiement(s) à vérifier`,
+        `<p>Paiements nécessitant une revue : ${signales.join(", ")} (CDC 10.11).</p>`
+      ).catch(() => {})
+    );
   }
 
   return NextResponse.json({

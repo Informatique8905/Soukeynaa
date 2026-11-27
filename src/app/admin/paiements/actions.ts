@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { getPrisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 import { logAudit } from "@/lib/audit";
@@ -63,7 +64,7 @@ export async function resoudrePaiement(
 
   // Bon de commande au client quand la confirmation est manuelle (CDC 12.2)
   if (resolution === "confirme") {
-    envoyerBonCommande(paiement.commandeId).catch(() => {});
+    after(() => envoyerBonCommande(paiement.commandeId).catch(() => {}));
   }
 
   await logAudit({

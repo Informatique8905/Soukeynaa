@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { cookies, headers } from "next/headers";
 import { getPrisma } from "@/lib/db";
 import { auth } from "@/auth";
@@ -226,8 +227,10 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
   });
 
   // Bon de commande + message de prise en charge : envoyé dès la création,
-  // avant toute confirmation admin (non bloquant)
-  envoyerBonCommande(commandeCree.id).catch(() => {});
+  // avant toute confirmation admin. after() laisse la réponse partir vite
+  // tout en garantissant que l'envoi aboutit en serverless (un
+  // fire-and-forget serait tué avant la fin du fetch SMTP).
+  after(() => envoyerBonCommande(commandeCree.id).catch(() => {}));
 
   // À la livraison : alerte admin immédiate (non bloquant)
   if (aLaLivraison) {
@@ -236,12 +239,14 @@ export async function creerCommande(input: unknown): Promise<CheckoutResult> {
       select: { id: true, total: true, communeNom: true, clientNom: true },
     });
     if (c) {
-      alerterAdmin(
-        "alerte_admin_commande",
-        `Nouvelle commande à la livraison ${reference}`,
-        `<p>${c.clientNom}, ${c.communeNom}, ${fcfa(c.total)} à encaisser à la livraison.</p>`,
-        c.id
-      ).catch(() => {});
+      after(() =>
+        alerterAdmin(
+          "alerte_admin_commande",
+          `Nouvelle commande à la livraison ${reference}`,
+          `<p>${c.clientNom}, ${c.communeNom}, ${fcfa(c.total)} à encaisser à la livraison.</p>`,
+          c.id
+        ).catch(() => {})
+      );
     }
   }
 
