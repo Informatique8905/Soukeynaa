@@ -37,6 +37,14 @@ const MOYENS: Record<string, MoyenPaiement> = {
 export async function POST(req: Request) {
   const prisma = getPrisma();
   const corpsBrut = await req.text();
+  // Borne de taille : le HMAC du corps est calculé avant toute auth —
+  // un payload démesuré coûterait CPU/mémoire à chaque POST anonyme.
+  if (corpsBrut.length > 64_000) {
+    return NextResponse.json(
+      { erreur: "Corps trop volumineux" },
+      { status: 413 }
+    );
+  }
 
   // 1. Signature obligatoire (CDC 10.5) — corps brut, avant tout parsing
   const signature = req.headers.get("jeko-signature");

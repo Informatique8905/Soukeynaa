@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { getPrisma } from "@/lib/db";
 import { verifierIdsCommandes, COOKIE_COMMANDES } from "@/lib/ownership";
+import { autorise, ipClient } from "@/lib/ratelimit";
 import { bus, EVT, type Changement } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,11 @@ export const dynamic = "force-dynamic";
 // (session ou cookie signé — même règle de propriété que /api/etat).
 // Heartbeat 25 s + borne 10 min (le client EventSource reconnecte seul).
 export async function GET(req: Request) {
+  // Chaque connexion vit jusqu'à 10 min (listener + heartbeat) : borne
+  // par IP contre l'épuisement de ressources par ouverture en masse.
+  if (!autorise(`stream:${ipClient(req)}`, 20, 60_000)) {
+    return new Response("Trop de connexions", { status: 429 });
+  }
   const scope = new URL(req.url).searchParams.get("scope");
   const prisma = getPrisma();
 

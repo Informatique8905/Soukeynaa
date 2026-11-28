@@ -38,6 +38,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const ok = await bcrypt.compare(motDePasse, user.motDePasseHash);
         if (!ok) {
+          // Fenêtre de blocage active : échec rejeté sans incrémenter,
+          // sinon chaque tentative prolongerait indéfiniment la sanction.
+          if (user.bloqueJusqua && user.bloqueJusqua > new Date()) {
+            return null;
+          }
           const tentatives = user.tentativesEchec + 1;
           await prisma.user.update({
             where: { id: user.id },
